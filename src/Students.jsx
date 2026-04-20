@@ -43,6 +43,7 @@ export default function Students({ user, school }) {
   const [graduateConfirm, setGraduateConfirm] = useState(false)
   const [graduateForm, setGraduateForm] = useState({ graduation_year: new Date().getFullYear(), grade_completed: '' })
   const [graduating, setGraduating] = useState(false)
+  const [repeatGrade, setRepeatGrade] = useState(false)
   const [error, setError] = useState(null)
 
   useEffect(() => {
@@ -131,6 +132,7 @@ export default function Students({ user, school }) {
   const startEdit = () => {
     setEditForm({ ...selected })
     setEditing(true)
+    setRepeatGrade(false)
     setDeleteConfirm(false)
   }
 
@@ -151,7 +153,10 @@ export default function Students({ user, school }) {
     if (error) {
       setError(error.message)
     } else {
-      if (editForm.grade && editForm.grade !== selected.grade) {
+      const gradeChanged = editForm.grade && editForm.grade !== selected.grade
+      const gradeRepeated = editForm.grade && editForm.grade === selected.grade && repeatGrade
+
+      if (gradeChanged) {
         const currentIdx = ALL_GRADES.indexOf(selected.grade)
         const newIdx = ALL_GRADES.indexOf(editForm.grade)
         if (currentIdx !== -1 && newIdx !== -1 && newIdx < currentIdx) {
@@ -159,13 +164,18 @@ export default function Students({ user, school }) {
           setSaving(false)
           return
         }
+      }
+
+      if (gradeChanged || gradeRepeated) {
         await supabase.from('student_grade_history').insert([{
           student_id: selected.id,
           grade: editForm.grade,
           academic_year: getAcademicYear(),
+          is_repeat: gradeRepeated,
           school_id: user.id,
         }])
         fetchGradeHistory(selected.id)
+        setRepeatGrade(false)
       }
       setSelected(data)
       setEditing(false)
@@ -373,7 +383,10 @@ export default function Students({ user, school }) {
                                 </span>
                                 <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{entry.academic_year}</span>
                               </div>
-                              {isCurrent && <span style={{ fontSize: '0.75rem', color: '#f97316', fontWeight: '500' }}>current</span>}
+                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                {isCurrent && <span style={{ fontSize: '0.75rem', color: '#f97316', fontWeight: '500' }}>current</span>}
+                                {entry.is_repeat && <span style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: '500' }}>repeated</span>}
+                              </div>
                             </div>
                           )
                         })}
@@ -471,10 +484,23 @@ export default function Students({ user, school }) {
 
                     <div>
                       <label style={labelStyle}>Grade</label>
-                      <select name="grade" value={editForm.grade || ''} onChange={handleEditChange} style={inputStyle}>
+                      <select name="grade" value={editForm.grade || ''} onChange={e => { handleEditChange(e); setRepeatGrade(false) }} style={inputStyle}>
                         <option value="">Select grade</option>
                         {GRADES.map((g) => <option key={g}>{g}</option>)}
                       </select>
+                      {editForm.grade && editForm.grade === selected.grade && (
+                        <div
+                          onClick={() => setRepeatGrade(!repeatGrade)}
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', cursor: 'pointer', userSelect: 'none' }}
+                        >
+                          <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `2px solid ${repeatGrade ? '#f97316' : '#d1d5db'}`, background: repeatGrade ? '#f97316' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            {repeatGrade && <span style={{ color: 'white', fontSize: '0.7rem', fontWeight: 'bold' }}>✓</span>}
+                          </div>
+                          <span style={{ fontSize: '0.875rem', color: repeatGrade ? '#f97316' : '#6b7280', fontWeight: repeatGrade ? '600' : '400' }}>
+                            Student is repeating this grade
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div>

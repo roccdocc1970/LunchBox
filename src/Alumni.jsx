@@ -387,7 +387,10 @@ export default function Alumni({ user, school }) {
                                 <span style={{ fontSize: '0.875rem', fontWeight: isFinal ? '600' : '400', color: isFinal ? '#f97316' : '#374151' }}>{entry.grade}</span>
                                 <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{entry.academic_year}</span>
                               </div>
-                              {isFinal && <span style={{ fontSize: '0.75rem', color: '#f97316', fontWeight: '500' }}>graduated</span>}
+                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                {isFinal && <span style={{ fontSize: '0.75rem', color: '#f97316', fontWeight: '500' }}>graduated</span>}
+                                {entry.is_repeat && <span style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: '500' }}>repeated</span>}
+                              </div>
                             </div>
                           )
                         })}
