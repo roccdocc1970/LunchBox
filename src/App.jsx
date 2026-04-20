@@ -2,6 +2,7 @@ import Landing from './Landing'
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 import Enrollment from './Enrollment'
+import Messages from './Messages'
 
 function App() {
   const [email, setEmail] = useState('')
@@ -140,6 +141,7 @@ if (showLanding && !session) {
             )}
 
             {activePage === 'enrollment' && <Enrollment user={session.user} />}
+            {activePage === 'messages' && <Messages user={session.user} />}
 
             {['messages', 'students', 'reports'].includes(activePage) && (
               <div style={{ padding: '2rem', textAlign: 'center', marginTop: '4rem' }}>
