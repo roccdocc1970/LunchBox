@@ -390,6 +390,7 @@ export default function Alumni({ user, school }) {
                               <div style={{ display: 'flex', gap: '0.5rem' }}>
                                 {isFinal && <span style={{ fontSize: '0.75rem', color: '#f97316', fontWeight: '500' }}>graduated</span>}
                                 {entry.is_repeat && <span style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: '500' }}>repeated</span>}
+                                {entry.is_skip && <span style={{ fontSize: '0.75rem', color: '#8b5cf6', fontWeight: '500' }}>skipped</span>}
                               </div>
                             </div>
                           )

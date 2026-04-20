@@ -44,6 +44,7 @@ export default function Students({ user, school }) {
   const [graduateForm, setGraduateForm] = useState({ graduation_year: new Date().getFullYear(), grade_completed: '' })
   const [graduating, setGraduating] = useState(false)
   const [repeatGrade, setRepeatGrade] = useState(false)
+  const [skipGrade, setSkipGrade] = useState(false)
   const [error, setError] = useState(null)
 
   useEffect(() => {
@@ -133,6 +134,7 @@ export default function Students({ user, school }) {
     setEditForm({ ...selected })
     setEditing(true)
     setRepeatGrade(false)
+    setSkipGrade(false)
     setDeleteConfirm(false)
   }
 
@@ -159,8 +161,15 @@ export default function Students({ user, school }) {
       if (gradeChanged) {
         const currentIdx = ALL_GRADES.indexOf(selected.grade)
         const newIdx = ALL_GRADES.indexOf(editForm.grade)
+
         if (currentIdx !== -1 && newIdx !== -1 && newIdx < currentIdx) {
           setError(`Cannot move a student back from ${selected.grade} to ${editForm.grade}. Grade changes must move forward.`)
+          setSaving(false)
+          return
+        }
+
+        if (currentIdx !== -1 && newIdx !== -1 && newIdx > currentIdx + 1 && !skipGrade) {
+          setError(`${editForm.grade} skips one or more grades. Check "Student is skipping a grade" to confirm this is intentional.`)
           setSaving(false)
           return
         }
@@ -172,10 +181,16 @@ export default function Students({ user, school }) {
           grade: editForm.grade,
           academic_year: getAcademicYear(),
           is_repeat: gradeRepeated,
+          is_skip: gradeChanged && (() => {
+            const currentIdx = ALL_GRADES.indexOf(selected.grade)
+            const newIdx = ALL_GRADES.indexOf(editForm.grade)
+            return currentIdx !== -1 && newIdx !== -1 && newIdx > currentIdx + 1
+          })(),
           school_id: user.id,
         }])
         fetchGradeHistory(selected.id)
         setRepeatGrade(false)
+        setSkipGrade(false)
       }
       setSelected(data)
       setEditing(false)
@@ -386,6 +401,7 @@ export default function Students({ user, school }) {
                               <div style={{ display: 'flex', gap: '0.5rem' }}>
                                 {isCurrent && <span style={{ fontSize: '0.75rem', color: '#f97316', fontWeight: '500' }}>current</span>}
                                 {entry.is_repeat && <span style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: '500' }}>repeated</span>}
+                                {entry.is_skip && <span style={{ fontSize: '0.75rem', color: '#8b5cf6', fontWeight: '500' }}>skipped</span>}
                               </div>
                             </div>
                           )
@@ -484,20 +500,35 @@ export default function Students({ user, school }) {
 
                     <div>
                       <label style={labelStyle}>Grade</label>
-                      <select name="grade" value={editForm.grade || ''} onChange={e => { handleEditChange(e); setRepeatGrade(false) }} style={inputStyle}>
+                      <select name="grade" value={editForm.grade || ''} onChange={e => { handleEditChange(e); setRepeatGrade(false); setSkipGrade(false) }} style={inputStyle}>
                         <option value="">Select grade</option>
                         {GRADES.map((g) => <option key={g}>{g}</option>)}
                       </select>
+                      {/* Repeat checkbox */}
                       {editForm.grade && editForm.grade === selected.grade && (
-                        <div
-                          onClick={() => setRepeatGrade(!repeatGrade)}
-                          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', cursor: 'pointer', userSelect: 'none' }}
-                        >
+                        <div onClick={() => setRepeatGrade(!repeatGrade)}
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', cursor: 'pointer', userSelect: 'none' }}>
                           <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `2px solid ${repeatGrade ? '#f97316' : '#d1d5db'}`, background: repeatGrade ? '#f97316' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             {repeatGrade && <span style={{ color: 'white', fontSize: '0.7rem', fontWeight: 'bold' }}>✓</span>}
                           </div>
                           <span style={{ fontSize: '0.875rem', color: repeatGrade ? '#f97316' : '#6b7280', fontWeight: repeatGrade ? '600' : '400' }}>
                             Student is repeating this grade
+                          </span>
+                        </div>
+                      )}
+                      {/* Skip checkbox */}
+                      {editForm.grade && editForm.grade !== selected.grade && (() => {
+                        const currentIdx = ALL_GRADES.indexOf(selected.grade)
+                        const newIdx = ALL_GRADES.indexOf(editForm.grade)
+                        return currentIdx !== -1 && newIdx !== -1 && newIdx > currentIdx + 1
+                      })() && (
+                        <div onClick={() => setSkipGrade(!skipGrade)}
+                          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', cursor: 'pointer', userSelect: 'none' }}>
+                          <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `2px solid ${skipGrade ? '#8b5cf6' : '#d1d5db'}`, background: skipGrade ? '#8b5cf6' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            {skipGrade && <span style={{ color: 'white', fontSize: '0.7rem', fontWeight: 'bold' }}>✓</span>}
+                          </div>
+                          <span style={{ fontSize: '0.875rem', color: skipGrade ? '#8b5cf6' : '#6b7280', fontWeight: skipGrade ? '600' : '400' }}>
+                            Student is skipping a grade
                           </span>
                         </div>
                       )}
