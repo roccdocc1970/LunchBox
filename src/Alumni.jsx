@@ -109,7 +109,7 @@ export default function Alumni({ user, school }) {
   const reenrollAsStudent = async () => {
     setReenrolling(true)
     setError(null)
-    const { error: insertError } = await supabase.from('students').insert([{
+    const { data: newStudent, error: insertError } = await supabase.from('students').insert([{
       first_name: selected.first_name,
       last_name: selected.last_name,
       grade: selected.grade_completed || '',
@@ -119,11 +119,18 @@ export default function Alumni({ user, school }) {
       address: selected.address || '',
       status: 'Applied',
       school_id: user.id,
-    }])
+    }]).select().single()
     if (insertError) {
       setError(insertError.message)
       setReenrolling(false)
       return
+    }
+    // Reattach grade history to the new student record
+    if (selected.original_student_id) {
+      await supabase
+        .from('student_grade_history')
+        .update({ student_id: newStudent.id })
+        .eq('student_id', selected.original_student_id)
     }
     await supabase.from('alumni').delete().eq('id', selected.id)
     setReenrolling(false)
