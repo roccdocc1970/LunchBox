@@ -6,6 +6,7 @@ import Messages from './Messages'
 import Onboarding from './Onboarding'
 import Settings from './Settings'
 import Students from './Students'
+import Reports from './Reports'
 
 function App() {
   const [email, setEmail] = useState('')
@@ -165,15 +166,8 @@ if (session && !checkingSchool && !school) {
             {activePage === 'enrollment' && <Enrollment user={session.user} />}
             {activePage === 'messages' && <Messages user={session.user} />}
             {activePage === 'students' && <Students user={session.user} />}
+            {activePage === 'reports' && <Reports user={session.user} school={school} />}
             {activePage === 'settings' && <Settings user={session.user} school={school} onUpdate={(updated) => setSchool(updated)} />}
-
-            {['reports'].includes(activePage) && (
-              <div style={{ padding: '2rem', textAlign: 'center', marginTop: '4rem' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚧</div>
-                <h3 style={{ color: '#1f2937', fontSize: '1.25rem' }}>Coming Soon</h3>
-                <p style={{ color: '#6b7280' }}>This module is under construction. Check back soon!</p>
-              </div>
-            )}
           </div>
         </div>
       </div>
