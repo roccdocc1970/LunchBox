@@ -5,6 +5,7 @@ import Enrollment from './Enrollment'
 import Messages from './Messages'
 import Onboarding from './Onboarding'
 import Settings from './Settings'
+import Students from './Students'
 
 function App() {
   const [email, setEmail] = useState('')
@@ -163,9 +164,10 @@ if (session && !checkingSchool && !school) {
 
             {activePage === 'enrollment' && <Enrollment user={session.user} />}
             {activePage === 'messages' && <Messages user={session.user} />}
+            {activePage === 'students' && <Students user={session.user} />}
             {activePage === 'settings' && <Settings user={session.user} school={school} onUpdate={(updated) => setSchool(updated)} />}
 
-            {['students', 'reports'].includes(activePage) && (
+            {['reports'].includes(activePage) && (
               <div style={{ padding: '2rem', textAlign: 'center', marginTop: '4rem' }}>
                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚧</div>
                 <h3 style={{ color: '#1f2937', fontSize: '1.25rem' }}>Coming Soon</h3>
