@@ -20,6 +20,12 @@ const parseGrades = (school) => {
   } catch { return null }
 }
 
+const getAcademicYear = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  return now.getMonth() >= 7 ? `${year}-${year + 1}` : `${year - 1}-${year}`
+}
+
 export default function Students({ user, school }) {
   const configuredGrades = parseGrades(school)
   const GRADES = configuredGrades || ALL_GRADES
@@ -29,6 +35,7 @@ export default function Students({ user, school }) {
   const [filterGrade, setFilterGrade] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [selected, setSelected] = useState(null)
+  const [gradeHistory, setGradeHistory] = useState([])
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState({})
   const [saving, setSaving] = useState(false)
@@ -66,6 +73,15 @@ export default function Students({ user, school }) {
 
   const statusColor = (status) => STATUS_COLORS[status] || '#6b7280'
 
+  const fetchGradeHistory = async (studentId) => {
+    const { data } = await supabase
+      .from('student_grade_history')
+      .select('*')
+      .eq('student_id', studentId)
+      .order('recorded_at', { ascending: true })
+    setGradeHistory(data || [])
+  }
+
   const graduateToAlumni = async () => {
     setGraduating(true)
     setError(null)
@@ -80,6 +96,7 @@ export default function Students({ user, school }) {
       donor_status: 'Never',
       relationship: 'None',
       opt_in: true,
+      original_student_id: selected.id,
       school_id: user.id,
     }])
     if (insertError) {
@@ -99,10 +116,12 @@ export default function Students({ user, school }) {
     setDeleteConfirm(false)
     setGraduateConfirm(false)
     setError(null)
+    fetchGradeHistory(student.id)
   }
 
   const closeProfile = () => {
     setSelected(null)
+    setGradeHistory([])
     setEditing(false)
     setDeleteConfirm(false)
     setGraduateConfirm(false)
@@ -132,6 +151,15 @@ export default function Students({ user, school }) {
     if (error) {
       setError(error.message)
     } else {
+      if (editForm.grade && editForm.grade !== selected.grade) {
+        await supabase.from('student_grade_history').insert([{
+          student_id: selected.id,
+          grade: editForm.grade,
+          academic_year: getAcademicYear(),
+          school_id: user.id,
+        }])
+        fetchGradeHistory(selected.id)
+      }
       setSelected(data)
       setEditing(false)
       fetchStudents()
@@ -319,6 +347,31 @@ export default function Students({ user, school }) {
                     <Field label="Name" value={selected.parent_name || '—'} />
                     <Field label="Email" value={selected.parent_email || '—'} />
                     <Field label="Phone" value={selected.parent_phone || '—'} />
+                  </Section>
+
+                  <Section title="Academic Journey">
+                    {gradeHistory.length === 0 ? (
+                      <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: 0 }}>No grade history recorded yet.</p>
+                    ) : (
+                      <div style={{ position: 'relative', paddingLeft: '1.25rem' }}>
+                        <div style={{ position: 'absolute', left: '5px', top: 0, bottom: 0, width: '2px', background: '#e5e7eb' }} />
+                        {gradeHistory.map((entry, i) => {
+                          const isCurrent = i === gradeHistory.length - 1
+                          return (
+                            <div key={entry.id} style={{ position: 'relative', marginBottom: i < gradeHistory.length - 1 ? '0.875rem' : 0 }}>
+                              <div style={{ position: 'absolute', left: '-1.1rem', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: isCurrent ? '#f97316' : '#d1d5db', border: `2px solid ${isCurrent ? '#f97316' : '#e5e7eb'}` }} />
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.875rem', fontWeight: isCurrent ? '600' : '400', color: isCurrent ? '#f97316' : '#374151' }}>
+                                  {entry.grade}
+                                </span>
+                                <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{entry.academic_year}</span>
+                              </div>
+                              {isCurrent && <span style={{ fontSize: '0.75rem', color: '#f97316', fontWeight: '500' }}>current</span>}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
                   </Section>
 
                   <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>

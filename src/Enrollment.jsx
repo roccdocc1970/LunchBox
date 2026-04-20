@@ -14,6 +14,12 @@ const parseGrades = (school) => {
   } catch { return null }
 }
 
+const getAcademicYear = () => {
+  const now = new Date()
+  const year = now.getFullYear()
+  return now.getMonth() >= 7 ? `${year}-${year + 1}` : `${year - 1}-${year}`
+}
+
 export default function Enrollment({ user, school }) {
   const configuredGrades = parseGrades(school)
   const GRADES = configuredGrades || ALL_GRADES
@@ -55,12 +61,22 @@ export default function Enrollment({ user, school }) {
   const handleSubmit = async () => {
     setSaving(true)
     setError(null)
-    const { error } = await supabase
+    const { data: newStudent, error } = await supabase
       .from('students')
       .insert([{ ...form, school_id: user.id }])
+      .select()
+      .single()
     if (error) {
       setError(error.message)
     } else {
+      if (form.grade) {
+        await supabase.from('student_grade_history').insert([{
+          student_id: newStudent.id,
+          grade: form.grade,
+          academic_year: getAcademicYear(),
+          school_id: user.id,
+        }])
+      }
       setForm({
         first_name: '', last_name: '', grade: '', date_of_birth: '',
         parent_name: '', parent_email: '', parent_phone: '', address: '', notes: ''

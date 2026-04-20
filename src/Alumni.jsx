@@ -36,6 +36,7 @@ const parseGrades = (school) => {
 export default function Alumni({ user, school }) {
   const configuredGrades = parseGrades(school)
   const GRADES = configuredGrades || ALL_GRADES
+
   const [alumni, setAlumni] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -49,6 +50,7 @@ export default function Alumni({ user, school }) {
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [reenrollConfirm, setReenrollConfirm] = useState(false)
   const [reenrolling, setReenrolling] = useState(false)
+  const [gradeHistory, setGradeHistory] = useState([])
   const [error, setError] = useState(null)
 
   useEffect(() => { fetchAlumni() }, [])
@@ -129,16 +131,28 @@ export default function Alumni({ user, school }) {
     fetchAlumni()
   }
 
+  const fetchGradeHistory = async (studentId) => {
+    if (!studentId) return
+    const { data } = await supabase
+      .from('student_grade_history')
+      .select('*')
+      .eq('student_id', studentId)
+      .order('recorded_at', { ascending: true })
+    setGradeHistory(data || [])
+  }
+
   const openProfile = (alumnus) => {
     setSelected(alumnus)
     setEditing(false)
     setDeleteConfirm(false)
     setReenrollConfirm(false)
     setError(null)
+    fetchGradeHistory(alumnus.original_student_id)
   }
 
   const closeProfile = () => {
     setSelected(null)
+    setGradeHistory([])
     setEditing(false)
     setDeleteConfirm(false)
     setReenrollConfirm(false)
@@ -352,6 +366,27 @@ export default function Alumni({ user, school }) {
                     <DrawerField label="Donor Status" value={selected.donor_status || 'Never'} />
                     <DrawerField label="Opt-In" value={selected.opt_in ? 'Yes — OK to contact' : 'No — Do not contact'} />
                   </DrawerSection>
+
+                  {gradeHistory.length > 0 && (
+                    <DrawerSection title="Academic Journey">
+                      <div style={{ position: 'relative', paddingLeft: '1.25rem' }}>
+                        <div style={{ position: 'absolute', left: '5px', top: 0, bottom: 0, width: '2px', background: '#e5e7eb' }} />
+                        {gradeHistory.map((entry, i) => {
+                          const isFinal = i === gradeHistory.length - 1
+                          return (
+                            <div key={entry.id} style={{ position: 'relative', marginBottom: i < gradeHistory.length - 1 ? '0.875rem' : 0 }}>
+                              <div style={{ position: 'absolute', left: '-1.1rem', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: isFinal ? '#f97316' : '#d1d5db', border: `2px solid ${isFinal ? '#f97316' : '#e5e7eb'}` }} />
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.875rem', fontWeight: isFinal ? '600' : '400', color: isFinal ? '#f97316' : '#374151' }}>{entry.grade}</span>
+                                <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{entry.academic_year}</span>
+                              </div>
+                              {isFinal && <span style={{ fontSize: '0.75rem', color: '#f97316', fontWeight: '500' }}>graduated</span>}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </DrawerSection>
+                  )}
 
                   <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
                     <button onClick={startEdit}
