@@ -96,6 +96,7 @@ export default function Alumni({ user }) {
       first_name: selected.first_name,
       last_name: selected.last_name,
       grade: selected.grade_completed || '',
+      parent_name: `${selected.first_name} ${selected.last_name}`,
       parent_email: selected.email || '',
       parent_phone: selected.phone || '',
       address: selected.address || '',
@@ -353,6 +354,7 @@ export default function Alumni({ user }) {
                     <div style={{ marginTop: '1rem', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '0.75rem', padding: '1rem' }}>
                       <p style={{ color: '#14532d', fontWeight: '600', margin: '0 0 0.5rem' }}>Re-enroll {selected.first_name} {selected.last_name} as a student?</p>
                       <p style={{ color: '#15803d', fontSize: '0.875rem', margin: '0 0 1rem' }}>They will be moved back to the student roster with <strong>Applied</strong> status. Their alumni record will be removed.</p>
+                      {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', margin: '0 0 0.75rem' }}>{error}</p>}
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button onClick={reenrollAsStudent} disabled={reenrolling}
                           style={{ background: '#16a34a', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: '600', cursor: 'pointer' }}>
