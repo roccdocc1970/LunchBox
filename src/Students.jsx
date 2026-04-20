@@ -152,6 +152,13 @@ export default function Students({ user, school }) {
       setError(error.message)
     } else {
       if (editForm.grade && editForm.grade !== selected.grade) {
+        const currentIdx = ALL_GRADES.indexOf(selected.grade)
+        const newIdx = ALL_GRADES.indexOf(editForm.grade)
+        if (currentIdx !== -1 && newIdx !== -1 && newIdx < currentIdx) {
+          setError(`Cannot move a student back from ${selected.grade} to ${editForm.grade}. Grade changes must move forward.`)
+          setSaving(false)
+          return
+        }
         await supabase.from('student_grade_history').insert([{
           student_id: selected.id,
           grade: editForm.grade,
