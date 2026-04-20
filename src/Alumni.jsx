@@ -32,6 +32,8 @@ export default function Alumni({ user }) {
   const [editForm, setEditForm] = useState({})
   const [saving, setSaving] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [reenrollConfirm, setReenrollConfirm] = useState(false)
+  const [reenrolling, setReenrolling] = useState(false)
   const [error, setError] = useState(null)
 
   useEffect(() => { fetchAlumni() }, [])
@@ -87,10 +89,35 @@ export default function Alumni({ user }) {
     }
   }
 
+  const reenrollAsStudent = async () => {
+    setReenrolling(true)
+    setError(null)
+    const { error: insertError } = await supabase.from('students').insert([{
+      first_name: selected.first_name,
+      last_name: selected.last_name,
+      grade: selected.grade_completed || '',
+      parent_email: selected.email || '',
+      parent_phone: selected.phone || '',
+      address: selected.address || '',
+      status: 'Applied',
+      school_id: user.id,
+    }])
+    if (insertError) {
+      setError(insertError.message)
+      setReenrolling(false)
+      return
+    }
+    await supabase.from('alumni').delete().eq('id', selected.id)
+    setReenrolling(false)
+    closeProfile()
+    fetchAlumni()
+  }
+
   const openProfile = (alumnus) => {
     setSelected(alumnus)
     setEditing(false)
     setDeleteConfirm(false)
+    setReenrollConfirm(false)
     setError(null)
   }
 
@@ -98,6 +125,7 @@ export default function Alumni({ user }) {
     setSelected(null)
     setEditing(false)
     setDeleteConfirm(false)
+    setReenrollConfirm(false)
     setError(null)
   }
 
@@ -312,6 +340,31 @@ export default function Alumni({ user }) {
                       Remove
                     </button>
                   </div>
+
+                  {/* Re-enroll as Student */}
+                  <button
+                    onClick={() => { setReenrollConfirm(true); setDeleteConfirm(false) }}
+                    style={{ width: '100%', marginTop: '0.75rem', background: '#f0fdf4', color: '#15803d', border: '2px solid #16a34a', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}
+                  >
+                    🎒 Re-enroll as Student
+                  </button>
+
+                  {reenrollConfirm && (
+                    <div style={{ marginTop: '1rem', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '0.75rem', padding: '1rem' }}>
+                      <p style={{ color: '#14532d', fontWeight: '600', margin: '0 0 0.5rem' }}>Re-enroll {selected.first_name} {selected.last_name} as a student?</p>
+                      <p style={{ color: '#15803d', fontSize: '0.875rem', margin: '0 0 1rem' }}>They will be moved back to the student roster with <strong>Applied</strong> status. Their alumni record will be removed.</p>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button onClick={reenrollAsStudent} disabled={reenrolling}
+                          style={{ background: '#16a34a', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: '600', cursor: 'pointer' }}>
+                          {reenrolling ? 'Moving...' : 'Confirm Re-enroll'}
+                        </button>
+                        <button onClick={() => setReenrollConfirm(false)}
+                          style={{ background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer' }}>
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {deleteConfirm && (
                     <div style={{ marginTop: '1rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.75rem', padding: '1rem' }}>
