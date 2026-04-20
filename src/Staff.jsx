@@ -65,7 +65,8 @@ export default function Staff({ user }) {
     }
     setSaving(true)
     setError(null)
-    const { error } = await supabase.from('staff').insert([{ ...form, school_id: user.id }])
+    const payload = { ...form, school_id: user.id, hire_date: form.hire_date || null }
+    const { error } = await supabase.from('staff').insert([payload])
     if (error) {
       setError(error.message)
     } else {
@@ -82,7 +83,7 @@ export default function Staff({ user }) {
     const { first_name, last_name, email, phone, role, grade_assignment, hire_date, status, notes } = editForm
     const { data, error } = await supabase
       .from('staff')
-      .update({ first_name, last_name, email, phone, role, grade_assignment, hire_date, status, notes })
+      .update({ first_name, last_name, email, phone, role, grade_assignment, hire_date: hire_date || null, status, notes })
       .eq('id', selected.id)
       .select()
       .single()
