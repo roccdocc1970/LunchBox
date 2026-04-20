@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 import Enrollment from './Enrollment'
 import Messages from './Messages'
+import Onboarding from './Onboarding'
 
 function App() {
   const [email, setEmail] = useState('')
@@ -13,15 +14,30 @@ function App() {
   const [session, setSession] = useState(null)
   const [activePage, setActivePage] = useState('dashboard')
   const [showLanding, setShowLanding] = useState(true)
+  const [school, setSchool] = useState(null)
+  const [checkingSchool, setCheckingSchool] = useState(false)
 
-  useEffect(() => {
+ useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
+      if (session) fetchSchool(session.user.id)
     })
     supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
+      if (session) fetchSchool(session.user.id)
     })
   }, [])
+
+  const fetchSchool = async (userId) => {
+    setCheckingSchool(true)
+    const { data } = await supabase
+      .from('schools')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+    if (data) setSchool(data)
+    setCheckingSchool(false)
+  }
 
   const handleLogin = async () => {
     setLoading(true)
@@ -53,6 +69,9 @@ function App() {
   ]
 if (showLanding && !session) {
   return <Landing onGetStarted={() => setShowLanding(false)} />
+}
+if (session && !checkingSchool && !school) {
+  return <Onboarding user={session.user} onComplete={(schoolData) => setSchool(schoolData)} />
 }
   if (session) {
     return (
@@ -104,7 +123,7 @@ if (showLanding && !session) {
           <div style={{ flex: 1, overflow: 'auto' }}>
             {activePage === 'dashboard' && (
               <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>Welcome to LunchBox 👋</h2>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>Welcome, {school?.name || 'Your School'} 👋</h2>
                 <p style={{ color: '#6b7280', marginBottom: '2rem' }}>Your school operations dashboard</p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
                   {[
