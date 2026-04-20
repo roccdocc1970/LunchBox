@@ -167,11 +167,11 @@ if (session && !checkingSchool && !school) {
               </div>
             )}
 
-            {activePage === 'enrollment' && <Enrollment user={session.user} />}
+            {activePage === 'enrollment' && <Enrollment user={session.user} school={school} />}
             {activePage === 'messages' && <Messages user={session.user} />}
-            {activePage === 'students' && <Students user={session.user} />}
-            {activePage === 'staff' && <Staff user={session.user} />}
-            {activePage === 'alumni' && <Alumni user={session.user} />}
+            {activePage === 'students' && <Students user={session.user} school={school} />}
+            {activePage === 'staff' && <Staff user={session.user} school={school} />}
+            {activePage === 'alumni' && <Alumni user={session.user} school={school} />}
             {activePage === 'reports' && <Reports user={session.user} school={school} />}
             {activePage === 'settings' && <Settings user={session.user} school={school} onUpdate={(updated) => setSchool(updated)} />}
           </div>

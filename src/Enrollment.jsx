@@ -1,7 +1,22 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 
-export default function Enrollment({ user }) {
+const ALL_GRADES = [
+  'Pre-K', 'Kindergarten', '1st Grade', '2nd Grade', '3rd Grade',
+  '4th Grade', '5th Grade', '6th Grade', '7th Grade', '8th Grade',
+  '9th Grade', '10th Grade', '11th Grade', '12th Grade',
+]
+
+const parseGrades = (school) => {
+  try {
+    const g = JSON.parse(school?.grades_offered)
+    return Array.isArray(g) && g.length > 0 ? g : null
+  } catch { return null }
+}
+
+export default function Enrollment({ user, school }) {
+  const configuredGrades = parseGrades(school)
+  const GRADES = configuredGrades || ALL_GRADES
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -70,6 +85,13 @@ export default function Enrollment({ user }) {
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       
+      {!configuredGrades && (
+        <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '0.75rem', padding: '0.875rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span style={{ fontSize: '1.1rem' }}>⚙️</span>
+          <span style={{ fontSize: '0.875rem', color: '#92400e' }}>Grade options are showing all grades. <strong>Configure your grade levels in Settings → Academic Config</strong> to restrict options to your school.</span>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
@@ -93,7 +115,6 @@ export default function Enrollment({ user }) {
             {[
               { label: 'First Name', name: 'first_name', type: 'text', required: true },
               { label: 'Last Name', name: 'last_name', type: 'text', required: true },
-              { label: 'Grade', name: 'grade', type: 'text', placeholder: 'e.g. 3rd Grade' },
               { label: 'Date of Birth', name: 'date_of_birth', type: 'date' },
               { label: 'Parent/Guardian Name', name: 'parent_name', type: 'text', required: true },
               { label: 'Parent Email', name: 'parent_email', type: 'email', required: true },
@@ -114,6 +135,14 @@ export default function Enrollment({ user }) {
                 />
               </div>
             ))}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>Grade</label>
+              <select name="grade" value={form.grade} onChange={handleChange}
+                style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}>
+                <option value="">Select grade</option>
+                {GRADES.map(g => <option key={g}>{g}</option>)}
+              </select>
+            </div>
           </div>
 
           <div style={{ marginTop: '1rem' }}>

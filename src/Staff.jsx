@@ -11,11 +11,18 @@ const ROLES = [
   'Support Staff',
 ]
 
-const GRADES = [
+const ALL_GRADES = [
   'Pre-K', 'Kindergarten', '1st Grade', '2nd Grade', '3rd Grade',
   '4th Grade', '5th Grade', '6th Grade', '7th Grade', '8th Grade',
-  '9th Grade', '10th Grade', '11th Grade', '12th Grade', 'Multiple Grades',
+  '9th Grade', '10th Grade', '11th Grade', '12th Grade',
 ]
+
+const parseGrades = (school) => {
+  try {
+    const g = JSON.parse(school?.grades_offered)
+    return Array.isArray(g) && g.length > 0 ? g : null
+  } catch { return null }
+}
 
 const ROLE_COLORS = {
   Principal: '#f97316',
@@ -27,7 +34,9 @@ const ROLE_COLORS = {
   'Support Staff': '#6b7280',
 }
 
-export default function Staff({ user }) {
+export default function Staff({ user, school }) {
+  const configuredGrades = parseGrades(school)
+  const GRADES = configuredGrades || ALL_GRADES
   const [staff, setStaff] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -165,9 +174,17 @@ export default function Staff({ user }) {
           onClick={() => { setShowForm(!showForm); setError(null) }}
           style={{ background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}
         >
+
           {showForm ? 'Cancel' : '+ Add Staff Member'}
         </button>
       </div>
+
+      {!configuredGrades && (
+        <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '0.75rem', padding: '0.875rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span style={{ fontSize: '1.1rem' }}>⚙️</span>
+          <span style={{ fontSize: '0.875rem', color: '#92400e' }}>Grade assignment options are showing all grades. <strong>Configure your grade levels in Settings → Academic Config</strong> to restrict options to your school.</span>
+        </div>
+      )}
 
       {/* Add Staff Form */}
       {showForm && (

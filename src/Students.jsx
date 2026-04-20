@@ -7,13 +7,22 @@ const STATUS_COLORS = {
   Applied: '#3b82f6',
 }
 
-const GRADES = [
+const ALL_GRADES = [
   'Pre-K', 'Kindergarten', '1st Grade', '2nd Grade', '3rd Grade',
   '4th Grade', '5th Grade', '6th Grade', '7th Grade', '8th Grade',
   '9th Grade', '10th Grade', '11th Grade', '12th Grade',
 ]
 
-export default function Students({ user }) {
+const parseGrades = (school) => {
+  try {
+    const g = JSON.parse(school?.grades_offered)
+    return Array.isArray(g) && g.length > 0 ? g : null
+  } catch { return null }
+}
+
+export default function Students({ user, school }) {
+  const configuredGrades = parseGrades(school)
+  const GRADES = configuredGrades || ALL_GRADES
   const [students, setStudents] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -154,6 +163,13 @@ export default function Students({ user }) {
         <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Students</h2>
         <p style={{ color: '#6b7280', marginTop: '0.25rem' }}>View and manage your student roster</p>
       </div>
+
+      {!configuredGrades && (
+        <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '0.75rem', padding: '0.875rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span style={{ fontSize: '1.1rem' }}>⚙️</span>
+          <span style={{ fontSize: '0.875rem', color: '#92400e' }}>Grade options are showing all grades. <strong>Configure your grade levels in Settings → Academic Config</strong> to restrict options to your school.</span>
+        </div>
+      )}
 
       {/* Search + Filters */}
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
