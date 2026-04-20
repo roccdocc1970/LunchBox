@@ -159,6 +159,12 @@ export default function Students({ user, school }) {
       const gradeChanged = editForm.grade && editForm.grade !== selected.grade
       const gradeRepeated = editForm.grade && editForm.grade === selected.grade && repeatGrade
 
+      if ((gradeChanged || gradeRepeated) && editForm.status !== 'Enrolled') {
+        setError('Grade progression is locked until the student has Enrolled status.')
+        setSaving(false)
+        return
+      }
+
       if (gradeChanged) {
         const currentIdx = ALL_GRADES.indexOf(selected.grade)
         const newIdx = ALL_GRADES.indexOf(editForm.grade)
@@ -501,12 +507,24 @@ export default function Students({ user, school }) {
 
                     <div>
                       <label style={labelStyle}>Grade</label>
-                      <select name="grade" value={editForm.grade || ''} onChange={e => { handleEditChange(e); setRepeatGrade(false); setSkipGrade(false) }}
-                        disabled={!configuredGrades}
-                        style={{ ...inputStyle, background: !configuredGrades ? '#f3f4f6' : 'white', cursor: !configuredGrades ? 'not-allowed' : 'pointer', color: !configuredGrades ? '#9ca3af' : '#1f2937' }}>
-                        <option value="">{configuredGrades ? 'Select grade' : 'Configure grades in Settings first'}</option>
-                        {GRADES.map((g) => <option key={g}>{g}</option>)}
-                      </select>
+                      {(() => {
+                        const gradeLocked = !configuredGrades || editForm.status !== 'Enrolled'
+                        return (
+                          <>
+                            <select name="grade" value={editForm.grade || ''} onChange={e => { handleEditChange(e); setRepeatGrade(false); setSkipGrade(false) }}
+                              disabled={gradeLocked}
+                              style={{ ...inputStyle, background: gradeLocked ? '#f3f4f6' : 'white', cursor: gradeLocked ? 'not-allowed' : 'pointer', color: gradeLocked ? '#9ca3af' : '#1f2937' }}>
+                              <option value="">{!configuredGrades ? 'Configure grades in Settings first' : 'Select grade'}</option>
+                              {GRADES.map((g) => <option key={g}>{g}</option>)}
+                            </select>
+                            {configuredGrades && editForm.status !== 'Enrolled' && (
+                              <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0.35rem 0 0', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                🔒 Grade progression is locked until the student is <strong>Enrolled</strong>. Change status above to unlock.
+                              </p>
+                            )}
+                          </>
+                        )
+                      })()}
                       {/* Repeat checkbox */}
                       {editForm.grade && editForm.grade === selected.grade && (
                         <div onClick={() => setRepeatGrade(!repeatGrade)}
