@@ -268,13 +268,28 @@ LunchBox uses **state-based routing** (no React Router) inside `App.jsx`.
 
 | Module | Priority | Notes |
 |---|---|---|
-| Students Module | High | Full student profiles, search, filter by grade/status |
+| Config-driven grade dropdowns | High | In progress — see Deferred Work below |
 | Stripe Integration | High | Monthly subscription billing for schools |
-| Reports Module | Medium | Enrollment trends, stats, charts |
-| Custom Domain | Medium | Buy getlunchbox.com or lunchbox.app |
 | Resend Domain Verification | Medium | Enable live email sending to parents |
-| Staff Management | Low | Add/manage staff members |
-| Billing Module | Low | Track tuition payments per student |
+| Custom Domain | Medium | Buy getlunchbox.com or lunchbox.app |
+| Student Billing | Low | Track tuition payments per student |
+| Staff Logins | Low | Staff-specific access to the platform |
+
+---
+
+## Deferred Work (Planned, Not Yet Built)
+
+These items were explicitly scoped and deferred. Revisit at the start of the relevant session.
+
+### Multi-Grade Staff Assignment
+- **What:** Replace the single `grade_assignment` dropdown on staff with a multi-select so a teacher can be assigned to more than one grade (e.g. a PE teacher who covers all grades).
+- **Why deferred:** Requires a more complex data structure (array or junction table) and its own UI pattern. Scoped during the config-driven platform session.
+- **Where to change:** `src/Staff.jsx` — `grade_assignment` field in both add form and edit drawer. May need a new `staff_grades` junction table in Supabase or store as JSON array.
+
+### Config-Driven Platform Rules — Phase 2
+- **What:** After grade dropdowns are config-aware, enforce deeper rules: e.g. block saving a student in a grade the school doesn't offer, warn when staff are assigned to a grade no longer in config.
+- **Why deferred:** Phase 1 (nudge banners + config-aware dropdowns) ships first. Phase 2 adds hard enforcement.
+- **Where to change:** `src/Students.jsx`, `src/Staff.jsx`, `src/Enrollment.jsx`, `src/Alumni.jsx`
 
 ---
 
