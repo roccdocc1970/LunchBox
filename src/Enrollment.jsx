@@ -1,0 +1,197 @@
+import { useState, useEffect } from 'react'
+import { supabase } from './supabase'
+
+export default function Enrollment({ user }) {
+  const [students, setStudents] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
+  const [form, setForm] = useState({
+    first_name: '',
+    last_name: '',
+    grade: '',
+    date_of_birth: '',
+    parent_name: '',
+    parent_email: '',
+    parent_phone: '',
+    address: '',
+    notes: ''
+  })
+
+  useEffect(() => {
+    fetchStudents()
+  }, [])
+
+  const fetchStudents = async () => {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('students')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (!error) setStudents(data)
+    setLoading(false)
+  }
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value })
+  }
+
+  const handleSubmit = async () => {
+    setSaving(true)
+    setError(null)
+    const { error } = await supabase
+      .from('students')
+      .insert([{ ...form, school_id: user.id }])
+    if (error) {
+      setError(error.message)
+    } else {
+      setForm({
+        first_name: '', last_name: '', grade: '', date_of_birth: '',
+        parent_name: '', parent_email: '', parent_phone: '', address: '', notes: ''
+      })
+      setShowForm(false)
+      fetchStudents()
+    }
+    setSaving(false)
+  }
+
+  const updateStatus = async (id, status) => {
+    await supabase.from('students').update({ status }).eq('id', id)
+    fetchStudents()
+  }
+
+  const statusColor = (status) => {
+    if (status === 'Enrolled') return '#10b981'
+    if (status === 'Waitlisted') return '#f59e0b'
+    return '#3b82f6'
+  }
+
+  return (
+    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+      
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <div>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Enrollment</h2>
+          <p style={{ color: '#6b7280', marginTop: '0.25rem' }}>Manage student applications and enrollment</p>
+        </div>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          style={{ background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}
+        >
+          {showForm ? 'Cancel' : '+ New Student'}
+        </button>
+      </div>
+
+      {/* Enrollment Form */}
+      {showForm && (
+        <div style={{ background: 'white', borderRadius: '1rem', padding: '2rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: '2rem' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#1f2937', marginTop: 0, marginBottom: '1.5rem' }}>New Student Enrollment</h3>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
+            {[
+              { label: 'First Name', name: 'first_name', type: 'text', required: true },
+              { label: 'Last Name', name: 'last_name', type: 'text', required: true },
+              { label: 'Grade', name: 'grade', type: 'text', placeholder: 'e.g. 3rd Grade' },
+              { label: 'Date of Birth', name: 'date_of_birth', type: 'date' },
+              { label: 'Parent/Guardian Name', name: 'parent_name', type: 'text', required: true },
+              { label: 'Parent Email', name: 'parent_email', type: 'email', required: true },
+              { label: 'Parent Phone', name: 'parent_phone', type: 'tel' },
+              { label: 'Address', name: 'address', type: 'text' },
+            ].map((field) => (
+              <div key={field.name}>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+                  {field.label} {field.required && <span style={{ color: '#ef4444' }}>*</span>}
+                </label>
+                <input
+                  type={field.type}
+                  name={field.name}
+                  value={form[field.name]}
+                  onChange={handleChange}
+                  placeholder={field.placeholder || ''}
+                  style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
+                />
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginTop: '1rem' }}>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>Notes</label>
+            <textarea
+              name="notes"
+              value={form.notes}
+              onChange={handleChange}
+              rows={3}
+              style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem', resize: 'vertical' }}
+            />
+          </div>
+
+          {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.5rem' }}>{error}</p>}
+
+          <button
+            onClick={handleSubmit}
+            disabled={saving}
+            style={{ marginTop: '1.5rem', background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}
+          >
+            {saving ? 'Saving...' : 'Save Student'}
+          </button>
+        </div>
+      )}
+
+      {/* Students List */}
+      {loading ? (
+        <p style={{ color: '#6b7280' }}>Loading students...</p>
+      ) : students.length === 0 ? (
+        <div style={{ background: 'white', borderRadius: '1rem', padding: '3rem', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎒</div>
+          <p style={{ color: '#6b7280', fontSize: '1.1rem' }}>No students yet. Add your first student above!</p>
+        </div>
+      ) : (
+        <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                {['Student', 'Grade', 'Parent', 'Contact', 'Status', 'Actions'].map((h) => (
+                  <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: '600', color: '#374151' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {students.map((student, i) => (
+                <tr key={student.id} style={{ borderBottom: i < students.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
+                  <td style={{ padding: '0.75rem 1rem' }}>
+                    <div style={{ fontWeight: '600', color: '#1f2937' }}>{student.first_name} {student.last_name}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{student.date_of_birth || ''}</div>
+                  </td>
+                  <td style={{ padding: '0.75rem 1rem', color: '#374151' }}>{student.grade}</td>
+                  <td style={{ padding: '0.75rem 1rem', color: '#374151' }}>{student.parent_name}</td>
+                  <td style={{ padding: '0.75rem 1rem' }}>
+                    <div style={{ fontSize: '0.875rem', color: '#374151' }}>{student.parent_email}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{student.parent_phone}</div>
+                  </td>
+                  <td style={{ padding: '0.75rem 1rem' }}>
+                    <span style={{ background: statusColor(student.status) + '20', color: statusColor(student.status), borderRadius: '9999px', padding: '0.25rem 0.75rem', fontSize: '0.8rem', fontWeight: '600' }}>
+                      {student.status}
+                    </span>
+                  </td>
+                  <td style={{ padding: '0.75rem 1rem' }}>
+                    <select
+                      value={student.status}
+                      onChange={(e) => updateStatus(student.id, e.target.value)}
+                      style={{ border: '1px solid #d1d5db', borderRadius: '0.375rem', padding: '0.25rem 0.5rem', fontSize: '0.875rem', cursor: 'pointer' }}
+                    >
+                      <option>Applied</option>
+                      <option>Enrolled</option>
+                      <option>Waitlisted</option>
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
