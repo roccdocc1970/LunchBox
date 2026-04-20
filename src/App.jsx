@@ -1,3 +1,4 @@
+import Landing from './Landing'
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 import Enrollment from './Enrollment'
@@ -10,6 +11,7 @@ function App() {
   const [message, setMessage] = useState(null)
   const [session, setSession] = useState(null)
   const [activePage, setActivePage] = useState('dashboard')
+  const [showLanding, setShowLanding] = useState(true)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -48,7 +50,9 @@ function App() {
     { id: 'students', label: 'Students', icon: '🎒' },
     { id: 'reports', label: 'Reports', icon: '📊' },
   ]
-
+if (showLanding && !session) {
+  return <Landing onGetStarted={() => setShowLanding(false)} />
+}
   if (session) {
     return (
       <div style={{ minHeight: '100vh', background: '#f9fafb', display: 'flex', flexDirection: 'column' }}>
