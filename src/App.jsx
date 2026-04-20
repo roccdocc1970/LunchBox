@@ -7,6 +7,7 @@ import Onboarding from './Onboarding'
 import Settings from './Settings'
 import Students from './Students'
 import Reports from './Reports'
+import Staff from './Staff'
 
 function App() {
   const [email, setEmail] = useState('')
@@ -68,6 +69,7 @@ function App() {
     { id: 'enrollment', label: 'Enrollment', icon: '📋' },
     { id: 'messages', label: 'Messages', icon: '✉️' },
     { id: 'students', label: 'Students', icon: '🎒' },
+    { id: 'staff', label: 'Staff', icon: '👩‍🏫' },
     { id: 'reports', label: 'Reports', icon: '📊' },
     { id: 'settings', label: 'Settings', icon: '⚙️' },
   ]
@@ -166,6 +168,7 @@ if (session && !checkingSchool && !school) {
             {activePage === 'enrollment' && <Enrollment user={session.user} />}
             {activePage === 'messages' && <Messages user={session.user} />}
             {activePage === 'students' && <Students user={session.user} />}
+            {activePage === 'staff' && <Staff user={session.user} />}
             {activePage === 'reports' && <Reports user={session.user} school={school} />}
             {activePage === 'settings' && <Settings user={session.user} school={school} onUpdate={(updated) => setSchool(updated)} />}
           </div>
