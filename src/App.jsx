@@ -4,6 +4,7 @@ import { supabase } from './supabase'
 import Enrollment from './Enrollment'
 import Messages from './Messages'
 import Onboarding from './Onboarding'
+import Settings from './Settings'
 
 function App() {
   const [email, setEmail] = useState('')
@@ -60,12 +61,13 @@ function App() {
     await supabase.auth.signOut()
   }
 
-  const navItems = [
+ const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
     { id: 'enrollment', label: 'Enrollment', icon: '📋' },
     { id: 'messages', label: 'Messages', icon: '✉️' },
     { id: 'students', label: 'Students', icon: '🎒' },
     { id: 'reports', label: 'Reports', icon: '📊' },
+    { id: 'settings', label: 'Settings', icon: '⚙️' },
   ]
 if (showLanding && !session) {
   return <Landing onGetStarted={() => setShowLanding(false)} />
@@ -161,8 +163,9 @@ if (session && !checkingSchool && !school) {
 
             {activePage === 'enrollment' && <Enrollment user={session.user} />}
             {activePage === 'messages' && <Messages user={session.user} />}
+            {activePage === 'settings' && <Settings user={session.user} school={school} onUpdate={(updated) => setSchool(updated)} />}
 
-            {['messages', 'students', 'reports'].includes(activePage) && (
+            {['students', 'reports'].includes(activePage) && (
               <div style={{ padding: '2rem', textAlign: 'center', marginTop: '4rem' }}>
                 <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🚧</div>
                 <h3 style={{ color: '#1f2937', fontSize: '1.25rem' }}>Coming Soon</h3>
