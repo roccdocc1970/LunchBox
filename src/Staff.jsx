@@ -20,7 +20,8 @@ const ALL_GRADES = [
 const parseGrades = (school) => {
   try {
     const g = JSON.parse(school?.grades_offered)
-    return Array.isArray(g) && g.length > 0 ? g : null
+    if (!Array.isArray(g) || g.length === 0) return null
+    return [...g].sort((a, b) => ALL_GRADES.indexOf(a) - ALL_GRADES.indexOf(b))
   } catch { return null }
 }
 
