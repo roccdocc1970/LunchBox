@@ -102,9 +102,9 @@ export default function Enrollment({ user, school }) {
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       
       {!configuredGrades && (
-        <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '0.75rem', padding: '0.875rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{ fontSize: '1.1rem' }}>⚙️</span>
-          <span style={{ fontSize: '0.875rem', color: '#92400e' }}>Grade options are showing all grades. <strong>Configure your grade levels in Settings → Academic Config</strong> to restrict options to your school.</span>
+        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.75rem', padding: '0.875rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span style={{ fontSize: '1.1rem' }}>🔒</span>
+          <span style={{ fontSize: '0.875rem', color: '#991b1b' }}><strong>Grade selection is locked.</strong> Complete your Academic Configuration in <strong>Settings → Academic Config</strong> before assigning grades to students.</span>
         </div>
       )}
 
@@ -153,9 +153,9 @@ export default function Enrollment({ user, school }) {
             ))}
             <div>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>Grade</label>
-              <select name="grade" value={form.grade} onChange={handleChange}
-                style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}>
-                <option value="">Select grade</option>
+              <select name="grade" value={form.grade} onChange={handleChange} disabled={!configuredGrades}
+                style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem', background: !configuredGrades ? '#f3f4f6' : 'white', cursor: !configuredGrades ? 'not-allowed' : 'pointer', color: !configuredGrades ? '#9ca3af' : '#1f2937' }}>
+                <option value="">{configuredGrades ? 'Select grade' : 'Configure grades in Settings first'}</option>
                 {GRADES.map(g => <option key={g}>{g}</option>)}
               </select>
             </div>
