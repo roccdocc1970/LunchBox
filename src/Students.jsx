@@ -24,6 +24,9 @@ export default function Students({ user }) {
   const [editForm, setEditForm] = useState({})
   const [saving, setSaving] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [graduateConfirm, setGraduateConfirm] = useState(false)
+  const [graduateForm, setGraduateForm] = useState({ graduation_year: new Date().getFullYear(), grade_completed: '' })
+  const [graduating, setGraduating] = useState(false)
   const [error, setError] = useState(null)
 
   useEffect(() => {
@@ -54,10 +57,38 @@ export default function Students({ user }) {
 
   const statusColor = (status) => STATUS_COLORS[status] || '#6b7280'
 
+  const graduateToAlumni = async () => {
+    setGraduating(true)
+    setError(null)
+    const { error: insertError } = await supabase.from('alumni').insert([{
+      first_name: selected.first_name,
+      last_name: selected.last_name,
+      email: selected.parent_email,
+      phone: selected.parent_phone,
+      address: selected.address,
+      graduation_year: graduateForm.graduation_year || null,
+      grade_completed: graduateForm.grade_completed || selected.grade || null,
+      donor_status: 'Never',
+      relationship: 'None',
+      opt_in: true,
+      school_id: user.id,
+    }])
+    if (insertError) {
+      setError(insertError.message)
+      setGraduating(false)
+      return
+    }
+    await supabase.from('students').delete().eq('id', selected.id)
+    setGraduating(false)
+    closeProfile()
+    fetchStudents()
+  }
+
   const openProfile = (student) => {
     setSelected(student)
     setEditing(false)
     setDeleteConfirm(false)
+    setGraduateConfirm(false)
     setError(null)
   }
 
@@ -65,6 +96,7 @@ export default function Students({ user }) {
     setSelected(null)
     setEditing(false)
     setDeleteConfirm(false)
+    setGraduateConfirm(false)
     setError(null)
   }
 
@@ -287,6 +319,53 @@ export default function Students({ user }) {
                       Delete
                     </button>
                   </div>
+
+                  {/* Graduate to Alumni */}
+                  <button
+                    onClick={() => { setGraduateConfirm(true); setDeleteConfirm(false); setGraduateForm({ graduation_year: new Date().getFullYear(), grade_completed: selected.grade || '' }) }}
+                    style={{ width: '100%', marginTop: '0.75rem', background: '#fff7ed', color: '#f97316', border: '2px solid #f97316', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}
+                  >
+                    🎓 Graduate to Alumni
+                  </button>
+
+                  {graduateConfirm && (
+                    <div style={{ marginTop: '1rem', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '0.75rem', padding: '1rem' }}>
+                      <p style={{ color: '#9a3412', fontWeight: '600', margin: '0 0 0.75rem' }}>Graduate {selected.first_name} {selected.last_name} to Alumni?</p>
+                      <p style={{ color: '#c2410c', fontSize: '0.875rem', margin: '0 0 1rem' }}>They will be removed from the student roster and added to Alumni.</p>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1rem' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '500', color: '#6b7280', marginBottom: '0.25rem' }}>Graduation Year</label>
+                          <input
+                            type="number"
+                            value={graduateForm.graduation_year}
+                            onChange={e => setGraduateForm({ ...graduateForm, graduation_year: e.target.value })}
+                            style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.4rem 0.75rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '500', color: '#6b7280', marginBottom: '0.25rem' }}>Grade Completed</label>
+                          <select
+                            value={graduateForm.grade_completed}
+                            onChange={e => setGraduateForm({ ...graduateForm, grade_completed: e.target.value })}
+                            style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.4rem 0.75rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }}
+                          >
+                            <option value="">Unknown</option>
+                            {GRADES.map(g => <option key={g}>{g}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button onClick={graduateToAlumni} disabled={graduating}
+                          style={{ background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: '600', cursor: 'pointer' }}>
+                          {graduating ? 'Moving...' : 'Confirm Graduate'}
+                        </button>
+                        <button onClick={() => setGraduateConfirm(false)}
+                          style={{ background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer' }}>
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {deleteConfirm && (
                     <div style={{ marginTop: '1rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.75rem', padding: '1rem' }}>

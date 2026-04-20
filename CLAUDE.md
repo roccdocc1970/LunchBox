@@ -58,6 +58,7 @@ VITE_RESEND_API_KEY=re_your_key_here
 | `src/Onboarding.jsx` | First-time school setup flow |
 | `src/Settings.jsx` | School settings page |
 | `src/Staff.jsx` | Staff directory and management |
+| `src/Alumni.jsx` | Alumni directory, engagement tracking, donor status |
 | `src/supabase.js` | Supabase client initialization |
 | `src/index.css` | Tailwind import |
 | `src/main.jsx` | React entry point |
@@ -141,6 +142,35 @@ VITE_RESEND_API_KEY=re_your_key_here
 | school_id | UUID | References auth.users(id) |
 
 > RLS Policy: Users can only read/write their own school's staff.
+
+### Table: `alumni`
+
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID | Primary key, auto-generated |
+| created_at | TIMESTAMP | Auto-set |
+| first_name | TEXT | Required |
+| last_name | TEXT | Required |
+| graduation_year | INTEGER | Optional |
+| grade_completed | TEXT | Last grade they completed |
+| email | TEXT | Optional |
+| phone | TEXT | Optional |
+| address | TEXT | Optional |
+| city | TEXT | Optional |
+| state | TEXT | Optional |
+| zip | TEXT | Optional |
+| opt_in | BOOLEAN | Default: true. Consent to be contacted |
+| preferred_contact | TEXT | Email, Phone, or Mail |
+| last_contacted_date | DATE | Optional |
+| relationship | TEXT | None, Donor, Volunteer, Mentor, Ambassador |
+| donor_status | TEXT | Never, Prospect, Active Donor, Lapsed |
+| employer | TEXT | Optional |
+| college | TEXT | Optional |
+| notes | TEXT | Optional |
+| school_id | UUID | References auth.users(id) |
+
+> RLS Policy: Users can only read/write their own school's alumni.
+> Students are moved to alumni via "Graduate to Alumni" button in Students module — record is inserted into alumni and deleted from students.
 
 ---
 
