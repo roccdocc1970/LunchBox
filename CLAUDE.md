@@ -304,17 +304,64 @@ LunchBox uses **state-based routing** (no React Router) inside `App.jsx`.
 
 ---
 
-## Modules To Build Next
+## Capability Roadmap (HERM-Based)
 
-| Module | Priority | Notes |
+Organized from the Business Capability Map shared 2026-04-20. Each capability is mapped to build status and recommended approach.
+
+### Already Built
+
+| Capability | HERM Ref | Coverage |
 |---|---|---|
-| Stripe Integration | High | Monthly subscription billing for schools |
-| Resend Domain Verification | Medium | Enable live email sending to parents |
-| Admissions Pipeline | Medium | Pre-application inquiry tracking; extend Enrollment |
-| Custom Domain | Medium | Buy getlunchbox.com or lunchbox.app |
-| Incident / Behavior Log | Medium | Per-student log inside student profile |
-| Student Billing | Low | Track tuition payments per student |
-| Staff Logins | Low | Staff-specific access to the platform |
+| Student Recruitment (landing + inquiry) | 1.3 | Partial — landing page only, no inquiry/lead tracking |
+| Student Admission | 1.4 | ✅ Enrollment module: applications, waitlist, status workflow |
+| Student Enrollment & Registration | 1.5 | ✅ Enrollment + grade assignment + onboarding |
+| Student Assessment & Progress Tracking | 1.7 | ✅ Report Cards module: grades, subjects, terms, draft/publish |
+| Completion & Advancement Management | 1.8 | ✅ Grade progression, Graduate to Alumni, re-enrollment |
+| Human Resource Management | 2.2 | Partial — staff directory, roles, hire dates; no PD log or reviews |
+| Financial Management | 2.3 | Partial — pricing tiers defined, Stripe not integrated |
+| Marketing & Community Engagement | 2.6 | Partial — Messages module; no newsletter types or scheduling |
+| Advancement & Fundraising | 2.7 | Partial — Alumni module: donor status, relationship tracking |
+| Information & Records Management | 2.8 | ✅ Student records, grade history, alumni records |
+
+---
+
+### Modules To Build Next (Prioritized)
+
+**Tier 1 — Core gaps, high impact**
+
+| Capability | HERM Ref | What to Build | Priority |
+|---|---|---|---|
+| Stripe Integration | 2.3 | Monthly subscription billing for schools | High |
+| Admissions Pipeline | 1.3 | Pre-application inquiry tracking; add "Inquiry" status before Applied; source tracking (tour, referral, web) | High |
+| Resend Domain Verification | 2.6 | Enable live email delivery to parents | Medium |
+| Incident / Behavior Log | 1.6 | Per-student incident log (date, type, notes, resolution) inside student profile drawer | Medium |
+
+**Tier 2 — Extend existing modules**
+
+| Capability | HERM Ref | What to Build | Priority |
+|---|---|---|---|
+| Staff PD & Performance | 2.2 | Professional development log (date, hours, topic) + annual review notes in staff profile | Medium |
+| Enhanced Messaging | 2.6 | Message types (Newsletter, Alert, Event), scheduled sends, open tracking via Resend | Medium |
+| Student Billing / Tuition Ledger | 2.3 | Per-student charges, payments, balance ledger; ties to enrollment | Low |
+| School Health Dashboard | 2.10 | Extend Reports with KPI trendlines: enrollment rate, retention, tuition collection % | Low |
+| Staff Logins | 2.5 | Staff-specific portal access with limited permissions | Low |
+
+**Tier 3 — Infrastructure**
+
+| Item | Notes |
+|---|---|
+| Custom Domain | Buy getlunchbox.com or lunchbox.app |
+| Email Verification (Resend) | Required before live parent email sending works |
+
+**Out of scope (better served by dedicated tools)**
+
+| Capability | HERM Ref | Reason |
+|---|---|---|
+| Curriculum Management & Delivery | 1.1 / 1.2 | LMS territory — Google Classroom, Seesaw, Canvas own this |
+| Governance, Risk & Compliance | 2.1 | Policy docs belong in Drive/Notion; compliance is specialized |
+| Facilities & Operations | 2.4 | Different buyer persona; physical/operational tooling |
+| IT & Systems | 2.5 | LunchBox *is* this capability for its customers |
+| Legal & Risk Services | 2.9 | Outside counsel; not SaaS territory |
 
 ---
 
