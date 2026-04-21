@@ -366,7 +366,7 @@ export default function Settings({ user, school, onUpdate }) {
                       {academic.grades_offered.length === 0 && (
                         <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontStyle: 'italic' }}>Select grade levels above to assign them to divisions.</span>
                       )}
-                      {academic.grades_offered.map(grade => {
+                      {[...academic.grades_offered].sort((a, b) => ALL_GRADES.indexOf(a) - ALL_GRADES.indexOf(b)).map(grade => {
                         const inThis = div.grades.includes(grade)
                         const inOther = !inThis && academic.divisions.some((d, j) => j !== i && d.grades.includes(grade))
                         return (
