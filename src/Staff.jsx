@@ -38,6 +38,20 @@ const parseGrades = (school) => {
   } catch { return null }
 }
 
+// Reads grade_assignments (new JSONB array) or falls back to legacy grade_assignment text
+const parseGradeAssignments = (member) => {
+  if (member?.grade_assignments) {
+    try {
+      const a = typeof member.grade_assignments === 'string'
+        ? JSON.parse(member.grade_assignments)
+        : member.grade_assignments
+      if (Array.isArray(a)) return a
+    } catch {}
+  }
+  if (member?.grade_assignment) return [member.grade_assignment]
+  return []
+}
+
 const ROLE_COLORS = {
   Principal: '#f97316',
   Teacher: '#3b82f6',
@@ -48,10 +62,16 @@ const ROLE_COLORS = {
   'Support Staff': '#6b7280',
 }
 
+const EMPTY_FORM = {
+  first_name: '', last_name: '', email: '', phone: '',
+  role: '', grade_assignments: [], hire_date: '', status: 'Active', notes: '',
+}
+
 export default function Staff({ user, school }) {
   const primaryColor = school?.primary_color || '#f97316'
   const configuredGrades = parseGrades(school)
   const GRADES = configuredGrades || ALL_GRADES
+
   const [staff, setStaff] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -64,11 +84,9 @@ export default function Staff({ user, school }) {
   const [selected, setSelected] = useState(null)
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState({})
+  const [editGrades, setEditGrades] = useState([])
   const [deleteConfirm, setDeleteConfirm] = useState(false)
-  const [form, setForm] = useState({
-    first_name: '', last_name: '', email: '', phone: '',
-    role: '', grade_assignment: '', hire_date: '', status: 'Active', notes: ''
-  })
+  const [form, setForm] = useState(EMPTY_FORM)
 
   useEffect(() => { fetchStaff() }, [])
 
@@ -85,6 +103,16 @@ export default function Staff({ user, school }) {
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
   const handleEditChange = (e) => setEditForm({ ...editForm, [e.target.name]: e.target.value })
 
+  const toggleGradeInForm = (grade) => {
+    const has = form.grade_assignments.includes(grade)
+    setForm({ ...form, grade_assignments: has ? form.grade_assignments.filter(g => g !== grade) : [...form.grade_assignments, grade] })
+  }
+
+  const toggleGradeInEdit = (grade) => {
+    const has = editGrades.includes(grade)
+    setEditGrades(has ? editGrades.filter(g => g !== grade) : [...editGrades, grade])
+  }
+
   const handleSubmit = async () => {
     if (!form.first_name || !form.last_name || !form.role) {
       setError('First name, last name, and role are required.')
@@ -92,12 +120,13 @@ export default function Staff({ user, school }) {
     }
     setSaving(true)
     setError(null)
-    const payload = { ...form, school_id: user.id, hire_date: form.hire_date || null }
+    const { grade_assignments, ...rest } = form
+    const payload = { ...rest, grade_assignments, school_id: user.id, hire_date: form.hire_date || null }
     const { error } = await supabase.from('staff').insert([payload])
     if (error) {
       setError(error.message)
     } else {
-      setForm({ first_name: '', last_name: '', email: '', phone: '', role: '', grade_assignment: '', hire_date: '', status: 'Active', notes: '' })
+      setForm(EMPTY_FORM)
       setShowForm(false)
       fetchStaff()
     }
@@ -107,10 +136,10 @@ export default function Staff({ user, school }) {
   const saveEdit = async () => {
     setSaving(true)
     setError(null)
-    const { first_name, last_name, email, phone, role, grade_assignment, hire_date, status, notes } = editForm
+    const { first_name, last_name, email, phone, role, hire_date, status, notes } = editForm
     const { data, error } = await supabase
       .from('staff')
-      .update({ first_name, last_name, email, phone, role, grade_assignment, hire_date: hire_date || null, status, notes })
+      .update({ first_name, last_name, email, phone, role, grade_assignments: editGrades, hire_date: hire_date || null, status, notes })
       .eq('id', selected.id)
       .select()
       .single()
@@ -150,6 +179,7 @@ export default function Staff({ user, school }) {
 
   const startEdit = () => {
     setEditForm({ ...selected })
+    setEditGrades(parseGradeAssignments(selected))
     setEditing(true)
     setDeleteConfirm(false)
   }
@@ -162,7 +192,8 @@ export default function Staff({ user, school }) {
       (s.role || '').toLowerCase().includes(search.toLowerCase())
     const matchRole = !filterRole || s.role === filterRole
     const matchStatus = !filterStatus || s.status === filterStatus
-    const matchDivision = !filterDivision || getDivision(s.grade_assignment, school?.divisions)?.name === filterDivision
+    const assignments = parseGradeAssignments(s)
+    const matchDivision = !filterDivision || assignments.some(g => getDivision(g, school?.divisions)?.name === filterDivision)
     return matchSearch && matchRole && matchStatus && matchDivision
   })
 
@@ -178,6 +209,99 @@ export default function Staff({ user, school }) {
   const activeCount = staff.filter(s => s.status === 'Active').length
   const inactiveCount = staff.filter(s => s.status === 'Inactive').length
 
+  // Grade picker used in both add form and edit drawer
+  const GradePicker = ({ selected: picked, onToggle, locked }) => {
+    const sorted = [...GRADES].sort((a, b) => ALL_GRADES.indexOf(a) - ALL_GRADES.indexOf(b))
+    return (
+      <div>
+        {locked ? (
+          <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: 0 }}>Configure grades in Settings → Academic Config first.</p>
+        ) : sorted.length === 0 ? (
+          <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: 0 }}>No grades configured yet.</p>
+        ) : (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+            {sorted.map(grade => {
+              const active = picked.includes(grade)
+              const div = getDivision(grade, school?.divisions)
+              const color = div ? div.color : primaryColor
+              return (
+                <button
+                  key={grade}
+                  type="button"
+                  onClick={() => onToggle(grade)}
+                  style={{
+                    padding: '0.25rem 0.625rem', borderRadius: '9999px', fontSize: '0.8rem',
+                    fontWeight: active ? '600' : '400', cursor: 'pointer',
+                    border: `1.5px solid ${active ? color : '#d1d5db'}`,
+                    background: active ? color : 'white',
+                    color: active ? 'white' : '#374151',
+                    transition: 'all 0.1s',
+                  }}
+                >
+                  {grade}
+                </button>
+              )
+            })}
+          </div>
+        )}
+        {picked.length > 0 && (
+          <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.375rem', marginBottom: 0 }}>
+            {picked.length} grade{picked.length !== 1 ? 's' : ''} assigned
+          </p>
+        )}
+      </div>
+    )
+  }
+
+  // Renders grade pills + unique division badges for a staff member
+  const GradeBadges = ({ member, compact = false }) => {
+    const assignments = parseGradeAssignments(member)
+    if (assignments.length === 0) return null
+    const sorted = [...assignments].sort((a, b) => ALL_GRADES.indexOf(a) - ALL_GRADES.indexOf(b))
+    const uniqueDivisions = []
+    sorted.forEach(g => {
+      const div = getDivision(g, school?.divisions)
+      if (div && !uniqueDivisions.find(d => d.name === div.name)) uniqueDivisions.push(div)
+    })
+    if (compact) {
+      return (
+        <div style={{ marginBottom: '0.5rem' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginBottom: uniqueDivisions.length > 0 ? '0.25rem' : 0 }}>
+            {sorted.map(g => (
+              <span key={g} style={{ fontSize: '0.72rem', background: '#f3f4f6', color: '#374151', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>{g}</span>
+            ))}
+          </div>
+          {uniqueDivisions.map(div => (
+            <span key={div.name} style={{ fontSize: '0.72rem', color: div.color, fontWeight: '600', background: div.color + '15', borderRadius: '9999px', padding: '0.1rem 0.5rem', marginRight: '0.25rem', display: 'inline-block' }}>{div.name}</span>
+          ))}
+        </div>
+      )
+    }
+    return (
+      <div style={{ marginBottom: '1rem' }}>
+        <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Grade Assignments</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: uniqueDivisions.length > 0 ? '0.5rem' : 0 }}>
+          {sorted.map(g => {
+            const div = getDivision(g, school?.divisions)
+            const color = div ? div.color : primaryColor
+            return (
+              <span key={g} style={{ fontSize: '0.8rem', fontWeight: '500', background: color + '15', color, border: `1px solid ${color}30`, borderRadius: '9999px', padding: '0.2rem 0.625rem' }}>{g}</span>
+            )
+          })}
+        </div>
+        {uniqueDivisions.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+            {uniqueDivisions.map(div => (
+              <span key={div.name} style={{ fontSize: '0.75rem', color: div.color, fontWeight: '600', background: div.color + '12', border: `1px solid ${div.color}30`, borderRadius: '9999px', padding: '0.15rem 0.625rem' }}>
+                {div.name}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
 
@@ -191,7 +315,6 @@ export default function Staff({ user, school }) {
           onClick={() => { setShowForm(!showForm); setError(null) }}
           style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}
         >
-
           {showForm ? 'Cancel' : '+ Add Staff Member'}
         </button>
       </div>
@@ -238,16 +361,6 @@ export default function Staff({ user, school }) {
             </div>
 
             <div>
-              <label style={formLabelStyle}>Grade Assignment</label>
-              <select name="grade_assignment" value={form.grade_assignment} onChange={handleChange}
-                disabled={!configuredGrades}
-                style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem', background: !configuredGrades ? '#f3f4f6' : 'white', cursor: !configuredGrades ? 'not-allowed' : 'pointer', color: !configuredGrades ? '#9ca3af' : '#1f2937' }}>
-                <option value="">{configuredGrades ? 'Not assigned' : 'Configure grades in Settings first'}</option>
-                {GRADES.map(g => <option key={g}>{g}</option>)}
-              </select>
-            </div>
-
-            <div>
               <label style={formLabelStyle}>Status</label>
               <select name="status" value={form.status} onChange={handleChange}
                 style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}>
@@ -255,6 +368,12 @@ export default function Staff({ user, school }) {
                 <option>Inactive</option>
               </select>
             </div>
+          </div>
+
+          {/* Grade picker — full width below grid */}
+          <div style={{ marginTop: '1rem' }}>
+            <label style={formLabelStyle}>Grade Assignments</label>
+            <GradePicker selected={form.grade_assignments} onToggle={toggleGradeInForm} locked={!configuredGrades} />
           </div>
 
           <div style={{ marginTop: '1rem' }}>
@@ -357,14 +476,8 @@ export default function Staff({ user, school }) {
                 </div>
               </div>
 
-              {member.grade_assignment && (
-                <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem' }}>📚 {member.grade_assignment}</div>
-              )}
-              {(() => {
-                const div = getDivision(member.grade_assignment, school?.divisions)
-                if (!div) return null
-                return <div style={{ marginBottom: '0.4rem' }}><span style={{ fontSize: '0.72rem', color: div.color, fontWeight: '600', background: div.color + '15', borderRadius: '9999px', padding: '0.1rem 0.5rem' }}>{div.name}</span></div>
-              })()}
+              <GradeBadges member={member} compact />
+
               {member.email && (
                 <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.4rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>✉️ {member.email}</div>
               )}
@@ -420,11 +533,12 @@ export default function Staff({ user, school }) {
                 <>
                   <DrawerSection title="Staff Info">
                     <DrawerField label="Role" value={selected.role || '—'} />
-                    <DrawerField label="Grade Assignment" value={selected.grade_assignment || 'Not assigned'} />
                     <DrawerField label="Hire Date" value={selected.hire_date || '—'} />
                     <DrawerField label="Status" value={selected.status || 'Active'} />
                     {selected.notes && <DrawerField label="Notes" value={selected.notes} />}
                   </DrawerSection>
+
+                  <GradeBadges member={selected} />
 
                   <DrawerSection title="Contact">
                     <DrawerField label="Email" value={selected.email || '—'} />
@@ -474,13 +588,8 @@ export default function Staff({ user, school }) {
                       </select>
                     </div>
                     <div>
-                      <label style={labelStyle}>Grade Assignment</label>
-                      <select name="grade_assignment" value={editForm.grade_assignment || ''} onChange={handleEditChange}
-                        disabled={!configuredGrades}
-                        style={{ ...inputStyle, background: !configuredGrades ? '#f3f4f6' : 'white', cursor: !configuredGrades ? 'not-allowed' : 'pointer', color: !configuredGrades ? '#9ca3af' : '#1f2937' }}>
-                        <option value="">{configuredGrades ? 'Not assigned' : 'Configure grades in Settings first'}</option>
-                        {GRADES.map(g => <option key={g}>{g}</option>)}
-                      </select>
+                      <label style={labelStyle}>Grade Assignments</label>
+                      <GradePicker selected={editGrades} onToggle={toggleGradeInEdit} locked={!configuredGrades} />
                     </div>
                     <div>
                       <label style={labelStyle}>Status</label>
