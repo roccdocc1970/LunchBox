@@ -58,7 +58,10 @@ VITE_RESEND_API_KEY=re_your_key_here
 | `src/Onboarding.jsx` | First-time school setup flow |
 | `src/Settings.jsx` | School settings page |
 | `src/Staff.jsx` | Staff directory and management |
+| `src/Students.jsx` | Student roster and profile management |
 | `src/Alumni.jsx` | Alumni directory, engagement tracking, donor status |
+| `src/Reports.jsx` | Enrollment reports and analytics |
+| `src/ReportCards.jsx` | Student report cards by term |
 | `src/supabase.js` | Supabase client initialization |
 | `src/index.css` | Tailwind import |
 | `src/main.jsx` | React entry point |
@@ -119,8 +122,13 @@ VITE_RESEND_API_KEY=re_your_key_here
 | principal_name | TEXT | Optional |
 | student_capacity | INTEGER | Optional |
 | school_type | TEXT | Default: Private. Options: Private, Charter, Public, Montessori, Religious, Other |
-| logo_url | TEXT | Optional |
+| logo_url | TEXT | URL to school logo — shown in top nav |
 | user_id | UUID | References auth.users(id), UNIQUE |
+| grading_scale | TEXT | Default: Letter. Options: Letter, Standards, Satisfactory |
+| subjects_offered | JSONB | Array of subject name strings. Drives report card rows. |
+| primary_color | TEXT | Hex color for brand theming across the app |
+| motto | TEXT | School tagline — shown under name in top nav |
+| divisions | JSONB | Array of `{ name, grades[] }` — school subdivisions. Max 6. Grades sorted in grade order. |
 
 > RLS Policy: Users can only read/write their own school record.
 
@@ -134,8 +142,9 @@ VITE_RESEND_API_KEY=re_your_key_here
 | last_name | TEXT | Required |
 | email | TEXT | Optional |
 | phone | TEXT | Optional |
-| role | TEXT | Principal, Teacher, Assistant Teacher, Administrator, Counselor, Support Staff |
-| grade_assignment | TEXT | Optional — grade level they teach |
+| role | TEXT | Principal, Teacher, Assistant Teacher, Substitute Teacher, Administrator, Counselor, Support Staff |
+| grade_assignment | TEXT | Legacy single-grade field — superseded by grade_assignments |
+| grade_assignments | JSONB | Array of grade strings — multi-grade assignment. Parsed by `parseGradeAssignments()` which falls back to legacy `grade_assignment` |
 | hire_date | DATE | Optional |
 | status | TEXT | Default: Active. Options: Active, Inactive |
 | notes | TEXT | Optional |
@@ -191,16 +200,6 @@ VITE_RESEND_API_KEY=re_your_key_here
 > RLS Policy: Users can only read/write their own school's report cards.
 > student_name and student_grade are stored at creation time so cards survive graduation.
 
-### Schools table — additional columns
-
-| Column | Type | Notes |
-|---|---|---|
-| grading_scale | TEXT | Default: Letter. Options: Letter, Standards, Satisfactory |
-| subjects_offered | JSONB | Array of subject name strings. Drives report card rows. |
-| primary_color | TEXT | Hex color for brand theming across the app |
-| logo_url | TEXT | URL to school logo — shown in top nav |
-| motto | TEXT | School tagline — shown under name in top nav |
-
 ---
 
 ## App Architecture & Routing
@@ -226,12 +225,43 @@ LunchBox uses **state-based routing** (no React Router) inside `App.jsx`.
 
 ### Sidebar Nav Items
 
-- **Dashboard** — home screen with stats and quick actions
+- **Dashboard** — home screen with live stats and quick actions
 - **Enrollment** — `Enrollment.jsx`
 - **Messages** — `Messages.jsx`
-- **Students** — Coming soon
-- **Reports** — Coming soon
-- **Settings** — `Settings.jsx`
+- **Students** — `Students.jsx`
+- **Staff** — `Staff.jsx`
+- **Alumni** — `Alumni.jsx`
+- **Report Cards** — `ReportCards.jsx`
+- **Reports** — `Reports.jsx`
+- **School Settings** — `Settings.jsx`
+
+---
+
+## Shared Patterns & Helpers
+
+These constants and helpers appear across multiple modules — keep them in sync if logic changes.
+
+### Brand Color
+Every module derives `primaryColor` from the school prop:
+```js
+const primaryColor = school?.primary_color || '#f97316'
+```
+
+### Division Colors
+```js
+const DIVISION_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444']
+```
+Used in Settings, Students, Staff, Reports, ReportCards. Color is assigned by division index (0–5).
+
+### getDivision(grade, divisionsRaw)
+Returns `{ name, color }` for the division a grade belongs to, or `null` if unassigned.
+Used in Students, Staff, Reports, ReportCards.
+
+### Grade Order
+Always sort grade arrays by `ALL_GRADES` index:
+```js
+[...grades].sort((a, b) => ALL_GRADES.indexOf(a) - ALL_GRADES.indexOf(b))
+```
 
 ---
 
@@ -263,9 +293,9 @@ LunchBox uses **state-based routing** (no React Router) inside `App.jsx`.
 - On complete calls `onComplete(schoolData)` to update parent state
 
 ### Dashboard (`App.jsx`)
-- Top orange nav bar with logo, user email, sign out button
-- Left sidebar with nav items
-- Stats cards: Total Students, Pending Enrollment, Messages Sent, Staff Members
+- Top nav bar using `school.primary_color` with logo, motto, user email, sign out
+- Left sidebar with nav items, active state uses `primaryColor`
+- Live stats cards (parallel Supabase count queries on login): Total Students, Pending Enrollment, Messages Sent, Active Staff
 - Quick action buttons linking to modules
 - Welcome message: `Welcome, {school.name}`
 
@@ -286,10 +316,43 @@ LunchBox uses **state-based routing** (no React Router) inside `App.jsx`.
 
 ### Settings Module (`Settings.jsx`)
 - 4 tabs: School Profile, Academic Config, Communication, Appearance
-- Academic Config: grade level checkboxes, grading period, grading scale (Letter/Standards/Satisfactory), subjects offered (one per line)
-- Appearance: brand color picker + hex input (applied globally), logo URL, school motto
+- **Academic Config:**
+  - Grade level checkboxes (Select All / Clear)
+  - Academic year, school year start/end months, grading period (Quarters/Trimesters/Semesters/Annual)
+  - Grading scale: Letter / Standards-Based / Satisfactory — drives report card grade options
+  - Subjects offered (textarea, one per line) — drives report card rows
+  - **School Divisions:** up to 6 color-coded division cards, 4 defaults (Early Childhood, Lower School, Intermediate School, Upper School). Assign grades via pill toggles — grade can only belong to one division. Pills always render in grade order. Add/Remove division controls (max 6).
+- **Appearance:** brand color picker + hex input (applied globally), logo URL, school motto
 - Brand color and logo applied across all modules via `school.primary_color` and `school.logo_url`
 - Save button per tab; updates `schools` table and calls `onUpdate()` to refresh parent state
+
+### Students Module (`Students.jsx`)
+- Roster table: Student, Grade (with division badge), Parent, Contact, Status
+- Filters: search, grade, status, division (dropdown only shown when divisions have grades assigned)
+- Summary counts: Enrolled / Applied / Waitlisted / Total
+- Grade progression locked until status = Enrolled; forward-only with repeat/skip checkboxes
+- Grade history timeline in profile drawer
+- Report card count shown in profile drawer
+- Graduate to Alumni flow: moves record to `alumni` table, deletes from `students`
+- Config nudge banner if grades not configured in Settings
+
+### Staff Module (`Staff.jsx`)
+- Staff grid (cards): avatar, role color, division badge (derived from grade assignments), email, phone, status
+- **Multi-grade assignment:** staff can be assigned to any number of configured school grades via pill-toggle picker
+- Grade assignments stored in `grade_assignments` JSONB column; `parseGradeAssignments()` falls back to legacy `grade_assignment` text column
+- **Orphaned grade handling:** if school removes a grade from config, any staff assigned to it see it greyed out with strikethrough + ⚠ warning in both view and edit mode. Not auto-deleted — admin cleans up intentionally.
+- Divisions derived from grade assignments — no direct division assignment needed
+- Profile drawer (view): Grade Assignments and School Divisions shown as separate labeled sections
+- Filters: search, role, status, division
+- Config nudge banner if grades not configured in Settings
+
+### Alumni Module (`Alumni.jsx`)
+- Alumni directory with profile drawer
+- Fields: graduation year, grade completed, contact info, opt-in consent, preferred contact method, last contacted date
+- Relationship tracking: None, Donor, Volunteer, Mentor, Ambassador
+- Donor status: Never, Prospect, Active Donor, Lapsed
+- Employment and college fields
+- Grade history visible in profile drawer
 
 ### Report Cards Module (`ReportCards.jsx`)
 - Create report cards per student per term with a subject-by-subject grades grid
@@ -298,15 +361,24 @@ LunchBox uses **state-based routing** (no React Router) inside `App.jsx`.
 - Per-subject grade dropdown + optional teacher comment
 - Overall teacher notes field
 - Draft → Published workflow with Publish/Revert to Draft toggle
-- Filters: search by student, filter by term, filter by published status
+- Filters: search by student name, filter by term, filter by published status, filter by division
 - Summary bar: Total / Published / Draft counts
 - Report card count shown in student profile drawer (Students module)
+
+### Reports Module (`Reports.jsx`)
+- Top stats: Total Students, Enrolled, Applied, Waitlisted, Messages Sent, Parents Reached
+- Enrollment Status stacked bar chart
+- Capacity Utilization bar (if student_capacity set in Settings)
+- New Students — Last 6 Months bar chart (uses `primaryColor`)
+- **Students by Division** breakdown (only shown when divisions have grades assigned)
+- Students by Grade breakdown bar chart
+- All bar colors use `school.primary_color`
 
 ---
 
 ## Capability Roadmap (HERM-Based)
 
-Organized from the Business Capability Map shared 2026-04-20. Each capability is mapped to build status and recommended approach.
+Organized from the Business Capability Map shared 2026-04-20.
 
 ### Already Built
 
@@ -317,7 +389,7 @@ Organized from the Business Capability Map shared 2026-04-20. Each capability is
 | Student Enrollment & Registration | 1.5 | ✅ Enrollment + grade assignment + onboarding |
 | Student Assessment & Progress Tracking | 1.7 | ✅ Report Cards module: grades, subjects, terms, draft/publish |
 | Completion & Advancement Management | 1.8 | ✅ Grade progression, Graduate to Alumni, re-enrollment |
-| Human Resource Management | 2.2 | Partial — staff directory, roles, hire dates; no PD log or reviews |
+| Human Resource Management | 2.2 | Partial — staff directory, multi-grade assignment, divisions; no PD log or reviews |
 | Financial Management | 2.3 | Partial — pricing tiers defined, Stripe not integrated |
 | Marketing & Community Engagement | 2.6 | Partial — Messages module; no newsletter types or scheduling |
 | Advancement & Fundraising | 2.7 | Partial — Alumni module: donor status, relationship tracking |
@@ -367,17 +439,10 @@ Organized from the Business Capability Map shared 2026-04-20. Each capability is
 
 ## Deferred Work (Planned, Not Yet Built)
 
-These items were explicitly scoped and deferred. Revisit at the start of the relevant session.
-
-### Multi-Grade Staff Assignment
-- **What:** Replace the single `grade_assignment` dropdown on staff with a multi-select so a teacher can be assigned to more than one grade (e.g. a PE teacher who covers all grades).
-- **Why deferred:** Requires a more complex data structure (array or junction table) and its own UI pattern. Scoped during the config-driven platform session.
-- **Where to change:** `src/Staff.jsx` — `grade_assignment` field in both add form and edit drawer. May need a new `staff_grades` junction table in Supabase or store as JSON array.
-
 ### Config-Driven Platform Rules — Phase 2
-- **What:** After grade dropdowns are config-aware, enforce deeper rules: e.g. block saving a student in a grade the school doesn't offer, warn when staff are assigned to a grade no longer in config.
-- **Why deferred:** Phase 1 (nudge banners + config-aware dropdowns) ships first. Phase 2 adds hard enforcement.
-- **Where to change:** `src/Students.jsx`, `src/Staff.jsx`, `src/Enrollment.jsx`, `src/Alumni.jsx`
+- **What:** Hard enforcement of grade rules across modules — e.g. block saving a student in a grade the school doesn't offer, warn when staff have orphaned grade assignments that need cleanup.
+- **Why deferred:** Phase 1 ships nudge banners and config-aware pickers. Staff orphaned-grade greying is already done. Phase 2 adds hard blocking.
+- **Where to change:** `src/Students.jsx`, `src/Enrollment.jsx`, `src/Alumni.jsx`
 
 ---
 
