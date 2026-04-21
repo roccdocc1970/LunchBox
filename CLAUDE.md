@@ -365,6 +365,15 @@ Always sort grade arrays by `ALL_GRADES` index:
 - Summary bar: Total / Published / Draft counts
 - Report card count shown in student profile drawer (Students module)
 
+### Setup Wizard (`SetupWizard.jsx`)
+- 5-step modal carousel shown automatically on first login after onboarding
+- Steps: (1) Grades Offered, (2) School Divisions, (3) Subjects Offered, (4) Grading Scale & Period, (5) Brand Color & Logo
+- Each step saves to Supabase on "Save & Continue"; "Skip for now" advances without saving
+- Completion tracked via `localStorage` key `wizard_complete_{userId}` — never shown again once dismissed or finished
+- New schools (coming through Onboarding) also trigger the wizard on first dashboard load
+- **Test button** in sidebar bottom (red, labeled for removal) — clears localStorage flag to re-trigger wizard for dev testing. Remove before launch.
+- Triggered from `App.jsx`: `showWizard` state set in `fetchSchool()` and on Onboarding completion
+
 ### Reports Module (`Reports.jsx`)
 - Top stats: Total Students, Enrolled, Applied, Waitlisted, Messages Sent, Parents Reached
 - Enrollment Status stacked bar chart
@@ -481,7 +490,7 @@ git push
 
 ## How To Start a Session
 
-When opening Claude Code, navigate to the project root first so this file is auto-loaded. Then tell Claude what you want to work on:
+Always open Claude Code from `C:\Users\Daniel Rocco\Desktop\lunchbox` (the main project folder). Do NOT work from worktree paths — changes made there must be merged back manually. Then tell Claude what you want to work on:
 
 > "I'd like to work on [MODULE NAME] today."
 
