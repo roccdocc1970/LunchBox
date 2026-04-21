@@ -38,6 +38,7 @@ export default function Students({ user, school }) {
   const [filterStatus, setFilterStatus] = useState('')
   const [selected, setSelected] = useState(null)
   const [gradeHistory, setGradeHistory] = useState([])
+  const [reportCardCount, setReportCardCount] = useState(0)
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState({})
   const [saving, setSaving] = useState(false)
@@ -114,6 +115,14 @@ export default function Students({ user, school }) {
     fetchStudents()
   }
 
+  const fetchReportCardCount = async (studentId) => {
+    const { count } = await supabase
+      .from('report_cards')
+      .select('*', { count: 'exact', head: true })
+      .eq('student_id', studentId)
+    setReportCardCount(count || 0)
+  }
+
   const openProfile = (student) => {
     setSelected(student)
     setEditing(false)
@@ -121,6 +130,7 @@ export default function Students({ user, school }) {
     setGraduateConfirm(false)
     setError(null)
     fetchGradeHistory(student.id)
+    fetchReportCardCount(student.id)
   }
 
   const closeProfile = () => {
@@ -416,6 +426,16 @@ export default function Students({ user, school }) {
                         })}
                       </div>
                     )}
+                  </Section>
+
+                  <Section title="Report Cards">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0' }}>
+                      <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>Report cards on file</span>
+                      <span style={{ fontSize: '0.875rem', fontWeight: '600', color: reportCardCount > 0 ? primaryColor : '#9ca3af' }}>
+                        {reportCardCount > 0 ? `${reportCardCount} report card${reportCardCount !== 1 ? 's' : ''}` : 'None yet'}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: 0 }}>Manage report cards in the Report Cards module.</p>
                   </Section>
 
                   <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>

@@ -7,6 +7,7 @@ import Onboarding from './Onboarding'
 import Settings from './Settings'
 import Students from './Students'
 import Reports from './Reports'
+import ReportCards from './ReportCards'
 import Staff from './Staff'
 import Alumni from './Alumni'
 
@@ -83,6 +84,7 @@ function App() {
     { id: 'students', label: 'Students', icon: '🎒' },
     { id: 'staff', label: 'Staff', icon: '👩‍🏫' },
     { id: 'alumni', label: 'Alumni', icon: '🎓' },
+    { id: 'reportcards', label: 'Report Cards', icon: '📝' },
     { id: 'reports', label: 'Reports', icon: '📊' },
     { id: 'settings', label: 'School Settings', icon: '⚙️' },
   ]
@@ -190,6 +192,7 @@ if (session && !checkingSchool && !school) {
             {activePage === 'students' && <Students user={session.user} school={school} />}
             {activePage === 'staff' && <Staff user={session.user} school={school} />}
             {activePage === 'alumni' && <Alumni user={session.user} school={school} />}
+            {activePage === 'reportcards' && <ReportCards user={session.user} school={school} />}
             {activePage === 'reports' && <Reports user={session.user} school={school} />}
             {activePage === 'settings' && <Settings user={session.user} school={school} onUpdate={(updated) => setSchool(updated)} />}
           </div>

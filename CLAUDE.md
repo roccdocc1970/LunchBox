@@ -172,6 +172,35 @@ VITE_RESEND_API_KEY=re_your_key_here
 > RLS Policy: Users can only read/write their own school's alumni.
 > Students are moved to alumni via "Graduate to Alumni" button in Students module — record is inserted into alumni and deleted from students.
 
+### Table: `report_cards`
+
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID | Primary key, auto-generated |
+| created_at | TIMESTAMP | Auto-set |
+| student_id | UUID | No FK constraint — survives student graduation/deletion |
+| student_name | TEXT | Denormalized at creation time |
+| student_grade | TEXT | Denormalized at creation time |
+| school_id | UUID | References auth.users(id) |
+| academic_year | TEXT | e.g. "2025-2026" |
+| term | TEXT | Q1/Q2/Q3/Q4, T1/T2/T3, S1/S2, or Annual — driven by school grading_period |
+| grades | JSONB | Array of {subject, grade, comment} |
+| teacher_notes | TEXT | Overall teacher comment for the term |
+| published | BOOLEAN | Default: false. True = visible/finalized |
+
+> RLS Policy: Users can only read/write their own school's report cards.
+> student_name and student_grade are stored at creation time so cards survive graduation.
+
+### Schools table — additional columns
+
+| Column | Type | Notes |
+|---|---|---|
+| grading_scale | TEXT | Default: Letter. Options: Letter, Standards, Satisfactory |
+| subjects_offered | JSONB | Array of subject name strings. Drives report card rows. |
+| primary_color | TEXT | Hex color for brand theming across the app |
+| logo_url | TEXT | URL to school logo — shown in top nav |
+| motto | TEXT | School tagline — shown under name in top nav |
+
 ---
 
 ## App Architecture & Routing
@@ -256,11 +285,22 @@ LunchBox uses **state-based routing** (no React Router) inside `App.jsx`.
 - Note: Live email sending requires verified domain in Resend
 
 ### Settings Module (`Settings.jsx`)
-- Editable form pre-populated with existing school data
-- Fields: school name, principal name, phone, address, city, state, ZIP, website, school type, student capacity
-- Account card showing admin email and active status
-- Save button updates `schools` table and calls `onUpdate()` to refresh parent state
-- Success/error feedback messages
+- 4 tabs: School Profile, Academic Config, Communication, Appearance
+- Academic Config: grade level checkboxes, grading period, grading scale (Letter/Standards/Satisfactory), subjects offered (one per line)
+- Appearance: brand color picker + hex input (applied globally), logo URL, school motto
+- Brand color and logo applied across all modules via `school.primary_color` and `school.logo_url`
+- Save button per tab; updates `schools` table and calls `onUpdate()` to refresh parent state
+
+### Report Cards Module (`ReportCards.jsx`)
+- Create report cards per student per term with a subject-by-subject grades grid
+- Grade options driven by school's grading scale (Letter, Standards-Based, Satisfactory)
+- Subjects driven by school's subjects_offered config (defaults to 9 standard K-8 subjects)
+- Per-subject grade dropdown + optional teacher comment
+- Overall teacher notes field
+- Draft → Published workflow with Publish/Revert to Draft toggle
+- Filters: search by student, filter by term, filter by published status
+- Summary bar: Total / Published / Draft counts
+- Report card count shown in student profile drawer (Students module)
 
 ---
 
@@ -268,10 +308,11 @@ LunchBox uses **state-based routing** (no React Router) inside `App.jsx`.
 
 | Module | Priority | Notes |
 |---|---|---|
-| Config-driven grade dropdowns | High | In progress — see Deferred Work below |
 | Stripe Integration | High | Monthly subscription billing for schools |
 | Resend Domain Verification | Medium | Enable live email sending to parents |
+| Admissions Pipeline | Medium | Pre-application inquiry tracking; extend Enrollment |
 | Custom Domain | Medium | Buy getlunchbox.com or lunchbox.app |
+| Incident / Behavior Log | Medium | Per-student log inside student profile |
 | Student Billing | Low | Track tuition payments per student |
 | Staff Logins | Low | Staff-specific access to the platform |
 

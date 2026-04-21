@@ -42,6 +42,14 @@ export default function Settings({ user, school, onUpdate }) {
     student_capacity: school?.student_capacity || '',
   })
 
+  const parseSubjects = (val) => {
+    try {
+      const s = JSON.parse(val)
+      if (Array.isArray(s) && s.length > 0) return s.join('\n')
+    } catch {}
+    return 'Reading / ELA\nWriting\nMathematics\nScience\nSocial Studies\nArt\nMusic\nPhysical Education\nSocial-Emotional Learning'
+  }
+
   const [academic, setAcademic] = useState({
     grades_offered: parseGrades(school?.grades_offered),
     academic_year: school?.academic_year || `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
@@ -49,6 +57,8 @@ export default function Settings({ user, school, onUpdate }) {
     school_year_end: school?.school_year_end || 'June',
     grading_period: school?.grading_period || 'Quarters',
     default_enrollment_status: school?.default_enrollment_status || 'Applied',
+    grading_scale: school?.grading_scale || 'Letter',
+    subjects_offered: parseSubjects(school?.subjects_offered),
   })
 
   const [communication, setCommunication] = useState({
@@ -244,9 +254,38 @@ export default function Settings({ user, school, onUpdate }) {
             </div>
           </div>
 
-          <SaveBar saving={saving} success={success} error={error} onSave={() => save({
+          <Divider />
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div>
+              <label style={labelStyle}>Grading Scale</label>
+              <select value={academic.grading_scale} onChange={e => setAcademic({ ...academic, grading_scale: e.target.value })} style={inputStyle}>
+                <option value="Letter">Letter Grades (A, B, C…)</option>
+                <option value="Standards">Standards-Based (4, 3, 2, 1)</option>
+                <option value="Satisfactory">Satisfactory (E, S, N)</option>
+              </select>
+              <p style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '0.35rem' }}>Used on report cards across all grades.</p>
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <label style={labelStyle}>Subjects Offered</label>
+            <textarea
+              value={academic.subjects_offered}
+              onChange={e => setAcademic({ ...academic, subjects_offered: e.target.value })}
+              rows={9}
+              style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }}
+              placeholder="One subject per line..."
+            />
+            <p style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '0.35rem' }}>One subject per line. These appear as rows on every report card.</p>
+          </div>
+
+          <SaveBar primaryColor={primaryColor} saving={saving} success={success} error={error} onSave={() => save({
             ...academic,
             grades_offered: JSON.stringify(academic.grades_offered),
+            subjects_offered: JSON.stringify(
+              academic.subjects_offered.split('\n').map(s => s.trim()).filter(Boolean)
+            ),
           })} />
         </div>
       )}
