@@ -1,6 +1,19 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 
+const DIVISION_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444']
+
+const getDivision = (grade, divisionsRaw) => {
+  if (!grade || !divisionsRaw) return null
+  try {
+    const divs = typeof divisionsRaw === 'string' ? JSON.parse(divisionsRaw) : divisionsRaw
+    if (!Array.isArray(divs)) return null
+    const idx = divs.findIndex(d => d.grades?.includes(grade))
+    if (idx === -1) return null
+    return { name: divs[idx].name, color: DIVISION_COLORS[idx % DIVISION_COLORS.length] }
+  } catch { return null }
+}
+
 const DEFAULT_SUBJECTS = [
   'Reading / ELA', 'Writing', 'Mathematics', 'Science',
   'Social Studies', 'Art', 'Music', 'Physical Education', 'Social-Emotional Learning',
@@ -70,6 +83,7 @@ export default function ReportCards({ user, school }) {
   const [search, setSearch] = useState('')
   const [filterTerm, setFilterTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [filterDivision, setFilterDivision] = useState('')
   const [form, setForm] = useState(emptyForm())
 
   useEffect(() => {
@@ -157,7 +171,8 @@ export default function ReportCards({ user, school }) {
     const matchTerm = !filterTerm || rc.term === filterTerm
     const matchStatus = !filterStatus ||
       (filterStatus === 'published' ? rc.published : !rc.published)
-    return matchSearch && matchTerm && matchStatus
+    const matchDivision = !filterDivision || getDivision(rc.student_grade, school?.divisions)?.name === filterDivision
+    return matchSearch && matchTerm && matchStatus && matchDivision
   })
 
   const inputStyle = {
@@ -313,8 +328,21 @@ export default function ReportCards({ user, school }) {
           <option value="published">Published</option>
           <option value="draft">Draft</option>
         </select>
-        {(search || filterTerm || filterStatus) && (
-          <button onClick={() => { setSearch(''); setFilterTerm(''); setFilterStatus('') }}
+        {(() => {
+          try {
+            const divs = school?.divisions ? (typeof school.divisions === 'string' ? JSON.parse(school.divisions) : school.divisions) : []
+            const named = Array.isArray(divs) ? divs.filter(d => d.grades?.length > 0) : []
+            if (named.length === 0) return null
+            return (
+              <select value={filterDivision} onChange={e => setFilterDivision(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '160px' }}>
+                <option value="">All Divisions</option>
+                {named.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
+              </select>
+            )
+          } catch { return null }
+        })()}
+        {(search || filterTerm || filterStatus || filterDivision) && (
+          <button onClick={() => { setSearch(''); setFilterTerm(''); setFilterStatus(''); setFilterDivision('') }}
             style={{ background: 'transparent', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', color: '#6b7280', fontSize: '0.9rem' }}>
             Clear
           </button>

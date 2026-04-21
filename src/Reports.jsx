@@ -7,7 +7,18 @@ const STATUS_COLORS = {
   Waitlisted: '#f59e0b',
 }
 
+const DIVISION_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444']
+
+const parseDivisions = (val) => {
+  if (!val) return []
+  try {
+    const d = typeof val === 'string' ? JSON.parse(val) : val
+    return Array.isArray(d) ? d : []
+  } catch { return [] }
+}
+
 export default function Reports({ user, school }) {
+  const primaryColor = school?.primary_color || '#f97316'
   const [students, setStudents] = useState([])
   const [messages, setMessages] = useState([])
   const [loading, setLoading] = useState(true)
@@ -79,7 +90,7 @@ export default function Reports({ user, school }) {
       {/* Top Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
         {[
-          { label: 'Total Students', value: total, icon: '🎒', color: '#f97316' },
+          { label: 'Total Students', value: total, icon: '🎒', color: primaryColor },
           { label: 'Enrolled', value: enrolled, icon: '✅', color: '#10b981' },
           { label: 'Applied', value: applied, icon: '📋', color: '#3b82f6' },
           { label: 'Waitlisted', value: waitlisted, icon: '⏳', color: '#f59e0b' },
@@ -176,13 +187,42 @@ export default function Reports({ user, school }) {
             return (
               <div key={m.label + m.year} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', height: '100%', justifyContent: 'flex-end' }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: '600', color: '#374151' }}>{m.count > 0 ? m.count : ''}</span>
-                <div style={{ width: '100%', background: m.count > 0 ? '#f97316' : '#f3f4f6', borderRadius: '0.375rem 0.375rem 0 0', height: `${barHeight}%`, minHeight: '4px', transition: 'height 0.4s' }} />
+                <div style={{ width: '100%', background: m.count > 0 ? primaryColor : '#f3f4f6', borderRadius: '0.375rem 0.375rem 0 0', height: `${barHeight}%`, minHeight: '4px', transition: 'height 0.4s' }} />
                 <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{m.label}</span>
               </div>
             )
           })}
         </div>
       </div>
+
+      {/* Division Breakdown */}
+      {(() => {
+        const divisions = parseDivisions(school?.divisions).filter(d => d.grades?.length > 0)
+        if (divisions.length === 0) return null
+        const divStats = divisions.map((div, i) => {
+          const count = students.filter(s => div.grades.includes(s.grade)).length
+          const enrolledCount = students.filter(s => div.grades.includes(s.grade) && s.status === 'Enrolled').length
+          return { name: div.name, color: DIVISION_COLORS[i % DIVISION_COLORS.length], count, enrolledCount }
+        })
+        const maxCount = Math.max(...divStats.map(d => d.count), 1)
+        return (
+          <div style={{ background: 'white', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: '1.5rem' }}>
+            <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', marginTop: 0, marginBottom: '1.25rem' }}>Students by Division</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+              {divStats.map(div => (
+                <div key={div.name} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <span style={{ fontSize: '0.875rem', color: '#374151', width: '140px', flexShrink: 0, fontWeight: '500' }}>{div.name}</span>
+                  <div style={{ flex: 1, background: '#f3f4f6', borderRadius: '9999px', height: '10px', overflow: 'hidden' }}>
+                    <div style={{ width: `${(div.count / maxCount) * 100}%`, height: '100%', background: div.color, borderRadius: '9999px', transition: 'width 0.4s' }} />
+                  </div>
+                  <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#1f2937', width: '24px', textAlign: 'right' }}>{div.count}</span>
+                  <span style={{ fontSize: '0.75rem', color: div.color, fontWeight: '500', width: '80px' }}>{div.enrolledCount} enrolled</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Grade Breakdown */}
       <div style={{ background: 'white', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
@@ -195,7 +235,7 @@ export default function Reports({ user, school }) {
               <div key={grade} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <span style={{ fontSize: '0.875rem', color: '#374151', width: '110px', flexShrink: 0 }}>{grade}</span>
                 <div style={{ flex: 1, background: '#f3f4f6', borderRadius: '9999px', height: '10px', overflow: 'hidden' }}>
-                  <div style={{ width: `${(count / maxGradeCount) * 100}%`, height: '100%', background: '#f97316', borderRadius: '9999px', transition: 'width 0.4s' }} />
+                  <div style={{ width: `${(count / maxGradeCount) * 100}%`, height: '100%', background: primaryColor, borderRadius: '9999px', transition: 'width 0.4s' }} />
                 </div>
                 <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#1f2937', width: '24px', textAlign: 'right' }}>{count}</span>
               </div>

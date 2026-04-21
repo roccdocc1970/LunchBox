@@ -17,6 +17,19 @@ const ALL_GRADES = [
   '9th Grade', '10th Grade', '11th Grade', '12th Grade',
 ]
 
+const DIVISION_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444']
+
+const getDivision = (grade, divisionsRaw) => {
+  if (!grade || !divisionsRaw) return null
+  try {
+    const divs = typeof divisionsRaw === 'string' ? JSON.parse(divisionsRaw) : divisionsRaw
+    if (!Array.isArray(divs)) return null
+    const idx = divs.findIndex(d => d.grades?.includes(grade))
+    if (idx === -1) return null
+    return { name: divs[idx].name, color: DIVISION_COLORS[idx % DIVISION_COLORS.length] }
+  } catch { return null }
+}
+
 const parseGrades = (school) => {
   try {
     const g = JSON.parse(school?.grades_offered)
@@ -47,6 +60,7 @@ export default function Staff({ user, school }) {
   const [search, setSearch] = useState('')
   const [filterRole, setFilterRole] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [filterDivision, setFilterDivision] = useState('')
   const [selected, setSelected] = useState(null)
   const [editing, setEditing] = useState(false)
   const [editForm, setEditForm] = useState({})
@@ -148,7 +162,8 @@ export default function Staff({ user, school }) {
       (s.role || '').toLowerCase().includes(search.toLowerCase())
     const matchRole = !filterRole || s.role === filterRole
     const matchStatus = !filterStatus || s.status === filterStatus
-    return matchSearch && matchRole && matchStatus
+    const matchDivision = !filterDivision || getDivision(s.grade_assignment, school?.divisions)?.name === filterDivision
+    return matchSearch && matchRole && matchStatus && matchDivision
   })
 
   const roleColor = (role) => ROLE_COLORS[role] || '#6b7280'
@@ -290,8 +305,21 @@ export default function Staff({ user, school }) {
           <option>Active</option>
           <option>Inactive</option>
         </select>
-        {(search || filterRole || filterStatus) && (
-          <button onClick={() => { setSearch(''); setFilterRole(''); setFilterStatus('') }}
+        {(() => {
+          try {
+            const divs = school?.divisions ? (typeof school.divisions === 'string' ? JSON.parse(school.divisions) : school.divisions) : []
+            const named = Array.isArray(divs) ? divs.filter(d => d.grades?.length > 0) : []
+            if (named.length === 0) return null
+            return (
+              <select value={filterDivision} onChange={e => setFilterDivision(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '160px' }}>
+                <option value="">All Divisions</option>
+                {named.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
+              </select>
+            )
+          } catch { return null }
+        })()}
+        {(search || filterRole || filterStatus || filterDivision) && (
+          <button onClick={() => { setSearch(''); setFilterRole(''); setFilterStatus(''); setFilterDivision('') }}
             style={{ background: 'transparent', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', color: '#6b7280', fontSize: '0.9rem' }}>
             Clear
           </button>
@@ -330,8 +358,13 @@ export default function Staff({ user, school }) {
               </div>
 
               {member.grade_assignment && (
-                <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.4rem' }}>📚 {member.grade_assignment}</div>
+                <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem' }}>📚 {member.grade_assignment}</div>
               )}
+              {(() => {
+                const div = getDivision(member.grade_assignment, school?.divisions)
+                if (!div) return null
+                return <div style={{ marginBottom: '0.4rem' }}><span style={{ fontSize: '0.72rem', color: div.color, fontWeight: '600', background: div.color + '15', borderRadius: '9999px', padding: '0.1rem 0.5rem' }}>{div.name}</span></div>
+              })()}
               {member.email && (
                 <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.4rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>✉️ {member.email}</div>
               )}

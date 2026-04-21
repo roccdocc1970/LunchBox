@@ -22,6 +22,24 @@ const parseGrades = (val) => {
   try { return JSON.parse(val) } catch { return [] }
 }
 
+const DIVISION_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444']
+
+const DEFAULT_DIVISIONS = [
+  { name: 'Early Childhood', grades: [] },
+  { name: 'Lower School', grades: [] },
+  { name: 'Intermediate School', grades: [] },
+  { name: 'Upper School', grades: [] },
+]
+
+const parseDivisionsForEdit = (val) => {
+  if (!val) return DEFAULT_DIVISIONS
+  try {
+    const d = typeof val === 'string' ? JSON.parse(val) : val
+    if (Array.isArray(d) && d.length > 0) return d
+  } catch {}
+  return DEFAULT_DIVISIONS
+}
+
 export default function Settings({ user, school, onUpdate }) {
   const primaryColor = school?.primary_color || '#f97316'
   const [activeTab, setActiveTab] = useState('profile')
@@ -59,6 +77,7 @@ export default function Settings({ user, school, onUpdate }) {
     default_enrollment_status: school?.default_enrollment_status || 'Applied',
     grading_scale: school?.grading_scale || 'Letter',
     subjects_offered: parseSubjects(school?.subjects_offered),
+    divisions: parseDivisionsForEdit(school?.divisions),
   })
 
   const [communication, setCommunication] = useState({
@@ -85,6 +104,32 @@ export default function Settings({ user, school, onUpdate }) {
       onUpdate({ ...school, ...data })
     }
     setSaving(false)
+  }
+
+  const toggleGradeInDiv = (divIndex, grade) => {
+    const updated = academic.divisions.map((div, i) => {
+      if (i === divIndex) {
+        const has = div.grades.includes(grade)
+        return { ...div, grades: has ? div.grades.filter(g => g !== grade) : [...div.grades, grade] }
+      }
+      // remove from any other division that had it
+      return { ...div, grades: div.grades.filter(g => g !== grade) }
+    })
+    setAcademic({ ...academic, divisions: updated })
+  }
+
+  const updateDivisionName = (divIndex, name) => {
+    const updated = academic.divisions.map((div, i) => i === divIndex ? { ...div, name } : div)
+    setAcademic({ ...academic, divisions: updated })
+  }
+
+  const removeDivision = (divIndex) => {
+    setAcademic({ ...academic, divisions: academic.divisions.filter((_, i) => i !== divIndex) })
+  }
+
+  const addDivision = () => {
+    if (academic.divisions.length >= 6) return
+    setAcademic({ ...academic, divisions: [...academic.divisions, { name: 'New Division', grades: [] }] })
   }
 
   const toggleGrade = (grade) => {
@@ -280,12 +325,83 @@ export default function Settings({ user, school, onUpdate }) {
             <p style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '0.35rem' }}>One subject per line. These appear as rows on every report card.</p>
           </div>
 
+          <Divider />
+
+          {/* Divisions */}
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <div>
+                <h4 style={{ fontSize: '1rem', fontWeight: '600', color: '#1f2937', margin: 0 }}>School Divisions</h4>
+                <p style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '0.25rem' }}>Group your grades into named divisions (e.g. Lower School, Upper School). Each grade can only belong to one division.</p>
+              </div>
+              {academic.divisions.length < 6 && (
+                <button
+                  onClick={addDivision}
+                  style={{ background: 'transparent', border: `1px solid ${primaryColor}`, borderRadius: '0.5rem', padding: '0.375rem 0.875rem', color: primaryColor, fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem', whiteSpace: 'nowrap' }}
+                >
+                  + Add Division
+                </button>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {academic.divisions.map((div, i) => {
+                const color = DIVISION_COLORS[i % DIVISION_COLORS.length]
+                return (
+                  <div key={i} style={{ border: `2px solid ${color}20`, borderRadius: '0.75rem', padding: '1rem', background: `${color}08` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                      <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: color, flexShrink: 0 }} />
+                      <input
+                        value={div.name}
+                        onChange={e => updateDivisionName(i, e.target.value)}
+                        style={{ ...inputStyle, fontWeight: '600', color, border: `1px solid ${color}40`, background: 'white', flex: 1 }}
+                      />
+                      <button
+                        onClick={() => removeDivision(i)}
+                        style={{ background: 'transparent', border: '1px solid #e5e7eb', borderRadius: '0.375rem', padding: '0.25rem 0.5rem', cursor: 'pointer', color: '#9ca3af', fontSize: '0.875rem' }}
+                        title="Remove division"
+                      >✕</button>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+                      {academic.grades_offered.length === 0 && (
+                        <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontStyle: 'italic' }}>Select grade levels above to assign them to divisions.</span>
+                      )}
+                      {academic.grades_offered.map(grade => {
+                        const inThis = div.grades.includes(grade)
+                        const inOther = !inThis && academic.divisions.some((d, j) => j !== i && d.grades.includes(grade))
+                        return (
+                          <button
+                            key={grade}
+                            onClick={() => !inOther && toggleGradeInDiv(i, grade)}
+                            disabled={inOther}
+                            style={{
+                              padding: '0.25rem 0.625rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: inThis ? '600' : '400', cursor: inOther ? 'not-allowed' : 'pointer', border: `1.5px solid ${inThis ? color : '#d1d5db'}`,
+                              background: inThis ? color : inOther ? '#f3f4f6' : 'white',
+                              color: inThis ? 'white' : inOther ? '#d1d5db' : '#374151',
+                              opacity: inOther ? 0.5 : 1,
+                            }}
+                          >
+                            {grade}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.5rem', marginBottom: 0 }}>
+                      {div.grades.length === 0 ? 'No grades assigned' : `${div.grades.length} grade${div.grades.length !== 1 ? 's' : ''}: ${div.grades.join(', ')}`}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
           <SaveBar primaryColor={primaryColor} saving={saving} success={success} error={error} onSave={() => save({
             ...academic,
             grades_offered: JSON.stringify(academic.grades_offered),
             subjects_offered: JSON.stringify(
               academic.subjects_offered.split('\n').map(s => s.trim()).filter(Boolean)
             ),
+            divisions: JSON.stringify(academic.divisions),
           })} />
         </div>
       )}

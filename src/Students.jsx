@@ -13,6 +13,19 @@ const ALL_GRADES = [
   '9th Grade', '10th Grade', '11th Grade', '12th Grade',
 ]
 
+const DIVISION_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444']
+
+const getDivision = (grade, divisionsRaw) => {
+  if (!grade || !divisionsRaw) return null
+  try {
+    const divs = typeof divisionsRaw === 'string' ? JSON.parse(divisionsRaw) : divisionsRaw
+    if (!Array.isArray(divs)) return null
+    const idx = divs.findIndex(d => d.grades?.includes(grade))
+    if (idx === -1) return null
+    return { name: divs[idx].name, color: DIVISION_COLORS[idx % DIVISION_COLORS.length] }
+  } catch { return null }
+}
+
 const parseGrades = (school) => {
   try {
     const g = JSON.parse(school?.grades_offered)
@@ -36,6 +49,7 @@ export default function Students({ user, school }) {
   const [search, setSearch] = useState('')
   const [filterGrade, setFilterGrade] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [filterDivision, setFilterDivision] = useState('')
   const [selected, setSelected] = useState(null)
   const [gradeHistory, setGradeHistory] = useState([])
   const [reportCardCount, setReportCardCount] = useState(0)
@@ -71,7 +85,8 @@ export default function Students({ user, school }) {
       (s.parent_email || '').toLowerCase().includes(search.toLowerCase())
     const matchGrade = !filterGrade || s.grade === filterGrade
     const matchStatus = !filterStatus || s.status === filterStatus
-    return matchSearch && matchGrade && matchStatus
+    const matchDivision = !filterDivision || getDivision(s.grade, school?.divisions)?.name === filterDivision
+    return matchSearch && matchGrade && matchStatus && matchDivision
   })
 
   const gradeOptions = [...new Set(students.map((s) => s.grade).filter(Boolean))].sort()
@@ -276,9 +291,22 @@ export default function Students({ user, school }) {
           <option>Enrolled</option>
           <option>Waitlisted</option>
         </select>
-        {(search || filterGrade || filterStatus) && (
+        {(() => {
+          try {
+            const divs = school?.divisions ? (typeof school.divisions === 'string' ? JSON.parse(school.divisions) : school.divisions) : []
+            const named = Array.isArray(divs) ? divs.filter(d => d.grades?.length > 0) : []
+            if (named.length === 0) return null
+            return (
+              <select value={filterDivision} onChange={e => setFilterDivision(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '160px' }}>
+                <option value="">All Divisions</option>
+                {named.map((d, i) => <option key={d.name} value={d.name}>{d.name}</option>)}
+              </select>
+            )
+          } catch { return null }
+        })()}
+        {(search || filterGrade || filterStatus || filterDivision) && (
           <button
-            onClick={() => { setSearch(''); setFilterGrade(''); setFilterStatus('') }}
+            onClick={() => { setSearch(''); setFilterGrade(''); setFilterStatus(''); setFilterDivision('') }}
             style={{ background: 'transparent', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', color: '#6b7280', fontSize: '0.9rem' }}
           >
             Clear
@@ -337,7 +365,14 @@ export default function Students({ user, school }) {
                     <div style={{ fontWeight: '600', color: '#1f2937' }}>{student.first_name} {student.last_name}</div>
                     {student.date_of_birth && <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>DOB: {student.date_of_birth}</div>}
                   </td>
-                  <td style={{ padding: '0.75rem 1rem', color: '#374151' }}>{student.grade || '—'}</td>
+                  <td style={{ padding: '0.75rem 1rem', color: '#374151' }}>
+                    <div>{student.grade || '—'}</div>
+                    {(() => {
+                      const div = getDivision(student.grade, school?.divisions)
+                      if (!div) return null
+                      return <span style={{ fontSize: '0.7rem', color: div.color, fontWeight: '600', background: div.color + '15', borderRadius: '9999px', padding: '0.1rem 0.5rem', display: 'inline-block', marginTop: '0.2rem' }}>{div.name}</span>
+                    })()}
+                  </td>
                   <td style={{ padding: '0.75rem 1rem', color: '#374151' }}>{student.parent_name || '—'}</td>
                   <td style={{ padding: '0.75rem 1rem' }}>
                     <div style={{ fontSize: '0.875rem', color: '#374151' }}>{student.parent_email}</div>
@@ -375,9 +410,16 @@ export default function Students({ user, school }) {
                 </div>
                 <button onClick={closeProfile} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: '0.5rem', padding: '0.25rem 0.75rem', cursor: 'pointer', fontSize: '1.1rem' }}>✕</button>
               </div>
-              <span style={{ display: 'inline-block', marginTop: '0.75rem', background: 'rgba(255,255,255,0.2)', borderRadius: '9999px', padding: '0.2rem 0.75rem', fontSize: '0.8rem', fontWeight: '600' }}>
-                {selected.status || 'Applied'}
-              </span>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+                <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '9999px', padding: '0.2rem 0.75rem', fontSize: '0.8rem', fontWeight: '600' }}>
+                  {selected.status || 'Applied'}
+                </span>
+                {(() => {
+                  const div = getDivision(selected.grade, school?.divisions)
+                  if (!div) return null
+                  return <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '9999px', padding: '0.2rem 0.75rem', fontSize: '0.8rem', fontWeight: '600', borderLeft: `3px solid ${div.color}` }}>{div.name}</span>
+                })()}
+              </div>
             </div>
 
             <div style={{ padding: '1.5rem' }}>
