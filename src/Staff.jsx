@@ -212,6 +212,10 @@ export default function Staff({ user, school }) {
   // Grade picker used in both add form and edit drawer
   const GradePicker = ({ selected: picked, onToggle, locked }) => {
     const sorted = [...GRADES].sort((a, b) => ALL_GRADES.indexOf(a) - ALL_GRADES.indexOf(b))
+    // grades assigned to this staff member that are no longer in the school's config
+    const orphaned = configuredGrades
+      ? picked.filter(g => !configuredGrades.includes(g)).sort((a, b) => ALL_GRADES.indexOf(a) - ALL_GRADES.indexOf(b))
+      : []
     return (
       <div>
         {locked ? (
@@ -225,10 +229,7 @@ export default function Staff({ user, school }) {
               const div = getDivision(grade, school?.divisions)
               const color = div ? div.color : primaryColor
               return (
-                <button
-                  key={grade}
-                  type="button"
-                  onClick={() => onToggle(grade)}
+                <button key={grade} type="button" onClick={() => onToggle(grade)}
                   style={{
                     padding: '0.25rem 0.625rem', borderRadius: '9999px', fontSize: '0.8rem',
                     fontWeight: active ? '600' : '400', cursor: 'pointer',
@@ -242,9 +243,30 @@ export default function Staff({ user, school }) {
                 </button>
               )
             })}
+            {orphaned.map(grade => (
+              <button key={grade} type="button" onClick={() => onToggle(grade)}
+                title="This grade is no longer offered at your school. Click to remove."
+                style={{
+                  padding: '0.25rem 0.625rem', borderRadius: '9999px', fontSize: '0.8rem',
+                  fontWeight: '400', cursor: 'pointer',
+                  border: '1.5px solid #fcd34d',
+                  background: '#fefce8',
+                  color: '#92400e',
+                  textDecoration: 'line-through',
+                  transition: 'all 0.1s',
+                }}
+              >
+                ⚠ {grade}
+              </button>
+            ))}
           </div>
         )}
-        {picked.length > 0 && (
+        {orphaned.length > 0 && (
+          <p style={{ fontSize: '0.75rem', color: '#d97706', marginTop: '0.5rem', marginBottom: 0 }}>
+            ⚠ {orphaned.length} grade{orphaned.length !== 1 ? 's are' : ' is'} no longer offered at this school. Click to remove.
+          </p>
+        )}
+        {picked.length > 0 && orphaned.length === 0 && (
           <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.375rem', marginBottom: 0 }}>
             {picked.length} grade{picked.length !== 1 ? 's' : ''} assigned
           </p>
@@ -258,8 +280,10 @@ export default function Staff({ user, school }) {
     const assignments = parseGradeAssignments(member)
     if (assignments.length === 0) return null
     const sorted = [...assignments].sort((a, b) => ALL_GRADES.indexOf(a) - ALL_GRADES.indexOf(b))
+    const isOrphaned = (g) => configuredGrades && !configuredGrades.includes(g)
+    // only derive divisions from active (non-orphaned) grades
     const uniqueDivisions = []
-    sorted.forEach(g => {
+    sorted.filter(g => !isOrphaned(g)).forEach(g => {
       const div = getDivision(g, school?.divisions)
       if (div && !uniqueDivisions.find(d => d.name === div.name)) uniqueDivisions.push(div)
     })
@@ -267,9 +291,10 @@ export default function Staff({ user, school }) {
       return (
         <div style={{ marginBottom: '0.5rem' }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginBottom: uniqueDivisions.length > 0 ? '0.25rem' : 0 }}>
-            {sorted.map(g => (
-              <span key={g} style={{ fontSize: '0.72rem', background: '#f3f4f6', color: '#374151', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>{g}</span>
-            ))}
+            {sorted.map(g => isOrphaned(g)
+              ? <span key={g} title="Grade no longer offered" style={{ fontSize: '0.72rem', background: '#fefce8', color: '#92400e', borderRadius: '9999px', padding: '0.15rem 0.5rem', textDecoration: 'line-through', border: '1px solid #fcd34d' }}>⚠ {g}</span>
+              : <span key={g} style={{ fontSize: '0.72rem', background: '#f3f4f6', color: '#374151', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>{g}</span>
+            )}
           </div>
           {uniqueDivisions.map(div => (
             <span key={div.name} style={{ fontSize: '0.72rem', color: div.color, fontWeight: '600', background: div.color + '15', borderRadius: '9999px', padding: '0.1rem 0.5rem', marginRight: '0.25rem', display: 'inline-block' }}>{div.name}</span>
@@ -282,6 +307,14 @@ export default function Staff({ user, school }) {
         <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Grade Assignments</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: uniqueDivisions.length > 0 ? '1.25rem' : 0 }}>
           {sorted.map(g => {
+            if (isOrphaned(g)) {
+              return (
+                <span key={g} title="Grade no longer offered at this school"
+                  style={{ fontSize: '0.8rem', fontWeight: '400', background: '#fefce8', color: '#92400e', border: '1px solid #fcd34d', borderRadius: '9999px', padding: '0.2rem 0.625rem', textDecoration: 'line-through' }}>
+                  ⚠ {g}
+                </span>
+              )
+            }
             const div = getDivision(g, school?.divisions)
             const color = div ? div.color : primaryColor
             return (
@@ -289,6 +322,11 @@ export default function Staff({ user, school }) {
             )
           })}
         </div>
+        {sorted.some(isOrphaned) && (
+          <p style={{ fontSize: '0.75rem', color: '#d97706', margin: '0 0 1rem' }}>
+            ⚠ Strikethrough grades are no longer offered. Edit this profile to remove them.
+          </p>
+        )}
         {uniqueDivisions.length > 0 && (
           <>
             <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>School Divisions</div>
