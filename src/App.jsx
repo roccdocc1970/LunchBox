@@ -21,17 +21,28 @@ function App() {
   const [showLanding, setShowLanding] = useState(true)
   const [school, setSchool] = useState(null)
   const [checkingSchool, setCheckingSchool] = useState(false)
+  const [stats, setStats] = useState({ students: 0, pending: 0, messages: 0, staff: 0 })
 
  useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
-      if (session) fetchSchool(session.user.id)
+      if (session) { fetchSchool(session.user.id); fetchStats(session.user.id) }
     })
     supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
-      if (session) fetchSchool(session.user.id)
+      if (session) { fetchSchool(session.user.id); fetchStats(session.user.id) }
     })
   }, [])
+
+  const fetchStats = async (userId) => {
+    const [{ count: students }, { count: pending }, { count: messages }, { count: staff }] = await Promise.all([
+      supabase.from('students').select('*', { count: 'exact', head: true }).eq('school_id', userId),
+      supabase.from('students').select('*', { count: 'exact', head: true }).eq('school_id', userId).eq('status', 'Applied'),
+      supabase.from('messages').select('*', { count: 'exact', head: true }).eq('school_id', userId),
+      supabase.from('staff').select('*', { count: 'exact', head: true }).eq('school_id', userId).eq('status', 'Active'),
+    ])
+    setStats({ students: students || 0, pending: pending || 0, messages: messages || 0, staff: staff || 0 })
+  }
 
   const fetchSchool = async (userId) => {
     setCheckingSchool(true)
@@ -142,10 +153,10 @@ if (session && !checkingSchool && !school) {
                 <p style={{ color: '#6b7280', marginBottom: '2rem' }}>Your school operations dashboard</p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
                   {[
-                    { label: 'Total Students', value: '0', icon: '🎒' },
-                    { label: 'Pending Enrollment', value: '0', icon: '📋' },
-                    { label: 'Messages Sent', value: '0', icon: '✉️' },
-                    { label: 'Staff Members', value: '0', icon: '👩‍🏫' },
+                    { label: 'Total Students', value: stats.students, icon: '🎒' },
+                    { label: 'Pending Enrollment', value: stats.pending, icon: '📋' },
+                    { label: 'Messages Sent', value: stats.messages, icon: '✉️' },
+                    { label: 'Active Staff', value: stats.staff, icon: '👩‍🏫' },
                   ].map((stat) => (
                     <div key={stat.label} style={{ background: 'white', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
                       <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>{stat.icon}</div>
