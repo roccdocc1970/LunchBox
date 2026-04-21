@@ -35,6 +35,7 @@ const parseGrades = (school) => {
 }
 
 export default function Alumni({ user, school }) {
+  const primaryColor = school?.primary_color || '#f97316'
   const configuredGrades = parseGrades(school)
   const GRADES = configuredGrades || ALL_GRADES
 
@@ -210,7 +211,7 @@ export default function Alumni({ user, school }) {
       {/* Summary counts */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         {[
-          { label: 'Total Alumni', value: alumni.length, color: '#f97316' },
+          { label: 'Total Alumni', value: alumni.length, color: primaryColor },
           { label: 'Active Donors', value: alumni.filter(a => a.donor_status === 'Active Donor').length, color: '#10b981' },
           { label: 'Prospects', value: alumni.filter(a => a.donor_status === 'Prospect').length, color: '#3b82f6' },
           { label: 'Opted In', value: alumni.filter(a => a.opt_in).length, color: '#8b5cf6' },
@@ -274,7 +275,7 @@ export default function Alumni({ user, school }) {
               onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.08)'}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', fontWeight: 'bold', color: '#f97316', flexShrink: 0 }}>
+                <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: primaryColor + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', fontWeight: 'bold', color: primaryColor, flexShrink: 0 }}>
                   {alumnus.first_name?.[0]}{alumnus.last_name?.[0]}
                 </div>
                 <div>
@@ -318,7 +319,7 @@ export default function Alumni({ user, school }) {
         >
           <div style={{ width: '440px', maxWidth: '100%', background: 'white', height: '100%', overflowY: 'auto', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)' }}>
 
-            <div style={{ background: '#f97316', padding: '1.5rem', color: 'white' }}>
+            <div style={{ background: primaryColor, padding: '1.5rem', color: 'white' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 'bold' }}>
@@ -383,13 +384,13 @@ export default function Alumni({ user, school }) {
                           const isFinal = i === gradeHistory.length - 1
                           return (
                             <div key={entry.id} style={{ position: 'relative', marginBottom: i < gradeHistory.length - 1 ? '0.875rem' : 0 }}>
-                              <div style={{ position: 'absolute', left: '-1.1rem', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: isFinal ? '#f97316' : '#d1d5db', border: `2px solid ${isFinal ? '#f97316' : '#e5e7eb'}` }} />
+                              <div style={{ position: 'absolute', left: '-1.1rem', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: isFinal ? primaryColor : '#d1d5db', border: `2px solid ${isFinal ? primaryColor : '#e5e7eb'}` }} />
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.875rem', fontWeight: isFinal ? '600' : '400', color: isFinal ? '#f97316' : '#374151' }}>{entry.grade}</span>
+                                <span style={{ fontSize: '0.875rem', fontWeight: isFinal ? '600' : '400', color: isFinal ? primaryColor : '#374151' }}>{entry.grade}</span>
                                 <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{entry.academic_year}</span>
                               </div>
                               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                {isFinal && <span style={{ fontSize: '0.75rem', color: '#f97316', fontWeight: '500' }}>graduated</span>}
+                                {isFinal && <span style={{ fontSize: '0.75rem', color: primaryColor, fontWeight: '500' }}>graduated</span>}
                                 {entry.is_repeat && <span style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: '500' }}>repeated</span>}
                                 {entry.is_skip && <span style={{ fontSize: '0.75rem', color: '#8b5cf6', fontWeight: '500' }}>skipped</span>}
                               </div>
@@ -402,7 +403,7 @@ export default function Alumni({ user, school }) {
 
                   <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
                     <button onClick={startEdit}
-                      style={{ flex: 1, background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}>
+                      style={{ flex: 1, background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}>
                       Edit Profile
                     </button>
                     <button onClick={() => setDeleteConfirm(true)}
@@ -507,7 +508,7 @@ export default function Alumni({ user, school }) {
                   </div>
                   <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
                     <button onClick={saveEdit} disabled={saving}
-                      style={{ flex: 1, background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}>
+                      style={{ flex: 1, background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}>
                       {saving ? 'Saving...' : 'Save Changes'}
                     </button>
                     <button onClick={() => setEditing(false)}

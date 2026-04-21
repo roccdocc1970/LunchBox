@@ -28,6 +28,7 @@ const getAcademicYear = () => {
 }
 
 export default function Students({ user, school }) {
+  const primaryColor = school?.primary_color || '#f97316'
   const configuredGrades = parseGrades(school)
   const GRADES = configuredGrades || ALL_GRADES
   const [students, setStudents] = useState([])
@@ -356,7 +357,7 @@ export default function Students({ user, school }) {
           <div style={{ width: '420px', maxWidth: '100%', background: 'white', height: '100%', overflowY: 'auto', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)' }}>
 
             {/* Drawer Header */}
-            <div style={{ background: '#f97316', padding: '1.5rem', color: 'white' }}>
+            <div style={{ background: primaryColor, padding: '1.5rem', color: 'white' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                   <div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{selected.first_name} {selected.last_name}</div>
@@ -398,15 +399,15 @@ export default function Students({ user, school }) {
                           const isCurrent = i === gradeHistory.length - 1
                           return (
                             <div key={entry.id} style={{ position: 'relative', marginBottom: i < gradeHistory.length - 1 ? '0.875rem' : 0 }}>
-                              <div style={{ position: 'absolute', left: '-1.1rem', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: isCurrent ? '#f97316' : '#d1d5db', border: `2px solid ${isCurrent ? '#f97316' : '#e5e7eb'}` }} />
+                              <div style={{ position: 'absolute', left: '-1.1rem', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: isCurrent ? primaryColor : '#d1d5db', border: `2px solid ${isCurrent ? primaryColor : '#e5e7eb'}` }} />
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.875rem', fontWeight: isCurrent ? '600' : '400', color: isCurrent ? '#f97316' : '#374151' }}>
+                                <span style={{ fontSize: '0.875rem', fontWeight: isCurrent ? '600' : '400', color: isCurrent ? primaryColor : '#374151' }}>
                                   {entry.grade}
                                 </span>
                                 <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{entry.academic_year}</span>
                               </div>
                               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                {isCurrent && <span style={{ fontSize: '0.75rem', color: '#f97316', fontWeight: '500' }}>current</span>}
+                                {isCurrent && <span style={{ fontSize: '0.75rem', color: primaryColor, fontWeight: '500' }}>current</span>}
                                 {entry.is_repeat && <span style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: '500' }}>repeated</span>}
                                 {entry.is_skip && <span style={{ fontSize: '0.75rem', color: '#8b5cf6', fontWeight: '500' }}>skipped</span>}
                               </div>
@@ -420,7 +421,7 @@ export default function Students({ user, school }) {
                   <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
                     <button
                       onClick={startEdit}
-                      style={{ flex: 1, background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}
+                      style={{ flex: 1, background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}
                     >
                       Edit Profile
                     </button>
@@ -435,7 +436,7 @@ export default function Students({ user, school }) {
                   {/* Graduate to Alumni */}
                   <button
                     onClick={() => { setGraduateConfirm(true); setDeleteConfirm(false); setGraduateForm({ graduation_year: new Date().getFullYear(), grade_completed: selected.grade || '' }) }}
-                    style={{ width: '100%', marginTop: '0.75rem', background: '#fff7ed', color: '#f97316', border: '2px solid #f97316', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}
+                    style={{ width: '100%', marginTop: '0.75rem', background: '#fff7ed', color: primaryColor, border: '2px solid #f97316', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}
                   >
                     🎓 Graduate to Alumni
                   </button>
@@ -468,7 +469,7 @@ export default function Students({ user, school }) {
                       </div>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button onClick={graduateToAlumni} disabled={graduating}
-                          style={{ background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: '600', cursor: 'pointer' }}>
+                          style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: '600', cursor: 'pointer' }}>
                           {graduating ? 'Moving...' : 'Confirm Graduate'}
                         </button>
                         <button onClick={() => setGraduateConfirm(false)}
@@ -529,10 +530,10 @@ export default function Students({ user, school }) {
                       {editForm.grade && editForm.grade === selected.grade && (
                         <div onClick={() => setRepeatGrade(!repeatGrade)}
                           style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', cursor: 'pointer', userSelect: 'none' }}>
-                          <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `2px solid ${repeatGrade ? '#f97316' : '#d1d5db'}`, background: repeatGrade ? '#f97316' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `2px solid ${repeatGrade ? primaryColor : '#d1d5db'}`, background: repeatGrade ? primaryColor : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             {repeatGrade && <span style={{ color: 'white', fontSize: '0.7rem', fontWeight: 'bold' }}>✓</span>}
                           </div>
-                          <span style={{ fontSize: '0.875rem', color: repeatGrade ? '#f97316' : '#6b7280', fontWeight: repeatGrade ? '600' : '400' }}>
+                          <span style={{ fontSize: '0.875rem', color: repeatGrade ? primaryColor : '#6b7280', fontWeight: repeatGrade ? '600' : '400' }}>
                             Student is repeating this grade
                           </span>
                         </div>
@@ -599,7 +600,7 @@ export default function Students({ user, school }) {
                     <button
                       onClick={saveEdit}
                       disabled={saving}
-                      style={{ flex: 1, background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}
+                      style={{ flex: 1, background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}
                     >
                       {saving ? 'Saving...' : 'Save Changes'}
                     </button>

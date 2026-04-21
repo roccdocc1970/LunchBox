@@ -36,6 +36,7 @@ const ROLE_COLORS = {
 }
 
 export default function Staff({ user, school }) {
+  const primaryColor = school?.primary_color || '#f97316'
   const configuredGrades = parseGrades(school)
   const GRADES = configuredGrades || ALL_GRADES
   const [staff, setStaff] = useState([])
@@ -173,7 +174,7 @@ export default function Staff({ user, school }) {
         </div>
         <button
           onClick={() => { setShowForm(!showForm); setError(null) }}
-          style={{ background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}
+          style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}
         >
 
           {showForm ? 'Cancel' : '+ Add Staff Member'}
@@ -250,7 +251,7 @@ export default function Staff({ user, school }) {
           {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.5rem' }}>{error}</p>}
 
           <button onClick={handleSubmit} disabled={saving}
-            style={{ marginTop: '1.5rem', background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}>
+            style={{ marginTop: '1.5rem', background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}>
             {saving ? 'Saving...' : 'Save Staff Member'}
           </button>
         </div>
@@ -399,7 +400,7 @@ export default function Staff({ user, school }) {
 
                   <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
                     <button onClick={startEdit}
-                      style={{ flex: 1, background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}>
+                      style={{ flex: 1, background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}>
                       Edit Profile
                     </button>
                     <button onClick={() => setDeleteConfirm(true)}
@@ -474,7 +475,7 @@ export default function Staff({ user, school }) {
                   </div>
                   <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
                     <button onClick={saveEdit} disabled={saving}
-                      style={{ flex: 1, background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}>
+                      style={{ flex: 1, background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}>
                       {saving ? 'Saving...' : 'Save Changes'}
                     </button>
                     <button onClick={() => setEditing(false)}

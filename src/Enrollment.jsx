@@ -22,6 +22,7 @@ const getAcademicYear = () => {
 }
 
 export default function Enrollment({ user, school }) {
+  const primaryColor = school?.primary_color || '#f97316'
   const configuredGrades = parseGrades(school)
   const GRADES = configuredGrades || ALL_GRADES
   const [students, setStudents] = useState([])
@@ -117,7 +118,7 @@ export default function Enrollment({ user, school }) {
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          style={{ background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}
+          style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}
         >
           {showForm ? 'Cancel' : '+ New Student'}
         </button>
@@ -178,7 +179,7 @@ export default function Enrollment({ user, school }) {
           <button
             onClick={handleSubmit}
             disabled={saving}
-            style={{ marginTop: '1.5rem', background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}
+            style={{ marginTop: '1.5rem', background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}
           >
             {saving ? 'Saving...' : 'Save Student'}
           </button>

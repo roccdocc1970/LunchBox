@@ -82,20 +82,27 @@ if (session && !checkingSchool && !school) {
   return <Onboarding user={session.user} onComplete={(schoolData) => setSchool(schoolData)} />
 }
   if (session) {
+    const primaryColor = school?.primary_color || '#f97316'
     return (
       <div style={{ minHeight: '100vh', background: '#f9fafb', display: 'flex', flexDirection: 'column' }}>
 
         {/* Top Nav */}
-        <div style={{ background: '#f97316', padding: '1rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ background: primaryColor, padding: '1rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span style={{ fontSize: '1.75rem' }}>🍱</span>
-            <span style={{ color: 'white', fontWeight: 'bold', fontSize: '1.25rem' }}>LunchBox</span>
+            {school?.logo_url
+              ? <img src={school.logo_url} alt="School logo" style={{ height: '2rem', borderRadius: '0.25rem', objectFit: 'contain' }} onError={e => e.target.style.display = 'none'} />
+              : <span style={{ fontSize: '1.75rem' }}>🍱</span>
+            }
+            <div>
+              <div style={{ color: 'white', fontWeight: 'bold', fontSize: '1.25rem', lineHeight: 1.2 }}>{school?.name || 'LunchBox'}</div>
+              {school?.motto && <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.75rem' }}>{school.motto}</div>}
+            </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <span style={{ color: 'white', fontSize: '0.875rem' }}>{session.user.email}</span>
             <button
               onClick={handleLogout}
-              style={{ background: 'white', color: '#f97316', border: 'none', borderRadius: '0.5rem', padding: '0.375rem 1rem', fontWeight: '600', cursor: 'pointer' }}
+              style={{ background: 'white', color: primaryColor, border: 'none', borderRadius: '0.5rem', padding: '0.375rem 1rem', fontWeight: '600', cursor: 'pointer' }}
             >
               Sign Out
             </button>
@@ -112,10 +119,10 @@ if (session && !checkingSchool && !school) {
                 onClick={() => setActivePage(item.id)}
                 style={{
                   width: '100%', textAlign: 'left', padding: '0.75rem 1.5rem',
-                  background: activePage === item.id ? '#fff7ed' : 'transparent',
-                  borderLeft: activePage === item.id ? '3px solid #f97316' : '3px solid transparent',
-                  border: 'none', borderLeft: activePage === item.id ? '3px solid #f97316' : '3px solid transparent',
-                  color: activePage === item.id ? '#f97316' : '#374151',
+                  background: activePage === item.id ? primaryColor + '18' : 'transparent',
+                  borderLeft: activePage === item.id ? `3px solid ${primaryColor}` : '3px solid transparent',
+                  border: 'none', borderLeft: activePage === item.id ? `3px solid ${primaryColor}` : '3px solid transparent',
+                  color: activePage === item.id ? primaryColor : '#374151',
                   fontWeight: activePage === item.id ? '600' : '400',
                   cursor: 'pointer', fontSize: '0.95rem',
                   display: 'flex', alignItems: 'center', gap: '0.75rem'
@@ -150,7 +157,7 @@ if (session && !checkingSchool && !school) {
                 <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#1f2937', marginBottom: '1rem' }}>Quick Actions</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                   {[
-                    { label: 'New Enrollment', icon: '➕', color: '#f97316', page: 'enrollment' },
+                    { label: 'New Enrollment', icon: '➕', color: primaryColor, page: 'enrollment' },
                     { label: 'Send Message', icon: '✉️', color: '#3b82f6', page: 'messages' },
                     { label: 'View Students', icon: '🎒', color: '#8b5cf6', page: 'students' },
                     { label: 'Reports', icon: '📊', color: '#10b981', page: 'reports' },

@@ -23,6 +23,7 @@ const parseGrades = (val) => {
 }
 
 export default function Settings({ user, school, onUpdate }) {
+  const primaryColor = school?.primary_color || '#f97316'
   const [activeTab, setActiveTab] = useState('profile')
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(null)
@@ -114,7 +115,7 @@ export default function Settings({ user, school, onUpdate }) {
             onClick={() => { setActiveTab(tab.id); clearFeedback() }}
             style={{
               flex: 1, minWidth: '120px', padding: '0.625rem 1rem', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: activeTab === tab.id ? '600' : '400',
-              background: activeTab === tab.id ? '#f97316' : 'transparent',
+              background: activeTab === tab.id ? primaryColor : 'transparent',
               color: activeTab === tab.id ? 'white' : '#6b7280',
               fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', transition: 'all 0.15s'
             }}
@@ -168,7 +169,7 @@ export default function Settings({ user, school, onUpdate }) {
             <span style={{ background: '#f0fdf4', color: '#15803d', borderRadius: '9999px', padding: '0.25rem 0.75rem', fontSize: '0.8rem', fontWeight: '600' }}>Active</span>
           </div>
 
-          <SaveBar saving={saving} success={success} error={error} onSave={() => {
+          <SaveBar primaryColor={primaryColor} saving={saving} success={success} error={error} onSave={() => {
             if (!profile.name) { setError('School name is required.'); return }
             save(profile)
           }} />
@@ -196,12 +197,12 @@ export default function Settings({ user, school, onUpdate }) {
                   <div
                     key={grade}
                     onClick={() => toggleGrade(grade)}
-                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', border: `2px solid ${checked ? '#f97316' : '#e5e7eb'}`, background: checked ? '#fff7ed' : 'white', cursor: 'pointer', userSelect: 'none', transition: 'all 0.1s' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', border: `2px solid ${checked ? primaryColor : '#e5e7eb'}`, background: checked ? primaryColor + '12' : 'white', cursor: 'pointer', userSelect: 'none', transition: 'all 0.1s' }}
                   >
-                    <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `2px solid ${checked ? '#f97316' : '#d1d5db'}`, background: checked ? '#f97316' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `2px solid ${checked ? primaryColor : '#d1d5db'}`, background: checked ? primaryColor : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       {checked && <span style={{ color: 'white', fontSize: '0.7rem', fontWeight: 'bold' }}>✓</span>}
                     </div>
-                    <span style={{ fontSize: '0.875rem', color: checked ? '#f97316' : '#374151', fontWeight: checked ? '600' : '400' }}>{grade}</span>
+                    <span style={{ fontSize: '0.875rem', color: checked ? primaryColor : '#374151', fontWeight: checked ? '600' : '400' }}>{grade}</span>
                   </div>
                 )
               })}
@@ -275,7 +276,7 @@ export default function Settings({ user, school, onUpdate }) {
             </div>
           </div>
 
-          <SaveBar saving={saving} success={success} error={error} onSave={() => save(communication)} />
+          <SaveBar primaryColor={primaryColor} saving={saving} success={success} error={error} onSave={() => save(communication)} />
         </div>
       )}
 
@@ -322,7 +323,7 @@ export default function Settings({ user, school, onUpdate }) {
             </div>
           </div>
 
-          <SaveBar saving={saving} success={success} error={error} onSave={() => save(appearance)} />
+          <SaveBar primaryColor={primaryColor} saving={saving} success={success} error={error} onSave={() => save(appearance)} />
         </div>
       )}
     </div>
@@ -333,13 +334,13 @@ function Divider() {
   return <div style={{ borderTop: '1px solid #f3f4f6', margin: '1.5rem 0' }} />
 }
 
-function SaveBar({ saving, success, error, onSave }) {
+function SaveBar({ saving, success, error, onSave, primaryColor = '#f97316' }) {
   return (
     <div style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
       <button
         onClick={onSave}
         disabled={saving}
-        style={{ background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.75rem 2rem', fontWeight: '700', cursor: 'pointer', fontSize: '1rem' }}
+        style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.75rem 2rem', fontWeight: '700', cursor: 'pointer', fontSize: '1rem' }}
       >
         {saving ? 'Saving...' : 'Save Changes'}
       </button>
