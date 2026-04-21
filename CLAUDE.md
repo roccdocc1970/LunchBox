@@ -444,6 +444,11 @@ Organized from the Business Capability Map shared 2026-04-20.
 - **Why deferred:** Phase 1 ships nudge banners and config-aware pickers. Staff orphaned-grade greying is already done. Phase 2 adds hard blocking.
 - **Where to change:** `src/Students.jsx`, `src/Enrollment.jsx`, `src/Alumni.jsx`
 
+### Dark Mode
+- **What:** App-wide dark mode toggle in Settings → Appearance. Saves preference to `schools` table (new `dark_mode` boolean column). Renders black/dark backgrounds instead of white across all modules.
+- **Why deferred:** All modules use hardcoded inline styles — requires introducing CSS custom properties (`--bg`, `--surface`, `--text`, etc.) and swapping them via a `data-theme="dark"` attribute on the root element. Significant refactor touching every module.
+- **Approach:** (1) Add CSS vars to `index.css`, (2) migrate inline styles across all JSX files to use vars, (3) add toggle in Settings → Appearance, (4) persist to DB and apply on login.
+
 ---
 
 ## Pricing Tiers

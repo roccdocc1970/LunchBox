@@ -10,6 +10,7 @@ import Reports from './Reports'
 import ReportCards from './ReportCards'
 import Staff from './Staff'
 import Alumni from './Alumni'
+import SetupWizard from './SetupWizard'
 
 function App() {
   const [email, setEmail] = useState('')
@@ -23,6 +24,7 @@ function App() {
   const [school, setSchool] = useState(null)
   const [checkingSchool, setCheckingSchool] = useState(false)
   const [stats, setStats] = useState({ students: 0, pending: 0, messages: 0, staff: 0 })
+  const [showWizard, setShowWizard] = useState(false)
 
  useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -52,7 +54,12 @@ function App() {
       .select('*')
       .eq('user_id', userId)
       .single()
-    if (data) setSchool(data)
+    if (data) {
+      setSchool(data)
+      if (!localStorage.getItem(`wizard_complete_${userId}`)) {
+        setShowWizard(true)
+      }
+    }
     setCheckingSchool(false)
   }
 
@@ -92,12 +99,23 @@ if (showLanding && !session) {
   return <Landing onGetStarted={() => setShowLanding(false)} />
 }
 if (session && !checkingSchool && !school) {
-  return <Onboarding user={session.user} onComplete={(schoolData) => setSchool(schoolData)} />
+  return <Onboarding user={session.user} onComplete={(schoolData) => { setSchool(schoolData); setShowWizard(true) }} />
 }
   if (session) {
     const primaryColor = school?.primary_color || '#f97316'
     return (
       <div style={{ minHeight: '100vh', background: '#f9fafb', display: 'flex', flexDirection: 'column' }}>
+        {showWizard && school && (
+          <SetupWizard
+            user={session.user}
+            school={school}
+            onDone={(updatedSchool) => {
+              localStorage.setItem(`wizard_complete_${session.user.id}`, '1')
+              setShowWizard(false)
+              if (updatedSchool) setSchool(updatedSchool)
+            }}
+          />
+        )}
 
         {/* Top Nav */}
         <div style={{ background: primaryColor, padding: '1rem 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -125,7 +143,8 @@ if (session && !checkingSchool && !school) {
         <div style={{ display: 'flex', flex: 1 }}>
 
           {/* Sidebar */}
-          <div style={{ width: '220px', background: 'white', borderRight: '1px solid #e5e7eb', padding: '1.5rem 0' }}>
+          <div style={{ width: '220px', background: 'white', borderRight: '1px solid #e5e7eb', padding: '1.5rem 0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div>
             {navItems.map((item) => (
               <button
                 key={item.id}
@@ -145,6 +164,16 @@ if (session && !checkingSchool && !school) {
                 <span>{item.label}</span>
               </button>
             ))}
+            </div>
+            <div style={{ padding: '1rem', borderTop: '1px solid #fee2e2' }}>
+              <button
+                onClick={() => { localStorage.removeItem(`wizard_complete_${session.user.id}`); setShowWizard(true) }}
+                style={{ width: '100%', background: 'transparent', border: '1px solid #fca5a5', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', color: '#dc2626', fontSize: '0.75rem', cursor: 'pointer', textAlign: 'left', lineHeight: '1.4' }}
+              >
+                Preview Setup Wizard<br />
+                <span style={{ color: '#f87171', fontSize: '0.7rem' }}>(remove, for testing only to get around Supabase email confirmation feature)</span>
+              </button>
+            </div>
           </div>
 
           {/* Main Content */}
