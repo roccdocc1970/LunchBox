@@ -73,7 +73,7 @@ function App() {
     { id: 'staff', label: 'Staff', icon: '👩‍🏫' },
     { id: 'alumni', label: 'Alumni', icon: '🎓' },
     { id: 'reports', label: 'Reports', icon: '📊' },
-    { id: 'settings', label: 'Settings', icon: '⚙️' },
+    { id: 'settings', label: 'School Settings', icon: '⚙️' },
   ]
 if (showLanding && !session) {
   return <Landing onGetStarted={() => setShowLanding(false)} />
