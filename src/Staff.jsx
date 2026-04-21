@@ -278,9 +278,9 @@ export default function Staff({ user, school }) {
       )
     }
     return (
-      <div style={{ marginBottom: '1rem' }}>
+      <div style={{ marginBottom: '1.5rem' }}>
         <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Grade Assignments</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: uniqueDivisions.length > 0 ? '0.5rem' : 0 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: uniqueDivisions.length > 0 ? '1.25rem' : 0 }}>
           {sorted.map(g => {
             const div = getDivision(g, school?.divisions)
             const color = div ? div.color : primaryColor
@@ -290,13 +290,16 @@ export default function Staff({ user, school }) {
           })}
         </div>
         {uniqueDivisions.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
-            {uniqueDivisions.map(div => (
-              <span key={div.name} style={{ fontSize: '0.75rem', color: div.color, fontWeight: '600', background: div.color + '12', border: `1px solid ${div.color}30`, borderRadius: '9999px', padding: '0.15rem 0.625rem' }}>
-                {div.name}
-              </span>
-            ))}
-          </div>
+          <>
+            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>School Divisions</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+              {uniqueDivisions.map(div => (
+                <span key={div.name} style={{ fontSize: '0.8rem', color: div.color, fontWeight: '600', background: div.color + '12', border: `1px solid ${div.color}30`, borderRadius: '9999px', padding: '0.2rem 0.75rem' }}>
+                  {div.name}
+                </span>
+              ))}
+            </div>
+          </>
         )}
       </div>
     )
