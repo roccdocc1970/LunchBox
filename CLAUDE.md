@@ -54,7 +54,9 @@ VITE_RESEND_API_KEY=re_your_key_here
 | `src/Settings.jsx` | School settings — profile, academic config, appearance |
 | `src/Students.jsx` | Student roster, profile drawer, health records, incidents, grade progression |
 | `src/Enrollment.jsx` | Enrollment module |
-| `src/Admissions.jsx` | Admissions pipeline — inquiry tracking, convert to student |
+| `src/Admissions.jsx` | Admissions pipeline — inquiry tracking, convert to student, Copy Application Link |
+| `src/Attendance.jsx` | Daily attendance — take by grade or all grades, history, upsert per student/date |
+| `src/ApplicationPortal.jsx` | Public-facing application form at `?apply=<school_uuid>` — no auth, feeds inquiries |
 | `src/Parents.jsx` | Parent directory — linked students, edit contact, message |
 | `src/Staff.jsx` | Staff directory, portal access / invite |
 | `src/StaffDashboard.jsx` | Staff-facing app — role-filtered nav, students, report cards, incidents, facilities |
@@ -62,7 +64,7 @@ VITE_RESEND_API_KEY=re_your_key_here
 | `src/ReportCards.jsx` | Student report cards by term |
 | `src/Fundraising.jsx` | Campaigns, donations, events, LYBUNT donor analysis |
 | `src/Facilities.jsx` | Work order / ticket management |
-| `src/Reports.jsx` | 6-tab reports — Enrollment, Incidents, Communications, Staff, Fundraising, Facilities |
+| `src/Reports.jsx` | 7-tab reports — Enrollment, Attendance, Incidents, Communications, Staff, Fundraising, Facilities |
 | `src/Messages.jsx` | Parent communication module |
 | `src/supabase.js` | Supabase client initialization |
 | `src/index.css` | Tailwind import |
@@ -146,6 +148,20 @@ VITE_RESEND_API_KEY=re_your_key_here
 | date / expiration_date | DATE | Optional — expiration_date < today flags Expired |
 
 > RLS: Admin write. Staff read. Many rows per student.
+
+### Table: `attendance`
+
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID | PK auto |
+| school_id | UUID | References auth.users(id) |
+| student_id | UUID | No FK constraint |
+| student_name / student_grade | TEXT | Denormalized at save time |
+| date | DATE | Required |
+| status | TEXT | Present, Absent, Tardy, Excused |
+| notes | TEXT | Optional |
+
+> Unique constraint on (school_id, student_id, date) — upsert safe. RLS: Admin full access. Staff read/insert/update via get_staff_school_id(). Anon: no access.
 
 ### Table: `messages`
 
@@ -331,8 +347,8 @@ Groups are collapsible (default expanded). Settings/Wizard live in ⚙️ top-na
 
 | Role | Nav Access |
 |---|---|
-| Teacher / Asst / Sub | My Students (grade-filtered), Report Cards, Incidents, Facilities |
-| Principal / Administrator | All Students, Report Cards, Incidents, Facilities, Staff Directory |
+| Teacher / Asst / Sub | My Students (grade-filtered), Attendance (grade pre-filled), Report Cards, Incidents, Facilities |
+| Principal / Administrator | All Students, Attendance (all grades), Report Cards, Incidents, Facilities, Staff Directory |
 | Counselor / Support Staff | All Students, Incidents, Facilities |
 
 **Health records in student drawer:**

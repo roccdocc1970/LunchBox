@@ -58,6 +58,12 @@ Work order management. Stat cards: Open, In Progress, Urgent, Completed This Mon
 ### Health Records (`Students.jsx` + `StaffDashboard.jsx`)
 Two tables: `student_health` (one profile per student) + `student_health_entries` (many facts). Admin can add/edit/delete from student profile drawer. Categories: Allergy, Medication, Immunization, Condition, Injury, Other. Expiration date flagging. Role-gated in StaffDashboard.
 
+### Attendance Module (`Attendance.jsx`)
+Two tabs: Take Attendance (date + grade picker, per-student Present/Absent/Tardy/Excused buttons, notes, upsert on save) and History (filterable by date/grade/status). "All Grades" option loads entire school at once with grade label per student. Staff Portal: teachers and principals have Attendance in nav; single-grade teachers get their grade pre-selected. Reports tab: present rate, 6-month absence trend, status breakdown, chronic absentees table (>10% non-present, min 5 days). New `attendance` table with unique constraint on (school_id, student_id, date).
+
+### Application Portal (`ApplicationPortal.jsx`)
+Public-facing admissions form at `?apply=<school_uuid>`. Pulls school branding (name, logo, color). Fields: parent name/contact, student name, grade applying for, source, notes. Honeypot field for bot rejection. Validates required fields + at least one contact method. Inserts into `inquiries` as New Inquiry via anon Supabase policy. Branded success screen. Invalid ID shows graceful not-found page. Admissions module has "🔗 Copy Application Link" button that generates the shareable URL.
+
 ---
 
 ## Capability Roadmap
@@ -73,6 +79,8 @@ Two tables: `student_health` (one profile per student) + `student_health_entries
 | Completion & Advancement | ✅ Grade progression, Graduate to Alumni |
 | Student Health Records | ✅ student_health + student_health_entries, role-gated in Staff Portal |
 | Student Incident / Behavior Log | ✅ Incident log in Students + Staff Portal |
+| Attendance Tracking | ✅ Daily + all-grades attendance, history, chronic absenteeism in Reports, Staff Portal access |
+| Online Application Portal | ✅ Public `?apply=<id>` form — branded, honeypot protected, feeds Admissions pipeline |
 | Advancement & Fundraising | ✅ Campaigns, donations, events, LYBUNT, alumni giving |
 | Information & Records Management | ✅ Student records, grade history, alumni records |
 | Staff Logins / Portal | ✅ StaffDashboard with role-based nav + invite flow |
@@ -90,8 +98,6 @@ Two tables: `student_health` (one profile per student) + `student_health_entries
 
 | Capability | What to Build |
 |---|---|
-| **Attendance Tracking** | Daily + period attendance. New `attendance` table (student_id, date, period, status: Present/Absent/Tardy/Excused, notes). Chronic absenteeism alerts. Parent notification on absence. High-frequency daily use — biggest SIS gap. |
-| **Online Application Portal** | Public-facing URL for families to self-submit inquiries/applications. Feeds into `inquiries`. Requires unauthenticated Supabase insert policy. |
 | **Tuition & Billing** | Per-student invoicing, online payment via Stripe, financial aid, payment plans. New `invoices` + `payments` tables. Depends on Stripe. |
 | **Stripe Integration** | Monthly subscription billing for schools — required to go live. |
 | **Resend Domain Verification** | Required before live parent email delivery works. |
