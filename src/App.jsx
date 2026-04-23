@@ -11,6 +11,13 @@ import ReportCards from './ReportCards'
 import Staff from './Staff'
 import Alumni from './Alumni'
 import SetupWizard from './SetupWizard'
+import Parents from './Parents'
+import Admissions from './Admissions'
+import StaffDashboard from './StaffDashboard'
+import Fundraising from './Fundraising'
+import Facilities from './Facilities'
+import Attendance from './Attendance'
+import ApplicationPortal from './ApplicationPortal'
 
 function App() {
   const [email, setEmail] = useState('')
@@ -25,15 +32,26 @@ function App() {
   const [checkingSchool, setCheckingSchool] = useState(false)
   const [stats, setStats] = useState({ students: 0, pending: 0, messages: 0, staff: 0 })
   const [showWizard, setShowWizard] = useState(false)
+  const [staffMember, setStaffMember] = useState(null)
+  const [collapsedGroups, setCollapsedGroups] = useState({ academics: false, people: false, operations: false, communicate: false })
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false)
 
- useEffect(() => {
+  const toggleGroup = (key) => setCollapsedGroups(prev => ({ ...prev, [key]: !prev[key] }))
+
+  useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
-      if (session) { fetchSchool(session.user.id); fetchStats(session.user.id) }
+      if (session) { fetchSchool(session.user.id, session.user.email); fetchStats(session.user.id) }
     })
     supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
-      if (session) { fetchSchool(session.user.id); fetchStats(session.user.id) }
+      if (session) {
+        fetchSchool(session.user.id, session.user.email)
+        fetchStats(session.user.id)
+      } else {
+        setSchool(null)
+        setStaffMember(null)
+      }
     })
   }, [])
 
@@ -47,19 +65,60 @@ function App() {
     setStats({ students: students || 0, pending: pending || 0, messages: messages || 0, staff: staff || 0 })
   }
 
-  const fetchSchool = async (userId) => {
+  const fetchSchool = async (userId, userEmail) => {
     setCheckingSchool(true)
-    const { data } = await supabase
+    setSchool(null)
+    setStaffMember(null)
+
+    // 1. Check if this user is a school admin
+    const { data: schoolData } = await supabase
       .from('schools')
       .select('*')
       .eq('user_id', userId)
       .single()
-    if (data) {
-      setSchool(data)
-      if (!localStorage.getItem(`wizard_complete_${userId}`)) {
-        setShowWizard(true)
+
+    if (schoolData) {
+      setSchool(schoolData)
+      if (!localStorage.getItem(`wizard_complete_${userId}`)) setShowWizard(true)
+      setCheckingSchool(false)
+      return
+    }
+
+    // 2. Check if this user is a staff member (already linked)
+    const { data: byId } = await supabase
+      .from('staff')
+      .select('*')
+      .eq('auth_user_id', userId)
+      .maybeSingle()
+
+    let foundStaff = byId
+
+    // 3. First-time staff login — find by email and link
+    if (!foundStaff && userEmail) {
+      const { data: byEmail } = await supabase
+        .from('staff')
+        .select('*')
+        .eq('email', userEmail)
+        .is('auth_user_id', null)
+        .maybeSingle()
+
+      if (byEmail) {
+        await supabase.from('staff').update({ auth_user_id: userId }).eq('id', byEmail.id)
+        foundStaff = { ...byEmail, auth_user_id: userId }
       }
     }
+
+    if (foundStaff) {
+      setStaffMember(foundStaff)
+      // Fetch the school record for branding (RLS now allows staff to read this)
+      const { data: staffSchool } = await supabase
+        .from('schools')
+        .select('*')
+        .eq('user_id', foundStaff.school_id)
+        .single()
+      if (staffSchool) setSchool(staffSchool)
+    }
+
     setCheckingSchool(false)
   }
 
@@ -84,19 +143,38 @@ function App() {
     await supabase.auth.signOut()
   }
 
- const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
-    { id: 'enrollment', label: 'Enrollment', icon: '📋' },
-    { id: 'messages', label: 'Messages', icon: '✉️' },
-    { id: 'students', label: 'Students', icon: '🎒' },
-    { id: 'staff', label: 'Staff', icon: '👩‍🏫' },
-    { id: 'alumni', label: 'Alumni', icon: '🎓' },
-    { id: 'reportcards', label: 'Report Cards', icon: '📝' },
-    { id: 'reports', label: 'Reports', icon: '📊' },
-    { id: 'settings', label: 'School Settings', icon: '⚙️' },
+  const navGroups = [
+    { key: 'academics', label: 'Academics', items: [
+      { id: 'students', label: 'Students', icon: '🎒' },
+      { id: 'attendance', label: 'Attendance', icon: '📅' },
+      { id: 'admissions', label: 'Admissions', icon: '📬' },
+      { id: 'enrollment', label: 'Enrollment', icon: '📋' },
+      { id: 'reportcards', label: 'Report Cards', icon: '📝' },
+      { id: 'parents', label: 'Parents', icon: '👨‍👩‍👧' },
+    ]},
+    { key: 'people', label: 'People', items: [
+      { id: 'staff', label: 'Staff', icon: '👩‍🏫' },
+      { id: 'alumni', label: 'Alumni', icon: '🎓' },
+    ]},
+    { key: 'operations', label: 'Operations', items: [
+      { id: 'fundraising', label: 'Fundraising', icon: '💰' },
+      { id: 'facilities', label: 'Facilities', icon: '🔧' },
+    ]},
+    { key: 'communicate', label: 'Communicate', items: [
+      { id: 'messages', label: 'Messages', icon: '✉️' },
+      { id: 'reports', label: 'Reports', icon: '📊' },
+    ]},
   ]
+const applyParam = new URLSearchParams(window.location.search).get('apply')
+if (applyParam) {
+  return <ApplicationPortal schoolId={applyParam} />
+}
+
 if (showLanding && !session) {
-  return <Landing onGetStarted={() => setShowLanding(false)} />
+  return <Landing onGetStarted={() => setShowLanding(false)} onLogin={() => setShowLanding(false)} />
+}
+if (session && !checkingSchool && staffMember) {
+  return <StaffDashboard user={session.user} staffMember={staffMember} school={school} onLogout={handleLogout} />
 }
 if (session && !checkingSchool && !school) {
   return <Onboarding user={session.user} onComplete={(schoolData) => { setSchool(schoolData); setShowWizard(true) }} />
@@ -113,6 +191,7 @@ if (session && !checkingSchool && !school) {
               localStorage.setItem(`wizard_complete_${session.user.id}`, '1')
               setShowWizard(false)
               if (updatedSchool) setSchool(updatedSchool)
+              setActivePage('dashboard')
             }}
           />
         )}
@@ -129,8 +208,32 @@ if (session && !checkingSchool && !school) {
               {school?.motto && <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.75rem' }}>{school.motto}</div>}
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <span style={{ color: 'white', fontSize: '0.875rem' }}>{session.user.email}</span>
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setShowSettingsMenu(m => !m)}
+                style={{ background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.375rem 0.625rem', cursor: 'pointer', fontSize: '1rem', lineHeight: 1 }}
+                title="Settings"
+              >⚙️</button>
+              {showSettingsMenu && (
+                <>
+                  <div onClick={() => setShowSettingsMenu(false)} style={{ position: 'fixed', inset: 0, zIndex: 40 }} />
+                  <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 0.5rem)', background: 'white', borderRadius: '0.625rem', boxShadow: '0 8px 24px rgba(0,0,0,0.15)', minWidth: '180px', zIndex: 50, overflow: 'hidden' }}>
+                    <button onClick={() => { setActivePage('settings'); setShowSettingsMenu(false) }}
+                      style={{ width: '100%', textAlign: 'left', padding: '0.75rem 1rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem', color: '#374151', display: 'flex', alignItems: 'center', gap: '0.625rem' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                    >⚙️ School Settings</button>
+                    <button onClick={() => { setShowWizard(true); setShowSettingsMenu(false) }}
+                      style={{ width: '100%', textAlign: 'left', padding: '0.75rem 1rem', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem', color: '#374151', display: 'flex', alignItems: 'center', gap: '0.625rem' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                    >🪄 Setup Wizard</button>
+                  </div>
+                </>
+              )}
+            </div>
             <button
               onClick={handleLogout}
               style={{ background: 'white', color: primaryColor, border: 'none', borderRadius: '0.5rem', padding: '0.375rem 1rem', fontWeight: '600', cursor: 'pointer' }}
@@ -143,37 +246,62 @@ if (session && !checkingSchool && !school) {
         <div style={{ display: 'flex', flex: 1 }}>
 
           {/* Sidebar */}
-          <div style={{ width: '220px', background: 'white', borderRight: '1px solid #e5e7eb', padding: '1.5rem 0', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            <div>
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActivePage(item.id)}
-                style={{
-                  width: '100%', textAlign: 'left', padding: '0.75rem 1.5rem',
-                  background: activePage === item.id ? primaryColor + '18' : 'transparent',
-                  borderLeft: activePage === item.id ? `3px solid ${primaryColor}` : '3px solid transparent',
-                  border: 'none', borderLeft: activePage === item.id ? `3px solid ${primaryColor}` : '3px solid transparent',
-                  color: activePage === item.id ? primaryColor : '#374151',
-                  fontWeight: activePage === item.id ? '600' : '400',
-                  cursor: 'pointer', fontSize: '0.95rem',
-                  display: 'flex', alignItems: 'center', gap: '0.75rem'
-                }}
-              >
-                <span>{item.icon}</span>
-                <span>{item.label}</span>
-              </button>
+          <div style={{ width: '220px', background: 'white', borderRight: '1px solid #e5e7eb', padding: '1rem 0', display: 'flex', flexDirection: 'column' }}>
+            {/* Dashboard */}
+            <button
+              onClick={() => setActivePage('dashboard')}
+              style={{
+                width: '100%', textAlign: 'left', padding: '0.625rem 1.25rem',
+                background: activePage === 'dashboard' ? primaryColor + '18' : 'transparent',
+                border: 'none', borderLeft: activePage === 'dashboard' ? `3px solid ${primaryColor}` : '3px solid transparent',
+                color: activePage === 'dashboard' ? primaryColor : '#374151',
+                fontWeight: activePage === 'dashboard' ? '600' : '400',
+                cursor: 'pointer', fontSize: '0.9rem',
+                display: 'flex', alignItems: 'center', gap: '0.625rem',
+                marginBottom: '0.5rem',
+              }}
+            >
+              <span>🏠</span><span>Dashboard</span>
+            </button>
+
+            {navGroups.map(group => (
+              <div key={group.key}>
+                {/* Group header */}
+                <button
+                  onClick={() => toggleGroup(group.key)}
+                  style={{
+                    width: '100%', textAlign: 'left', padding: '0.375rem 1.25rem',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  }}
+                >
+                  <span style={{ fontSize: '0.7rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{group.label}</span>
+                  <span style={{ fontSize: '0.65rem', color: '#9ca3af', transform: collapsedGroups[group.key] ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}>▼</span>
+                </button>
+
+                {/* Group items */}
+                {!collapsedGroups[group.key] && group.items.map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => setActivePage(item.id)}
+                    style={{
+                      width: '100%', textAlign: 'left', padding: '0.5rem 1.25rem 0.5rem 1.75rem',
+                      background: activePage === item.id ? primaryColor + '18' : 'transparent',
+                      border: 'none', borderLeft: activePage === item.id ? `3px solid ${primaryColor}` : '3px solid transparent',
+                      color: activePage === item.id ? primaryColor : '#374151',
+                      fontWeight: activePage === item.id ? '600' : '400',
+                      cursor: 'pointer', fontSize: '0.875rem',
+                      display: 'flex', alignItems: 'center', gap: '0.625rem',
+                    }}
+                  >
+                    <span style={{ fontSize: '0.9rem' }}>{item.icon}</span>
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+
+                <div style={{ height: '0.5rem' }} />
+              </div>
             ))}
-            </div>
-            <div style={{ padding: '1rem', borderTop: '1px solid #fee2e2' }}>
-              <button
-                onClick={() => { localStorage.removeItem(`wizard_complete_${session.user.id}`); setShowWizard(true) }}
-                style={{ width: '100%', background: 'transparent', border: '1px solid #fca5a5', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', color: '#dc2626', fontSize: '0.75rem', cursor: 'pointer', textAlign: 'left', lineHeight: '1.4' }}
-              >
-                Preview Setup Wizard<br />
-                <span style={{ color: '#f87171', fontSize: '0.7rem' }}>(remove, for testing only to get around Supabase email confirmation feature)</span>
-              </button>
-            </div>
           </div>
 
           {/* Main Content */}
@@ -216,6 +344,8 @@ if (session && !checkingSchool && !school) {
               </div>
             )}
 
+            {activePage === 'attendance' && <Attendance user={session.user} school={school} />}
+            {activePage === 'admissions' && <Admissions user={session.user} school={school} onNavigate={setActivePage} />}
             {activePage === 'enrollment' && <Enrollment user={session.user} school={school} />}
             {activePage === 'messages' && <Messages user={session.user} />}
             {activePage === 'students' && <Students user={session.user} school={school} />}
@@ -223,6 +353,9 @@ if (session && !checkingSchool && !school) {
             {activePage === 'alumni' && <Alumni user={session.user} school={school} />}
             {activePage === 'reportcards' && <ReportCards user={session.user} school={school} />}
             {activePage === 'reports' && <Reports user={session.user} school={school} />}
+            {activePage === 'parents' && <Parents user={session.user} school={school} onCompose={(parent) => { setActivePage('messages') }} />}
+            {activePage === 'fundraising' && <Fundraising user={session.user} school={school} />}
+            {activePage === 'facilities' && <Facilities user={session.user} school={school} />}
             {activePage === 'settings' && <Settings user={session.user} school={school} onUpdate={(updated) => setSchool(updated)} />}
           </div>
         </div>

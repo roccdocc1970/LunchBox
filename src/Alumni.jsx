@@ -53,6 +53,7 @@ export default function Alumni({ user, school }) {
   const [reenrollConfirm, setReenrollConfirm] = useState(false)
   const [reenrolling, setReenrolling] = useState(false)
   const [gradeHistory, setGradeHistory] = useState([])
+  const [givingHistory, setGivingHistory] = useState([])
   const [error, setError] = useState(null)
 
   useEffect(() => { fetchAlumni() }, [])
@@ -140,6 +141,16 @@ export default function Alumni({ user, school }) {
     fetchAlumni()
   }
 
+  const fetchGivingHistory = async (alumnusId) => {
+    const { data } = await supabase
+      .from('donations')
+      .select('amount, date, campaign_id, payment_method, anonymous, notes')
+      .eq('donor_id', alumnusId)
+      .eq('donor_type', 'Alumni')
+      .order('date', { ascending: false })
+    setGivingHistory(data || [])
+  }
+
   const fetchGradeHistory = async (studentId) => {
     if (!studentId) return
     const { data } = await supabase
@@ -156,12 +167,15 @@ export default function Alumni({ user, school }) {
     setDeleteConfirm(false)
     setReenrollConfirm(false)
     setError(null)
+    setGivingHistory([])
     fetchGradeHistory(alumnus.original_student_id)
+    fetchGivingHistory(alumnus.id)
   }
 
   const closeProfile = () => {
     setSelected(null)
     setGradeHistory([])
+    setGivingHistory([])
     setEditing(false)
     setDeleteConfirm(false)
     setReenrollConfirm(false)
@@ -375,6 +389,30 @@ export default function Alumni({ user, school }) {
                     <DrawerField label="Donor Status" value={selected.donor_status || 'Never'} />
                     <DrawerField label="Opt-In" value={selected.opt_in ? 'Yes — OK to contact' : 'No — Do not contact'} />
                   </DrawerSection>
+
+                  {givingHistory.length > 0 && (
+                    <DrawerSection title="Giving History">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                        <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{givingHistory.length} gift{givingHistory.length !== 1 ? 's' : ''}</span>
+                        <span style={{ fontSize: '0.875rem', fontWeight: '700', color: '#10b981' }}>
+                          ${givingHistory.reduce((s, d) => s + (d.amount || 0), 0).toLocaleString()} total
+                        </span>
+                      </div>
+                      <div style={{ display: 'grid', gap: '0.5rem' }}>
+                        {givingHistory.map((d, i) => (
+                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: '#f9fafb', borderRadius: '0.5rem' }}>
+                            <div>
+                              <div style={{ fontSize: '0.875rem', fontWeight: '600', color: '#1f2937' }}>
+                                {d.anonymous ? 'Anonymous' : `$${Number(d.amount || 0).toLocaleString()}`}
+                              </div>
+                              <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{d.payment_method || 'Unknown method'}</div>
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: '#6b7280', textAlign: 'right' }}>{d.date}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </DrawerSection>
+                  )}
 
                   {gradeHistory.length > 0 && (
                     <DrawerSection title="Academic Journey">

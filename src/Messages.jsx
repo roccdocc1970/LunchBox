@@ -30,12 +30,12 @@ export default function Messages({ user }) {
 
   const fetchParentEmails = async () => {
     const { data, error } = await supabase
-      .from('students')
-      .select('parent_email, parent_name')
+      .from('parents')
+      .select('email, first_name, last_name')
       .eq('school_id', user.id)
+      .not('email', 'is', null)
     if (error) return []
-    const unique = [...new Map(data.map(s => [s.parent_email, s])).values()]
-    return unique
+    return data.filter(p => p.email)
   }
 
   const handleSend = async () => {

@@ -1,4 +1,4 @@
-export default function Landing({ onGetStarted }) {
+export default function Landing({ onGetStarted, onLogin }) {
   return (
     <div style={{ fontFamily: 'system-ui, sans-serif', color: '#1f2937' }}>
 
@@ -11,6 +11,12 @@ export default function Landing({ onGetStarted }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
           <a href="#features" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '0.95rem' }}>Features</a>
           <a href="#how-it-works" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '0.95rem' }}>How It Works</a>
+          <button
+            onClick={onLogin}
+            style={{ background: 'white', color: '#f97316', border: '2px solid #f97316', borderRadius: '0.5rem', padding: '0.5rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}
+          >
+            Log In
+          </button>
           <button
             onClick={onGetStarted}
             style={{ background: '#f97316', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}

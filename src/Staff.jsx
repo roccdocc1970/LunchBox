@@ -9,6 +9,8 @@ const ROLES = [
   'Administrator',
   'Counselor',
   'Support Staff',
+  'Facilities',
+  'Maintenance',
 ]
 
 const ALL_GRADES = [
@@ -60,6 +62,8 @@ const ROLE_COLORS = {
   Administrator: '#8b5cf6',
   Counselor: '#10b981',
   'Support Staff': '#6b7280',
+  Facilities: '#0ea5e9',
+  Maintenance: '#84cc16',
 }
 
 const EMPTY_FORM = {
@@ -584,6 +588,32 @@ export default function Staff({ user, school }) {
                   <DrawerSection title="Contact">
                     <DrawerField label="Email" value={selected.email || '—'} />
                     <DrawerField label="Phone" value={selected.phone || '—'} />
+                  </DrawerSection>
+
+                  <DrawerSection title="Portal Access">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: selected.auth_user_id ? '#10b981' : '#d1d5db', display: 'inline-block' }} />
+                        <span style={{ fontSize: '0.875rem', color: selected.auth_user_id ? '#10b981' : '#9ca3af', fontWeight: '500' }}>
+                          {selected.auth_user_id ? 'Account linked' : 'No account yet'}
+                        </span>
+                      </div>
+                      {!selected.auth_user_id && selected.email && (
+                        <button
+                          onClick={() => {
+                            const link = window.location.origin
+                            navigator.clipboard.writeText(link)
+                            alert(`Invite link copied!\n\nSend this to ${selected.first_name}:\n${link}\n\nThey should sign up using: ${selected.email}`)
+                          }}
+                          style={{ fontSize: '0.8rem', color: primaryColor, background: 'none', border: `1px solid ${primaryColor}`, borderRadius: '0.375rem', padding: '0.25rem 0.625rem', cursor: 'pointer', fontWeight: '600' }}
+                        >
+                          Copy Invite Link
+                        </button>
+                      )}
+                    </div>
+                    {!selected.email && !selected.auth_user_id && (
+                      <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: '0.5rem 0 0' }}>Add an email address to enable portal access.</p>
+                    )}
                   </DrawerSection>
 
                   <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
