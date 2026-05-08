@@ -1,210 +1,33 @@
-import { useState, useEffect } from 'react'
-import { supabase } from './supabase'
-
-const RELATIONSHIPS = ['None', 'Donor', 'Volunteer', 'Mentor', 'Ambassador']
-const DONOR_STATUSES = ['Never', 'Prospect', 'Active Donor', 'Lapsed']
-const CONTACT_METHODS = ['Email', 'Phone', 'Mail']
-
-const DONOR_COLORS = {
-  'Active Donor': '#10b981',
-  'Prospect': '#3b82f6',
-  'Lapsed': '#f59e0b',
-  'Never': '#9ca3af',
-}
-
-const RELATIONSHIP_COLORS = {
-  'Donor': '#10b981',
-  'Volunteer': '#3b82f6',
-  'Mentor': '#8b5cf6',
-  'Ambassador': '#f97316',
-  'None': '#9ca3af',
-}
-
-const ALL_GRADES = [
-  'Pre-K', 'Kindergarten', '1st Grade', '2nd Grade', '3rd Grade',
-  '4th Grade', '5th Grade', '6th Grade', '7th Grade', '8th Grade',
-  '9th Grade', '10th Grade', '11th Grade', '12th Grade',
-]
-
-const parseGrades = (school) => {
-  try {
-    const g = JSON.parse(school?.grades_offered)
-    if (!Array.isArray(g) || g.length === 0) return null
-    return [...g].sort((a, b) => ALL_GRADES.indexOf(a) - ALL_GRADES.indexOf(b))
-  } catch { return null }
-}
+import { useAlumni } from './hooks/useAlumni'
+import {
+  RELATIONSHIPS, DONOR_STATUSES, CONTACT_METHODS,
+  DONOR_COLORS, RELATIONSHIP_COLORS,
+  calcGivingTotal,
+} from './domain/alumni'
 
 export default function Alumni({ user, school }) {
   const primaryColor = school?.primary_color || '#f97316'
-  const configuredGrades = parseGrades(school)
-  const GRADES = configuredGrades || ALL_GRADES
 
-  const [alumni, setAlumni] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [filterYear, setFilterYear] = useState('')
-  const [filterDonor, setFilterDonor] = useState('')
-  const [filterRelationship, setFilterRelationship] = useState('')
-  const [selected, setSelected] = useState(null)
-  const [editing, setEditing] = useState(false)
-  const [editForm, setEditForm] = useState({})
-  const [saving, setSaving] = useState(false)
-  const [deleteConfirm, setDeleteConfirm] = useState(false)
-  const [reenrollConfirm, setReenrollConfirm] = useState(false)
-  const [reenrolling, setReenrolling] = useState(false)
-  const [gradeHistory, setGradeHistory] = useState([])
-  const [givingHistory, setGivingHistory] = useState([])
-  const [error, setError] = useState(null)
-
-  useEffect(() => { fetchAlumni() }, [])
-
-  const fetchAlumni = async () => {
-    setLoading(true)
-    const { data } = await supabase
-      .from('alumni')
-      .select('*')
-      .order('graduation_year', { ascending: false })
-    if (data) setAlumni(data)
-    setLoading(false)
-  }
-
-  const handleEditChange = (e) => setEditForm({ ...editForm, [e.target.name]: e.target.value })
-
-  const saveEdit = async () => {
-    setSaving(true)
-    setError(null)
-    const { first_name, last_name, graduation_year, grade_completed, email, phone, address, city, state, zip, opt_in, preferred_contact, last_contacted_date, relationship, donor_status, employer, college, notes } = editForm
-    const { data, error } = await supabase
-      .from('alumni')
-      .update({
-        first_name, last_name,
-        graduation_year: graduation_year || null,
-        grade_completed,
-        email, phone, address, city, state, zip,
-        opt_in: opt_in === 'true' || opt_in === true,
-        preferred_contact,
-        last_contacted_date: last_contacted_date || null,
-        relationship, donor_status, employer, college, notes
-      })
-      .eq('id', selected.id)
-      .select()
-      .single()
-    if (error) {
-      setError(error.message)
-    } else {
-      setSelected(data)
-      setEditing(false)
-      fetchAlumni()
-    }
-    setSaving(false)
-  }
-
-  const deleteAlumni = async () => {
-    const { error } = await supabase.from('alumni').delete().eq('id', selected.id)
-    if (error) {
-      setError(error.message)
-    } else {
-      closeProfile()
-      fetchAlumni()
-    }
-  }
-
-  const reenrollAsStudent = async () => {
-    setReenrolling(true)
-    setError(null)
-    const { data: newStudent, error: insertError } = await supabase.from('students').insert([{
-      first_name: selected.first_name,
-      last_name: selected.last_name,
-      grade: selected.grade_completed || '',
-      parent_name: `${selected.first_name} ${selected.last_name}`,
-      parent_email: selected.email || '',
-      parent_phone: selected.phone || '',
-      address: selected.address || '',
-      status: 'Applied',
-      school_id: user.id,
-    }]).select().single()
-    if (insertError) {
-      setError(insertError.message)
-      setReenrolling(false)
-      return
-    }
-    // Reattach grade history to the new student record
-    if (selected.original_student_id) {
-      await supabase
-        .from('student_grade_history')
-        .update({ student_id: newStudent.id })
-        .eq('student_id', selected.original_student_id)
-    }
-    await supabase.from('alumni').delete().eq('id', selected.id)
-    setReenrolling(false)
-    closeProfile()
-    fetchAlumni()
-  }
-
-  const fetchGivingHistory = async (alumnusId) => {
-    const { data } = await supabase
-      .from('donations')
-      .select('amount, date, campaign_id, payment_method, anonymous, notes')
-      .eq('donor_id', alumnusId)
-      .eq('donor_type', 'Alumni')
-      .order('date', { ascending: false })
-    setGivingHistory(data || [])
-  }
-
-  const fetchGradeHistory = async (studentId) => {
-    if (!studentId) return
-    const { data } = await supabase
-      .from('student_grade_history')
-      .select('*')
-      .eq('student_id', studentId)
-      .order('recorded_at', { ascending: true })
-    setGradeHistory(data || [])
-  }
-
-  const openProfile = (alumnus) => {
-    setSelected(alumnus)
-    setEditing(false)
-    setDeleteConfirm(false)
-    setReenrollConfirm(false)
-    setError(null)
-    setGivingHistory([])
-    fetchGradeHistory(alumnus.original_student_id)
-    fetchGivingHistory(alumnus.id)
-  }
-
-  const closeProfile = () => {
-    setSelected(null)
-    setGradeHistory([])
-    setGivingHistory([])
-    setEditing(false)
-    setDeleteConfirm(false)
-    setReenrollConfirm(false)
-    setError(null)
-  }
-
-  const startEdit = () => {
-    setEditForm({ ...selected, opt_in: selected.opt_in ? 'true' : 'false' })
-    setEditing(true)
-    setDeleteConfirm(false)
-  }
-
-  const graduationYears = [...new Set(alumni.map(a => a.graduation_year).filter(Boolean))].sort((a, b) => b - a)
-
-  const filtered = alumni.filter(a => {
-    const name = `${a.first_name} ${a.last_name}`.toLowerCase()
-    const matchSearch = !search ||
-      name.includes(search.toLowerCase()) ||
-      (a.email || '').toLowerCase().includes(search.toLowerCase()) ||
-      (a.employer || '').toLowerCase().includes(search.toLowerCase()) ||
-      (a.college || '').toLowerCase().includes(search.toLowerCase())
-    const matchYear = !filterYear || String(a.graduation_year) === filterYear
-    const matchDonor = !filterDonor || a.donor_status === filterDonor
-    const matchRel = !filterRelationship || a.relationship === filterRelationship
-    return matchSearch && matchYear && matchDonor && matchRel
-  })
+  const {
+    alumni, loading, filtered, stats, graduationYears,
+    configuredGrades, grades,
+    selected, openProfile, closeProfile,
+    editing, editForm, handleEditChange,
+    startEdit, saving, saveEdit,
+    deleteConfirm, setDeleteConfirm, remove,
+    reenrollConfirm, setReenrollConfirm, reenrolling, reenroll,
+    gradeHistory, givingHistory,
+    error,
+    search, setSearch,
+    filterYear, setFilterYear,
+    filterDonor, setFilterDonor,
+    filterRelationship, setFilterRelationship,
+    clearFilters,
+  } = useAlumni(user.id, school)
 
   const inputStyle = { width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }
   const labelStyle = { display: 'block', fontSize: '0.8rem', fontWeight: '500', color: '#6b7280', marginBottom: '0.25rem' }
+  const hasFilters = search || filterYear || filterDonor || filterRelationship
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
@@ -225,10 +48,10 @@ export default function Alumni({ user, school }) {
       {/* Summary counts */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         {[
-          { label: 'Total Alumni', value: alumni.length, color: primaryColor },
-          { label: 'Active Donors', value: alumni.filter(a => a.donor_status === 'Active Donor').length, color: '#10b981' },
-          { label: 'Prospects', value: alumni.filter(a => a.donor_status === 'Prospect').length, color: '#3b82f6' },
-          { label: 'Opted In', value: alumni.filter(a => a.opt_in).length, color: '#8b5cf6' },
+          { label: 'Total Alumni',   value: stats.total,        color: primaryColor },
+          { label: 'Active Donors',  value: stats.activeDonors, color: '#10b981' },
+          { label: 'Prospects',      value: stats.prospects,    color: '#3b82f6' },
+          { label: 'Opted In',       value: stats.optedIn,      color: '#8b5cf6' },
         ].map(s => (
           <div key={s.label} style={{ background: 'white', borderRadius: '1rem', padding: '1rem 1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', borderTop: `3px solid ${s.color}` }}>
             <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#1f2937' }}>{s.value}</div>
@@ -237,7 +60,7 @@ export default function Alumni({ user, school }) {
         ))}
       </div>
 
-      {/* Search + Filters */}
+      {/* Filters */}
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         <input
           type="text"
@@ -258,8 +81,8 @@ export default function Alumni({ user, school }) {
           <option value="">Relationship</option>
           {RELATIONSHIPS.map(r => <option key={r}>{r}</option>)}
         </select>
-        {(search || filterYear || filterDonor || filterRelationship) && (
-          <button onClick={() => { setSearch(''); setFilterYear(''); setFilterDonor(''); setFilterRelationship('') }}
+        {hasFilters && (
+          <button onClick={clearFilters}
             style={{ background: 'transparent', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', color: '#6b7280', fontSize: '0.9rem' }}>
             Clear
           </button>
@@ -395,7 +218,7 @@ export default function Alumni({ user, school }) {
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
                         <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{givingHistory.length} gift{givingHistory.length !== 1 ? 's' : ''}</span>
                         <span style={{ fontSize: '0.875rem', fontWeight: '700', color: '#10b981' }}>
-                          ${givingHistory.reduce((s, d) => s + (d.amount || 0), 0).toLocaleString()} total
+                          ${calcGivingTotal(givingHistory).toLocaleString()} total
                         </span>
                       </div>
                       <div style={{ display: 'grid', gap: '0.5rem' }}>
@@ -450,7 +273,6 @@ export default function Alumni({ user, school }) {
                     </button>
                   </div>
 
-                  {/* Re-enroll as Student */}
                   <button
                     onClick={() => { setReenrollConfirm(true); setDeleteConfirm(false) }}
                     style={{ width: '100%', marginTop: '0.75rem', background: '#f0fdf4', color: '#15803d', border: '2px solid #16a34a', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}
@@ -464,7 +286,7 @@ export default function Alumni({ user, school }) {
                       <p style={{ color: '#15803d', fontSize: '0.875rem', margin: '0 0 1rem' }}>They will be moved back to the student roster with <strong>Applied</strong> status. Their alumni record will be removed.</p>
                       {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', margin: '0 0 0.75rem' }}>{error}</p>}
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button onClick={reenrollAsStudent} disabled={reenrolling}
+                        <button onClick={reenroll} disabled={reenrolling}
                           style={{ background: '#16a34a', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: '600', cursor: 'pointer' }}>
                           {reenrolling ? 'Moving...' : 'Confirm Re-enroll'}
                         </button>
@@ -481,7 +303,7 @@ export default function Alumni({ user, school }) {
                       <p style={{ color: '#991b1b', fontWeight: '600', margin: '0 0 0.5rem' }}>Remove {selected.first_name} {selected.last_name} from alumni?</p>
                       <p style={{ color: '#b91c1c', fontSize: '0.875rem', margin: '0 0 1rem' }}>This cannot be undone.</p>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button onClick={deleteAlumni} style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: '600', cursor: 'pointer' }}>Yes, Remove</button>
+                        <button onClick={remove} style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: '600', cursor: 'pointer' }}>Yes, Remove</button>
                         <button onClick={() => setDeleteConfirm(false)} style={{ background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer' }}>Cancel</button>
                       </div>
                     </div>
@@ -502,7 +324,7 @@ export default function Alumni({ user, school }) {
                           disabled={!configuredGrades}
                           style={{ ...inputStyle, background: !configuredGrades ? '#f3f4f6' : 'white', cursor: !configuredGrades ? 'not-allowed' : 'pointer', color: !configuredGrades ? '#9ca3af' : '#1f2937' }}>
                           <option value="">{configuredGrades ? 'Unknown' : 'Configure grades in Settings first'}</option>
-                          {GRADES.map(g => <option key={g}>{g}</option>)}
+                          {grades.map(g => <option key={g}>{g}</option>)}
                         </select>
                       </div>
                     </div>

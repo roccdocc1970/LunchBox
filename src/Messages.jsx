@@ -1,89 +1,19 @@
-import { useState, useEffect } from 'react'
-import { supabase } from './supabase'
+import { useMessages } from './hooks/useMessages'
+import { formatMessageDate } from './domain/messages'
 
 export default function Messages({ user }) {
-  const [messages, setMessages] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [sending, setSending] = useState(false)
-  const [error, setError] = useState(null)
-  const [success, setSuccess] = useState(null)
-  const [form, setForm] = useState({
-    subject: '',
-    body: '',
-    recipient_type: 'all'
-  })
-
-  useEffect(() => {
-    fetchMessages()
-  }, [])
-
-  const fetchMessages = async () => {
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .order('created_at', { ascending: false })
-    if (!error) setMessages(data)
-    setLoading(false)
-  }
-
-  const fetchParentEmails = async () => {
-    const { data, error } = await supabase
-      .from('parents')
-      .select('email, first_name, last_name')
-      .eq('school_id', user.id)
-      .not('email', 'is', null)
-    if (error) return []
-    return data.filter(p => p.email)
-  }
-
-  const handleSend = async () => {
-    if (!form.subject || !form.body) {
-      setError('Please fill in subject and message.')
-      return
-    }
-    setSending(true)
-    setError(null)
-    setSuccess(null)
-
-    const parents = await fetchParentEmails()
-
-    if (parents.length === 0) {
-      setError('No parents found. Add students with parent emails first.')
-      setSending(false)
-      return
-    }
-
-    // Save message to database
-    const { error: dbError } = await supabase
-      .from('messages')
-      .insert([{
-        subject: form.subject,
-        body: form.body,
-        recipient_count: parents.length,
-        school_id: user.id,
-        status: 'Sent'
-      }])
-
-    if (dbError) {
-      setError(dbError.message)
-      setSending(false)
-      return
-    }
-
-    setSuccess(`Message saved! In production this would send to ${parents.length} parent(s). Connect a verified domain in Resend to enable live email sending.`)
-    setForm({ subject: '', body: '', recipient_type: 'all' })
-    setShowForm(false)
-    fetchMessages()
-    setSending(false)
-  }
-
-  const formatDate = (dateStr) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      month: 'short', day: 'numeric', year: 'numeric'
-    })
-  }
+  const {
+    messages,
+    loading,
+    showForm,
+    setShowForm,
+    sending,
+    error,
+    success,
+    form,
+    setForm,
+    send,
+  } = useMessages(user.id)
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
@@ -156,7 +86,7 @@ export default function Messages({ user }) {
             {error && <p style={{ color: '#ef4444', fontSize: '0.875rem' }}>{error}</p>}
 
             <button
-              onClick={handleSend}
+              onClick={send}
               disabled={sending}
               style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem', alignSelf: 'flex-start' }}
             >
@@ -182,7 +112,7 @@ export default function Messages({ user }) {
                 <div>
                   <h3 style={{ fontWeight: '700', color: '#1f2937', margin: 0, fontSize: '1rem' }}>{msg.subject}</h3>
                   <p style={{ color: '#6b7280', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-                    Sent to {msg.recipient_count} parent(s) · {formatDate(msg.created_at)}
+                    Sent to {msg.recipient_count} parent(s) · {formatMessageDate(msg.created_at)}
                   </p>
                 </div>
                 <span style={{ background: '#f0fdf4', color: '#15803d', borderRadius: '9999px', padding: '0.25rem 0.75rem', fontSize: '0.8rem', fontWeight: '600' }}>

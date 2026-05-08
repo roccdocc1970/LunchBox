@@ -1,188 +1,33 @@
-import { useState, useEffect } from 'react'
-import { supabase } from './supabase'
-
-const ALL_GRADES = [
-  'Pre-K', 'Kindergarten', '1st Grade', '2nd Grade', '3rd Grade',
-  '4th Grade', '5th Grade', '6th Grade', '7th Grade', '8th Grade',
-  '9th Grade', '10th Grade', '11th Grade', '12th Grade',
-]
-
-const STATUSES = ['New Inquiry', 'Toured', 'Applied', 'Withdrawn']
-
-const SOURCES = ['Web', 'Tour', 'Referral', 'Word of Mouth', 'Social Media', 'Other']
-
-const STATUS_COLORS = {
-  'New Inquiry': '#3b82f6',
-  'Toured':      '#8b5cf6',
-  'Applied':     '#f97316',
-  'Withdrawn':   '#9ca3af',
-}
-
-const SOURCE_COLORS = {
-  'Web':           '#0ea5e9',
-  'Tour':          '#8b5cf6',
-  'Referral':      '#10b981',
-  'Word of Mouth': '#f59e0b',
-  'Social Media':  '#ec4899',
-  'Other':         '#9ca3af',
-}
-
-const parseGrades = (school) => {
-  try {
-    const g = JSON.parse(school?.grades_offered)
-    if (!Array.isArray(g) || g.length === 0) return null
-    return [...g].sort((a, b) => ALL_GRADES.indexOf(a) - ALL_GRADES.indexOf(b))
-  } catch { return null }
-}
-
-const getAcademicYear = () => {
-  const now = new Date()
-  const year = now.getFullYear()
-  return now.getMonth() >= 7 ? `${year}-${year + 1}` : `${year - 1}-${year}`
-}
-
-const today = () => new Date().toISOString().split('T')[0]
-
-const BLANK_FORM = {
-  parent_first_name: '', parent_last_name: '', email: '', phone: '',
-  student_first_name: '', student_last_name: '', grade_applying_for: '',
-  status: 'New Inquiry', source: 'Other', inquiry_date: today(), tour_date: '', notes: '',
-}
+import { useAdmissions } from './hooks/useAdmissions'
+import { STATUSES, SOURCES, STATUS_COLORS, SOURCE_COLORS, canConvertToStudent } from './domain/admissions'
 
 export default function Admissions({ user, school, onNavigate }) {
   const primaryColor = school?.primary_color || '#f97316'
-  const configuredGrades = parseGrades(school)
-  const GRADES = configuredGrades || ALL_GRADES
 
-  const [inquiries, setInquiries] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState(BLANK_FORM)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState(null)
-
-  const [search, setSearch] = useState('')
-  const [filterStatus, setFilterStatus] = useState('')
-  const [filterSource, setFilterSource] = useState('')
-  const [filterGrade, setFilterGrade] = useState('')
-
-  const [selected, setSelected] = useState(null)
-  const [editing, setEditing] = useState(false)
-  const [editForm, setEditForm] = useState({})
-  const [convertConfirm, setConvertConfirm] = useState(false)
-  const [converting, setConverting] = useState(false)
-  const [convertSuccess, setConvertSuccess] = useState(false)
-  const [linkCopied, setLinkCopied] = useState(false)
-
-  const copyApplicationLink = () => {
-    const link = `${window.location.origin}${window.location.pathname}?apply=${user.id}`
-    navigator.clipboard.writeText(link)
-    setLinkCopied(true)
-    setTimeout(() => setLinkCopied(false), 2000)
-  }
-
-  useEffect(() => { fetchInquiries() }, [])
-
-  const fetchInquiries = async () => {
-    setLoading(true)
-    const { data } = await supabase
-      .from('inquiries')
-      .select('*')
-      .order('created_at', { ascending: false })
-    if (data) setInquiries(data)
-    setLoading(false)
-  }
-
-  const handleSubmit = async () => {
-    if (!form.parent_first_name || !form.parent_last_name || !form.student_first_name || !form.student_last_name) {
-      setError('Parent name and student name are required.')
-      return
-    }
-    setSaving(true)
-    setError(null)
-    const payload = { ...form, school_id: user.id }
-    if (!payload.tour_date) payload.tour_date = null
-    const { error: err } = await supabase.from('inquiries').insert([payload])
-    if (err) { setError(err.message) } else { setForm(BLANK_FORM); setShowForm(false); fetchInquiries() }
-    setSaving(false)
-  }
-
-  const saveEdit = async () => {
-    setSaving(true)
-    setError(null)
-    const payload = { ...editForm }
-    if (!payload.tour_date) payload.tour_date = null
-    const { data, error: err } = await supabase
-      .from('inquiries').update(payload).eq('id', selected.id)
-      .select().single()
-    if (err) { setError(err.message) } else { setSelected(data); setEditing(false); fetchInquiries() }
-    setSaving(false)
-  }
-
-  const convertToStudent = async () => {
-    setConverting(true)
-    setError(null)
-
-    let parentId = null
-    if (selected.email) {
-      const { data: existing } = await supabase
-        .from('parents').select('id').eq('email', selected.email).eq('school_id', user.id).maybeSingle()
-      if (existing) parentId = existing.id
-    }
-
-    if (!parentId) {
-      const { data: newParent, error: pErr } = await supabase
-        .from('parents')
-        .insert([{ school_id: user.id, first_name: selected.parent_first_name, last_name: selected.parent_last_name, email: selected.email || null, phone: selected.phone || null }])
-        .select().single()
-      if (pErr) { setError(pErr.message); setConverting(false); return }
-      parentId = newParent.id
-    }
-
-    const { data: newStudent, error: sErr } = await supabase
-      .from('students')
-      .insert([{ school_id: user.id, first_name: selected.student_first_name, last_name: selected.student_last_name, grade: selected.grade_applying_for || null, parent_id: parentId, status: 'Applied' }])
-      .select().single()
-    if (sErr) { setError(sErr.message); setConverting(false); return }
-
-    if (selected.grade_applying_for) {
-      await supabase.from('student_grade_history').insert([{ student_id: newStudent.id, grade: selected.grade_applying_for, academic_year: getAcademicYear(), school_id: user.id }])
-    }
-
-    await supabase.from('inquiries').update({ status: 'Applied' }).eq('id', selected.id)
-    setSelected({ ...selected, status: 'Applied' })
-    setConvertConfirm(false)
-    setConvertSuccess(true)
-    setConverting(false)
-    fetchInquiries()
-  }
-
-  const closeDrawer = () => {
-    setSelected(null); setEditing(false); setConvertConfirm(false)
-    setConvertSuccess(false); setError(null)
-  }
-
-  const filtered = inquiries.filter(inq => {
-    const q = search.toLowerCase()
-    const matchSearch = !q ||
-      `${inq.student_first_name} ${inq.student_last_name}`.toLowerCase().includes(q) ||
-      `${inq.parent_first_name} ${inq.parent_last_name}`.toLowerCase().includes(q) ||
-      (inq.email || '').toLowerCase().includes(q)
-    const matchStatus = !filterStatus || inq.status === filterStatus
-    const matchSource = !filterSource || inq.source === filterSource
-    const matchGrade  = !filterGrade  || inq.grade_applying_for === filterGrade
-    return matchSearch && matchStatus && matchSource && matchGrade
-  })
-
-  const counts = STATUSES.reduce((acc, s) => ({ ...acc, [s]: inquiries.filter(i => i.status === s).length }), {})
-  const sourceCounts = SOURCES.reduce((acc, s) => {
-    const n = inquiries.filter(i => i.source === s).length
-    return n > 0 ? { ...acc, [s]: n } : acc
-  }, {})
+  const {
+    inquiries, loading, filtered, grades,
+    pipelineCounts, sourceCounts,
+    showForm, toggleForm,
+    form, setForm, saving, error,
+    submit,
+    selected, openDrawer, closeDrawer,
+    editing, editForm, setEditForm,
+    startEdit, saveEdit,
+    convertConfirm, setConvertConfirm,
+    converting, convertSuccess,
+    convertToStudent,
+    search, setSearch,
+    filterStatus, toggleStatusFilter,
+    filterSource, toggleSourceFilter,
+    filterGrade, setFilterGrade,
+    clearFilters,
+    linkCopied, copyApplicationLink,
+  } = useAdmissions(user.id, school)
 
   const inputStyle = { width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }
   const secLabel  = { fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.875rem' }
   const filterStyle = { border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.875rem', outline: 'none', background: 'white' }
+  const hasFilters = search || filterStatus || filterSource || filterGrade
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
@@ -201,7 +46,7 @@ export default function Admissions({ user, school, onNavigate }) {
             {linkCopied ? '✓ Link Copied!' : '🔗 Copy Application Link'}
           </button>
           <button
-            onClick={() => { setShowForm(!showForm); setError(null); if (showForm) setForm(BLANK_FORM) }}
+            onClick={toggleForm}
             style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}
           >
             {showForm ? 'Cancel' : '+ New Inquiry'}
@@ -214,10 +59,10 @@ export default function Admissions({ user, school, onNavigate }) {
         {STATUSES.map(s => (
           <div
             key={s}
-            onClick={() => setFilterStatus(filterStatus === s ? '' : s)}
+            onClick={() => toggleStatusFilter(s)}
             style={{ background: 'white', borderRadius: '0.875rem', padding: '1rem 1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', cursor: 'pointer', borderLeft: `4px solid ${filterStatus === s ? STATUS_COLORS[s] : '#e5e7eb'}`, transition: 'border-color 0.15s' }}
           >
-            <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: STATUS_COLORS[s] }}>{counts[s]}</div>
+            <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: STATUS_COLORS[s] }}>{pipelineCounts[s]}</div>
             <div style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: '500', marginTop: '0.1rem' }}>{s}</div>
           </div>
         ))}
@@ -230,7 +75,7 @@ export default function Admissions({ user, school, onNavigate }) {
           {Object.entries(sourceCounts).map(([src, n]) => (
             <span
               key={src}
-              onClick={() => setFilterSource(filterSource === src ? '' : src)}
+              onClick={() => toggleSourceFilter(src)}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.25rem 0.625rem', borderRadius: '9999px', background: SOURCE_COLORS[src] + '15', color: SOURCE_COLORS[src], fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', border: filterSource === src ? `1.5px solid ${SOURCE_COLORS[src]}` : '1.5px solid transparent' }}
             >
               {src} <span style={{ fontWeight: '800' }}>{n}</span>
@@ -244,7 +89,6 @@ export default function Admissions({ user, school, onNavigate }) {
         <div style={{ background: 'white', borderRadius: '1rem', padding: '2rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: '2rem' }}>
           <h3 style={{ fontSize: '1.05rem', fontWeight: '700', color: '#1f2937', marginTop: 0, marginBottom: '1.5rem' }}>New Inquiry</h3>
 
-          {/* Parent */}
           <div style={secLabel}>Parent / Guardian</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
             <FormField label="First Name" required><input value={form.parent_first_name} onChange={e => setForm({ ...form, parent_first_name: e.target.value })} style={inputStyle} /></FormField>
@@ -255,7 +99,6 @@ export default function Admissions({ user, school, onNavigate }) {
 
           <hr style={{ border: 'none', borderTop: '1px solid #f3f4f6', margin: '0 0 1.5rem' }} />
 
-          {/* Student */}
           <div style={secLabel}>Student</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
             <FormField label="First Name" required><input value={form.student_first_name} onChange={e => setForm({ ...form, student_first_name: e.target.value })} style={inputStyle} /></FormField>
@@ -263,14 +106,13 @@ export default function Admissions({ user, school, onNavigate }) {
             <FormField label="Grade Applying For">
               <select value={form.grade_applying_for} onChange={e => setForm({ ...form, grade_applying_for: e.target.value })} style={inputStyle}>
                 <option value="">Unknown</option>
-                {GRADES.map(g => <option key={g}>{g}</option>)}
+                {grades.map(g => <option key={g}>{g}</option>)}
               </select>
             </FormField>
           </div>
 
           <hr style={{ border: 'none', borderTop: '1px solid #f3f4f6', margin: '0 0 1.5rem' }} />
 
-          {/* Pipeline */}
           <div style={secLabel}>Pipeline</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
             <FormField label="Status">
@@ -296,7 +138,7 @@ export default function Admissions({ user, school, onNavigate }) {
 
           {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.75rem' }}>{error}</p>}
 
-          <button onClick={handleSubmit} disabled={saving} style={{ marginTop: '1.25rem', background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.5rem', fontWeight: '600', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
+          <button onClick={submit} disabled={saving} style={{ marginTop: '1.25rem', background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.5rem', fontWeight: '600', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
             {saving ? 'Saving…' : 'Save Inquiry'}
           </button>
         </div>
@@ -309,20 +151,20 @@ export default function Admissions({ user, school, onNavigate }) {
           value={search} onChange={e => setSearch(e.target.value)}
           style={{ ...filterStyle, flex: '1', minWidth: '220px' }}
         />
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={filterStyle}>
+        <select value={filterStatus} onChange={e => toggleStatusFilter(e.target.value)} style={filterStyle}>
           <option value="">All Statuses</option>
           {STATUSES.map(s => <option key={s}>{s}</option>)}
         </select>
-        <select value={filterSource} onChange={e => setFilterSource(e.target.value)} style={filterStyle}>
+        <select value={filterSource} onChange={e => toggleSourceFilter(e.target.value)} style={filterStyle}>
           <option value="">All Sources</option>
           {SOURCES.map(s => <option key={s}>{s}</option>)}
         </select>
         <select value={filterGrade} onChange={e => setFilterGrade(e.target.value)} style={filterStyle}>
           <option value="">All Grades</option>
-          {GRADES.map(g => <option key={g}>{g}</option>)}
+          {grades.map(g => <option key={g}>{g}</option>)}
         </select>
-        {(search || filterStatus || filterSource || filterGrade) && (
-          <button onClick={() => { setSearch(''); setFilterStatus(''); setFilterSource(''); setFilterGrade('') }} style={{ ...filterStyle, cursor: 'pointer', color: '#6b7280' }}>Clear</button>
+        {hasFilters && (
+          <button onClick={clearFilters} style={{ ...filterStyle, cursor: 'pointer', color: '#6b7280' }}>Clear</button>
         )}
       </div>
 
@@ -350,7 +192,7 @@ export default function Admissions({ user, school, onNavigate }) {
               {filtered.map((inq, i) => (
                 <tr
                   key={inq.id}
-                  onClick={() => { setSelected(inq); setEditing(false); setConvertConfirm(false); setConvertSuccess(false); setError(null) }}
+                  onClick={() => openDrawer(inq)}
                   style={{ borderBottom: i < filtered.length - 1 ? '1px solid #f3f4f6' : 'none', cursor: 'pointer', transition: 'background 0.1s' }}
                   onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
                   onMouseLeave={e => e.currentTarget.style.background = 'white'}
@@ -384,7 +226,6 @@ export default function Admissions({ user, school, onNavigate }) {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 500, display: 'flex', justifyContent: 'flex-end' }} onClick={closeDrawer}>
           <div style={{ width: '440px', background: 'white', height: '100%', overflowY: 'auto', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
 
-            {/* Drawer header */}
             <div style={{ background: primaryColor, padding: '1.5rem', color: 'white' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
@@ -433,8 +274,7 @@ export default function Admissions({ user, school, onNavigate }) {
                     </DrawerSection>
                   )}
 
-                  {/* Convert to Student */}
-                  {(selected.status === 'New Inquiry' || selected.status === 'Toured') && !convertSuccess && (
+                  {canConvertToStudent(selected) && !convertSuccess && (
                     <>
                       <button
                         onClick={() => setConvertConfirm(true)}
@@ -464,7 +304,6 @@ export default function Admissions({ user, school, onNavigate }) {
                   )}
                 </>
               ) : (
-                /* Edit Mode */
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Parent / Guardian</div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
@@ -484,7 +323,7 @@ export default function Admissions({ user, school, onNavigate }) {
                     <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>Grade Applying For</label>
                     <select value={editForm.grade_applying_for || ''} onChange={e => setEditForm({ ...editForm, grade_applying_for: e.target.value })} style={inputStyle}>
                       <option value="">Unknown</option>
-                      {GRADES.map(g => <option key={g}>{g}</option>)}
+                      {grades.map(g => <option key={g}>{g}</option>)}
                     </select>
                   </div>
 
@@ -514,7 +353,9 @@ export default function Admissions({ user, school, onNavigate }) {
                     <button onClick={saveEdit} disabled={saving} style={{ flex: 1, background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '700', cursor: 'pointer' }}>
                       {saving ? 'Saving…' : 'Save Changes'}
                     </button>
-                    <button onClick={() => setEditing(false)} style={{ background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.625rem 1rem', cursor: 'pointer' }}>Cancel</button>
+                    <button onClick={() => setEditing(false)} style={{ background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.625rem 1rem', cursor: 'pointer' }}>
+                      Cancel
+                    </button>
                   </div>
                 </div>
               )}
@@ -523,7 +364,7 @@ export default function Admissions({ user, school, onNavigate }) {
             {!editing && (
               <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #f3f4f6' }}>
                 <button
-                  onClick={() => { setEditForm({ ...selected }); setEditing(true); setConvertConfirm(false) }}
+                  onClick={startEdit}
                   style={{ width: '100%', background: 'white', color: primaryColor, border: `1px solid ${primaryColor}`, borderRadius: '0.625rem', padding: '0.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem' }}
                 >
                   Edit Inquiry

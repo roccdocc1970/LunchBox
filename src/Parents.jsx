@@ -1,133 +1,27 @@
-import { useState, useEffect } from 'react'
-import { supabase } from './supabase'
+import { useParents } from './hooks/useParents'
+import { getDivision } from './domain/school'
+import { initials } from './domain/parents'
+import { STATUS_COLORS } from './domain/school'
 
-const ALL_GRADES = [
-  'Pre-K', 'Kindergarten', '1st Grade', '2nd Grade', '3rd Grade',
-  '4th Grade', '5th Grade', '6th Grade', '7th Grade', '8th Grade',
-  '9th Grade', '10th Grade', '11th Grade', '12th Grade',
-]
-
-const DIVISION_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444']
-
-const STATUS_COLORS = {
-  Enrolled: '#10b981',
-  Waitlisted: '#f59e0b',
-  Applied: '#3b82f6',
-}
-
-const getDivision = (grade, divisionsRaw) => {
-  if (!grade || !divisionsRaw) return null
-  try {
-    const divs = typeof divisionsRaw === 'string' ? JSON.parse(divisionsRaw) : divisionsRaw
-    if (!Array.isArray(divs)) return null
-    const idx = divs.findIndex(d => d.grades?.includes(grade))
-    if (idx === -1) return null
-    return { name: divs[idx].name, color: DIVISION_COLORS[idx % DIVISION_COLORS.length] }
-  } catch { return null }
-}
-
-const initials = (p) => {
-  if (!p) return '?'
-  const f = p.first_name?.[0] || ''
-  const l = p.last_name?.[0] || ''
-  return (f + l).toUpperCase() || '?'
-}
+const inputStyle = { border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.875rem', outline: 'none', background: 'white', width: '100%', boxSizing: 'border-box' }
+const labelStyle = { display: 'block', fontSize: '0.8rem', fontWeight: '500', color: '#6b7280', marginBottom: '0.25rem' }
 
 export default function Parents({ user, school, onCompose }) {
   const primaryColor = school?.primary_color || '#f97316'
 
-  const [parents, setParents] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [filterGrade, setFilterGrade] = useState('')
-  const [filterDivision, setFilterDivision] = useState('')
-  const [selected, setSelected] = useState(null)
-  const [editing, setEditing] = useState(false)
-  const [editForm, setEditForm] = useState({})
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState(null)
-
-  useEffect(() => { fetchParents() }, [])
-
-  const fetchParents = async () => {
-    setLoading(true)
-    const { data } = await supabase
-      .from('parents')
-      .select('*, students(id, first_name, last_name, grade, status)')
-      .order('last_name', { ascending: true })
-    if (data) setParents(data)
-    setLoading(false)
-  }
-
-  const parsedDivisions = (() => {
-    try {
-      const d = school?.divisions
-      if (!d) return []
-      const arr = typeof d === 'string' ? JSON.parse(d) : d
-      return Array.isArray(arr) ? arr : []
-    } catch { return [] }
-  })()
-
-  const hasDivisions = parsedDivisions.some(d => d.grades?.length > 0)
-
-  const allStudentGrades = [...new Set(parents.flatMap(p => (p.students || []).map(s => s.grade).filter(Boolean)))]
-    .sort((a, b) => ALL_GRADES.indexOf(a) - ALL_GRADES.indexOf(b))
-
-  const configuredGrades = (() => {
-    try {
-      const g = JSON.parse(school?.grades_offered)
-      if (Array.isArray(g) && g.length > 0) return [...g].sort((a, b) => ALL_GRADES.indexOf(a) - ALL_GRADES.indexOf(b))
-    } catch {}
-    return null
-  })()
-
-  const gradeOptions = configuredGrades || allStudentGrades
-  const divisionOptions = parsedDivisions.filter(d => d.grades?.length > 0).map(d => d.name)
-
-  const filtered = parents.filter(p => {
-    const q = search.toLowerCase()
-    const matchesSearch = !q ||
-      `${p.first_name} ${p.last_name}`.toLowerCase().includes(q) ||
-      (p.email || '').toLowerCase().includes(q) ||
-      (p.students || []).some(s => `${s.first_name} ${s.last_name}`.toLowerCase().includes(q))
-
-    const matchesGrade = !filterGrade || (p.students || []).some(s => s.grade === filterGrade)
-
-    const matchesDivision = !filterDivision || (p.students || []).some(s => {
-      const div = getDivision(s.grade, parsedDivisions)
-      return div?.name === filterDivision
-    })
-
-    return matchesSearch && matchesGrade && matchesDivision
-  })
-
-  const startEdit = (p) => {
-    setEditForm({ first_name: p.first_name, last_name: p.last_name, email: p.email || '', phone: p.phone || '', address: p.address || '', notes: p.notes || '' })
-    setEditing(true)
-    setError(null)
-  }
-
-  const saveEdit = async () => {
-    setSaving(true)
-    setError(null)
-    const { data, error } = await supabase
-      .from('parents')
-      .update(editForm)
-      .eq('id', selected.id)
-      .select('*, students(id, first_name, last_name, grade, status)')
-      .single()
-    if (error) {
-      setError(error.message)
-    } else {
-      setSelected(data)
-      setEditing(false)
-      fetchParents()
-    }
-    setSaving(false)
-  }
-
-  const inputStyle = { border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.875rem', outline: 'none', background: 'white', width: '100%', boxSizing: 'border-box' }
-  const labelStyle = { display: 'block', fontSize: '0.8rem', fontWeight: '500', color: '#6b7280', marginBottom: '0.25rem' }
+  const {
+    filtered, loading, parents,
+    parsedDivisions, hasDivisions, gradeOptions, divisionOptions,
+    search, setSearch,
+    filterGrade, setFilterGrade,
+    filterDivision, setFilterDivision,
+    clearFilters,
+    selected, openDrawer, closeDrawer,
+    editing, setEditing,
+    editForm, setEditForm,
+    saving, error,
+    startEdit, saveEdit,
+  } = useParents(user.id, school)
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
@@ -159,7 +53,7 @@ export default function Parents({ user, school, onCompose }) {
           </select>
         )}
         {(search || filterGrade || filterDivision) && (
-          <button onClick={() => { setSearch(''); setFilterGrade(''); setFilterDivision('') }} style={{ ...inputStyle, cursor: 'pointer', color: '#6b7280', width: 'auto' }}>
+          <button onClick={clearFilters} style={{ ...inputStyle, cursor: 'pointer', color: '#6b7280', width: 'auto' }}>
             Clear
           </button>
         )}
@@ -185,11 +79,11 @@ export default function Parents({ user, school, onCompose }) {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((p, idx) => (
+              {filtered.map(p => (
                 <tr
                   key={p.id}
-                  onClick={() => { setSelected(p); setEditing(false); setError(null) }}
-                  style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer', transition: 'background 0.1s' }}
+                  onClick={() => openDrawer(p)}
+                  style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}
                   onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
                   onMouseLeave={e => e.currentTarget.style.background = 'white'}
                 >
@@ -236,9 +130,15 @@ export default function Parents({ user, school, onCompose }) {
 
       {/* Profile Drawer */}
       {selected && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 500, display: 'flex', justifyContent: 'flex-end' }} onClick={() => { setSelected(null); setEditing(false) }}>
-          <div style={{ width: '420px', background: 'white', height: '100%', overflowY: 'auto', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
-
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 500, display: 'flex', justifyContent: 'flex-end' }}
+          onClick={closeDrawer}
+        >
+          <div
+            style={{ width: '420px', background: 'white', height: '100%', overflowY: 'auto', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Drawer Header */}
             <div style={{ padding: '1.5rem 1.5rem 1rem', borderBottom: '1px solid #f3f4f6' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -252,7 +152,7 @@ export default function Parents({ user, school, onCompose }) {
                     </div>
                   </div>
                 </div>
-                <button onClick={() => { setSelected(null); setEditing(false) }} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#9ca3af', lineHeight: 1 }}>×</button>
+                <button onClick={closeDrawer} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#9ca3af', lineHeight: 1 }}>×</button>
               </div>
             </div>
 
@@ -261,6 +161,7 @@ export default function Parents({ user, school, onCompose }) {
 
               {!editing ? (
                 <>
+                  {/* Contact details */}
                   <div>
                     <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>Contact</div>
                     {[
@@ -278,6 +179,7 @@ export default function Parents({ user, school, onCompose }) {
                     )}
                   </div>
 
+                  {/* Linked Students */}
                   <div>
                     <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>Linked Students</div>
                     {(selected.students || []).length === 0 ? (
@@ -306,6 +208,7 @@ export default function Parents({ user, school, onCompose }) {
                   </div>
                 </>
               ) : (
+                /* Edit form */
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                     <div>
@@ -345,6 +248,7 @@ export default function Parents({ user, school, onCompose }) {
               )}
             </div>
 
+            {/* Drawer Footer */}
             {!editing && (
               <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '0.75rem' }}>
                 <button
@@ -355,7 +259,7 @@ export default function Parents({ user, school, onCompose }) {
                 </button>
                 {selected.email && (
                   <button
-                    onClick={() => { onCompose && onCompose(selected); setSelected(null) }}
+                    onClick={() => { onCompose && onCompose(selected); closeDrawer() }}
                     style={{ flex: 1, background: primaryColor, color: 'white', border: 'none', borderRadius: '0.625rem', padding: '0.5rem', fontWeight: '700', cursor: 'pointer', fontSize: '0.875rem' }}
                   >
                     ✉ Send Message

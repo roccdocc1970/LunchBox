@@ -1,0 +1,54 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(node mcp_server/server.js)",
+      "mcp__lunchbox__get_work_orders",
+      "mcp__lunchbox__create_work_order",
+      "Bash(node -e ' *)",
+      "Bash(node --input-type=module)",
+      "mcp__lunchbox__get_students",
+      "mcp__lunchbox__get_inquiries",
+      "mcp__lunchbox__get_staff",
+      "mcp__lunchbox__get_report_cards",
+      "mcp__lunchbox__search_parents",
+      "mcp__lunchbox__get_attendance",
+      "mcp__lunchbox__get_attendance_history",
+      "mcp__lunchbox__get_grade_history",
+      "mcp__lunchbox__get_incidents",
+      "mcp__lunchbox__enroll_student",
+      "mcp__lunchbox__create_inquiry",
+      "mcp__lunchbox__log_incident",
+      "mcp__lunchbox__create_staff_member",
+      "Bash(cat)",
+      "Bash(python /tmp/fix_incident.py)",
+      "mcp__lunchbox__update_student_status",
+      "mcp__lunchbox__convert_inquiry_to_student",
+      "mcp__lunchbox__delete_staff_member",
+      "mcp__lunchbox__update_work_order_status",
+      "mcp__lunchbox__save_attendance",
+      "mcp__lunchbox__create_report_card",
+      "mcp__lunchbox__get_students_full",
+      "mcp__lunchbox__set_report_card_published",
+      "mcp__lunchbox__graduate_student_to_alumni",
+      "mcp__lunchbox__delete_student",
+      "Skill(update-config)",
+      "Skill(update-config:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "mcp__lunchbox__create_work_order|mcp__lunchbox__create_inquiry|mcp__lunchbox__enroll_student|mcp__lunchbox__log_incident|mcp__lunchbox__save_attendance|mcp__lunchbox__convert_inquiry_to_student|mcp__lunchbox__create_report_card|mcp__lunchbox__create_staff_member",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\": {\"hookEventName\": \"PostToolUse\", \"additionalContext\": \"Reminder: all agent-created data must be prefixed with ⚡ in every user-visible field (names, titles, notes, descriptions) so the user can identify it in the UI.\"}}'"
+          }
+        ]
+      }
+    ]
+  }
+}

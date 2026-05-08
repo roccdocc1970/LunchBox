@@ -1,142 +1,22 @@
-import { useState, useEffect } from 'react'
-import { supabase } from './supabase'
+import { useEnrollment } from './hooks/useEnrollment'
+import { statusColor } from './domain/enrollment'
 
-const ALL_GRADES = [
-  'Pre-K', 'Kindergarten', '1st Grade', '2nd Grade', '3rd Grade',
-  '4th Grade', '5th Grade', '6th Grade', '7th Grade', '8th Grade',
-  '9th Grade', '10th Grade', '11th Grade', '12th Grade',
-]
-
-const parseGrades = (school) => {
-  try {
-    const g = JSON.parse(school?.grades_offered)
-    if (!Array.isArray(g) || g.length === 0) return null
-    return [...g].sort((a, b) => ALL_GRADES.indexOf(a) - ALL_GRADES.indexOf(b))
-  } catch { return null }
-}
-
-const getAcademicYear = () => {
-  const now = new Date()
-  const year = now.getFullYear()
-  return now.getMonth() >= 7 ? `${year}-${year + 1}` : `${year - 1}-${year}`
-}
-
-const BLANK_PARENT = { first_name: '', last_name: '', email: '', phone: '', address: '' }
-const BLANK_STUDENT = { first_name: '', last_name: '', grade: '', date_of_birth: '', notes: '' }
+const inputStyle = { width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }
+const labelStyle = { display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }
+const sectionLabel = { fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1rem' }
 
 export default function Enrollment({ user, school }) {
   const primaryColor = school?.primary_color || '#f97316'
-  const configuredGrades = parseGrades(school)
-  const GRADES = configuredGrades || ALL_GRADES
 
-  const [students, setStudents] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState(null)
-
-  const [parentSearch, setParentSearch] = useState('')
-  const [parentResults, setParentResults] = useState([])
-  const [selectedParent, setSelectedParent] = useState(null)
-  const [parentForm, setParentForm] = useState(BLANK_PARENT)
-  const [studentForm, setStudentForm] = useState(BLANK_STUDENT)
-
-  useEffect(() => { fetchStudents() }, [])
-
-  const fetchStudents = async () => {
-    setLoading(true)
-    const { data } = await supabase
-      .from('students')
-      .select('*, parents(first_name, last_name, email, phone)')
-      .order('created_at', { ascending: false })
-    if (data) setStudents(data)
-    setLoading(false)
-  }
-
-  const searchParents = async (q) => {
-    if (q.length < 2) { setParentResults([]); return }
-    const { data } = await supabase
-      .from('parents')
-      .select('id, first_name, last_name, email, phone')
-      .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,email.ilike.%${q}%`)
-      .eq('school_id', user.id)
-      .limit(8)
-    setParentResults(data || [])
-  }
-
-  const resetForm = () => {
-    setParentSearch('')
-    setParentResults([])
-    setSelectedParent(null)
-    setParentForm(BLANK_PARENT)
-    setStudentForm(BLANK_STUDENT)
-    setError(null)
-  }
-
-  const handleSubmit = async () => {
-    if (!studentForm.first_name || !studentForm.last_name) {
-      setError('Student first and last name are required.')
-      return
-    }
-    if (!selectedParent && (!parentForm.first_name || !parentForm.last_name || !parentForm.email)) {
-      setError('Parent first name, last name, and email are required.')
-      return
-    }
-    setSaving(true)
-    setError(null)
-
-    let parentId = selectedParent?.id
-
-    if (!parentId) {
-      const { data: newParent, error: parentError } = await supabase
-        .from('parents')
-        .insert([{ ...parentForm, school_id: user.id }])
-        .select()
-        .single()
-      if (parentError) { setError(parentError.message); setSaving(false); return }
-      parentId = newParent.id
-    }
-
-    const studentData = { ...studentForm, parent_id: parentId, school_id: user.id }
-    if (!studentData.date_of_birth) studentData.date_of_birth = null
-
-    const { data: newStudent, error: studentError } = await supabase
-      .from('students')
-      .insert([studentData])
-      .select()
-      .single()
-
-    if (studentError) { setError(studentError.message); setSaving(false); return }
-
-    if (studentForm.grade) {
-      await supabase.from('student_grade_history').insert([{
-        student_id: newStudent.id,
-        grade: studentForm.grade,
-        academic_year: getAcademicYear(),
-        school_id: user.id,
-      }])
-    }
-
-    resetForm()
-    setShowForm(false)
-    fetchStudents()
-    setSaving(false)
-  }
-
-  const updateStatus = async (id, status) => {
-    await supabase.from('students').update({ status }).eq('id', id)
-    fetchStudents()
-  }
-
-  const statusColor = (status) => {
-    if (status === 'Enrolled') return '#10b981'
-    if (status === 'Waitlisted') return '#f59e0b'
-    return '#3b82f6'
-  }
-
-  const inputStyle = { width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }
-  const labelStyle = { display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }
-  const sectionLabel = { fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '1rem' }
+  const {
+    students, loading, grades, configuredGrades,
+    showForm, toggleForm, saving, error,
+    parentSearch, parentResults, selectedParent,
+    setSelectedParent, setParentSearch, setParentResults,
+    parentForm, setParentForm,
+    studentForm, setStudentForm,
+    submit, updateStatus, handleParentSearch,
+  } = useEnrollment(user.id, school)
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
@@ -144,7 +24,9 @@ export default function Enrollment({ user, school }) {
       {!configuredGrades && (
         <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.75rem', padding: '0.875rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <span style={{ fontSize: '1.1rem' }}>🔒</span>
-          <span style={{ fontSize: '0.875rem', color: '#991b1b' }}><strong>Grade selection is locked.</strong> Complete your Academic Configuration in <strong>Settings → Academic Config</strong> before assigning grades to students.</span>
+          <span style={{ fontSize: '0.875rem', color: '#991b1b' }}>
+            <strong>Grade selection is locked.</strong> Complete your Academic Configuration in <strong>Settings → Academic Config</strong> before assigning grades to students.
+          </span>
         </div>
       )}
 
@@ -154,7 +36,7 @@ export default function Enrollment({ user, school }) {
           <p style={{ color: '#6b7280', marginTop: '0.25rem' }}>Manage student applications and enrollment</p>
         </div>
         <button
-          onClick={() => { setShowForm(!showForm); if (showForm) resetForm() }}
+          onClick={toggleForm}
           style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}
         >
           {showForm ? 'Cancel' : '+ New Student'}
@@ -165,7 +47,7 @@ export default function Enrollment({ user, school }) {
         <div style={{ background: 'white', borderRadius: '1rem', padding: '2rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: '2rem' }}>
           <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#1f2937', marginTop: 0, marginBottom: '1.5rem' }}>New Student Enrollment</h3>
 
-          {/* Parent Section */}
+          {/* Parent / Guardian */}
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={sectionLabel}>Parent / Guardian</div>
 
@@ -177,7 +59,10 @@ export default function Enrollment({ user, school }) {
                     {[selectedParent.email, selectedParent.phone].filter(Boolean).join(' · ')}
                   </div>
                 </div>
-                <button onClick={() => { setSelectedParent(null); setParentSearch('') }} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}>×</button>
+                <button
+                  onClick={() => { setSelectedParent(null); setParentSearch('') }}
+                  style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: '1.25rem', lineHeight: 1 }}
+                >×</button>
               </div>
             ) : (
               <div>
@@ -185,7 +70,7 @@ export default function Enrollment({ user, school }) {
                   <input
                     placeholder="Search existing parent by name or email…"
                     value={parentSearch}
-                    onChange={e => { setParentSearch(e.target.value); searchParents(e.target.value) }}
+                    onChange={e => handleParentSearch(e.target.value)}
                     style={{ ...inputStyle, paddingLeft: '2.25rem', background: '#f9fafb' }}
                   />
                   <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }}>🔍</span>
@@ -232,7 +117,7 @@ export default function Enrollment({ user, school }) {
 
           <hr style={{ border: 'none', borderTop: '1px solid #f3f4f6', margin: '1.5rem 0' }} />
 
-          {/* Student Section */}
+          {/* Student Details */}
           <div>
             <div style={sectionLabel}>Student Details</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
@@ -257,7 +142,7 @@ export default function Enrollment({ user, school }) {
                   style={{ ...inputStyle, background: !configuredGrades ? '#f3f4f6' : 'white', cursor: !configuredGrades ? 'not-allowed' : 'pointer', color: !configuredGrades ? '#9ca3af' : '#1f2937' }}
                 >
                   <option value="">{configuredGrades ? 'Select grade' : 'Configure grades in Settings first'}</option>
-                  {GRADES.map(g => <option key={g}>{g}</option>)}
+                  {grades.map(g => <option key={g}>{g}</option>)}
                 </select>
               </div>
             </div>
@@ -270,7 +155,7 @@ export default function Enrollment({ user, school }) {
           {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.75rem' }}>{error}</p>}
 
           <button
-            onClick={handleSubmit}
+            onClick={submit}
             disabled={saving}
             style={{ marginTop: '1.5rem', background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.5rem', fontWeight: '600', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '1rem', opacity: saving ? 0.7 : 1 }}
           >
@@ -305,7 +190,9 @@ export default function Enrollment({ user, school }) {
                   </td>
                   <td style={{ padding: '0.75rem 1rem', color: '#374151' }}>{student.grade || '—'}</td>
                   <td style={{ padding: '0.75rem 1rem', color: '#374151' }}>
-                    {student.parents ? `${student.parents.first_name} ${student.parents.last_name}` : <span style={{ color: '#d1d5db' }}>—</span>}
+                    {student.parents
+                      ? `${student.parents.first_name} ${student.parents.last_name}`
+                      : <span style={{ color: '#d1d5db' }}>—</span>}
                   </td>
                   <td style={{ padding: '0.75rem 1rem' }}>
                     <div style={{ fontSize: '0.875rem', color: '#374151' }}>{student.parents?.email || <span style={{ color: '#d1d5db' }}>—</span>}</div>

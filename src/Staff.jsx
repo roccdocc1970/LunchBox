@@ -1,351 +1,38 @@
-import { useState, useEffect } from 'react'
-import { supabase } from './supabase'
-
-const ROLES = [
-  'Principal',
-  'Teacher',
-  'Assistant Teacher',
-  'Substitute Teacher',
-  'Administrator',
-  'Counselor',
-  'Support Staff',
-  'Facilities',
-  'Maintenance',
-]
-
-const ALL_GRADES = [
-  'Pre-K', 'Kindergarten', '1st Grade', '2nd Grade', '3rd Grade',
-  '4th Grade', '5th Grade', '6th Grade', '7th Grade', '8th Grade',
-  '9th Grade', '10th Grade', '11th Grade', '12th Grade',
-]
-
-const DIVISION_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444']
-
-const getDivision = (grade, divisionsRaw) => {
-  if (!grade || !divisionsRaw) return null
-  try {
-    const divs = typeof divisionsRaw === 'string' ? JSON.parse(divisionsRaw) : divisionsRaw
-    if (!Array.isArray(divs)) return null
-    const idx = divs.findIndex(d => d.grades?.includes(grade))
-    if (idx === -1) return null
-    return { name: divs[idx].name, color: DIVISION_COLORS[idx % DIVISION_COLORS.length] }
-  } catch { return null }
-}
-
-const parseGrades = (school) => {
-  try {
-    const g = JSON.parse(school?.grades_offered)
-    if (!Array.isArray(g) || g.length === 0) return null
-    return [...g].sort((a, b) => ALL_GRADES.indexOf(a) - ALL_GRADES.indexOf(b))
-  } catch { return null }
-}
-
-// Reads grade_assignments (new JSONB array) or falls back to legacy grade_assignment text
-const parseGradeAssignments = (member) => {
-  if (member?.grade_assignments) {
-    try {
-      const a = typeof member.grade_assignments === 'string'
-        ? JSON.parse(member.grade_assignments)
-        : member.grade_assignments
-      if (Array.isArray(a)) return a
-    } catch {}
-  }
-  if (member?.grade_assignment) return [member.grade_assignment]
-  return []
-}
-
-const ROLE_COLORS = {
-  Principal: '#f97316',
-  Teacher: '#3b82f6',
-  'Assistant Teacher': '#6366f1',
-  'Substitute Teacher': '#14b8a6',
-  Administrator: '#8b5cf6',
-  Counselor: '#10b981',
-  'Support Staff': '#6b7280',
-  Facilities: '#0ea5e9',
-  Maintenance: '#84cc16',
-}
-
-const EMPTY_FORM = {
-  first_name: '', last_name: '', email: '', phone: '',
-  role: '', grade_assignments: [], hire_date: '', status: 'Active', notes: '',
-}
+import { useStaff } from './hooks/useStaff'
+import { ROLES, ROLE_COLORS, getRoleColor, parseGradeAssignments, getOrphanedGrades, getAssignmentDivisions } from './domain/staff'
+import { getDivision } from './domain/school'
+import { ALL_GRADES } from './domain/enrollment'
+import { parseDivisions } from './domain/school'
 
 export default function Staff({ user, school }) {
   const primaryColor = school?.primary_color || '#f97316'
-  const configuredGrades = parseGrades(school)
-  const GRADES = configuredGrades || ALL_GRADES
 
-  const [staff, setStaff] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState(null)
-  const [search, setSearch] = useState('')
-  const [filterRole, setFilterRole] = useState('')
-  const [filterStatus, setFilterStatus] = useState('')
-  const [filterDivision, setFilterDivision] = useState('')
-  const [selected, setSelected] = useState(null)
-  const [editing, setEditing] = useState(false)
-  const [editForm, setEditForm] = useState({})
-  const [editGrades, setEditGrades] = useState([])
-  const [deleteConfirm, setDeleteConfirm] = useState(false)
-  const [form, setForm] = useState(EMPTY_FORM)
-
-  useEffect(() => { fetchStaff() }, [])
-
-  const fetchStaff = async () => {
-    setLoading(true)
-    const { data } = await supabase
-      .from('staff')
-      .select('*')
-      .order('last_name', { ascending: true })
-    if (data) setStaff(data)
-    setLoading(false)
-  }
-
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
-  const handleEditChange = (e) => setEditForm({ ...editForm, [e.target.name]: e.target.value })
-
-  const toggleGradeInForm = (grade) => {
-    const has = form.grade_assignments.includes(grade)
-    setForm({ ...form, grade_assignments: has ? form.grade_assignments.filter(g => g !== grade) : [...form.grade_assignments, grade] })
-  }
-
-  const toggleGradeInEdit = (grade) => {
-    const has = editGrades.includes(grade)
-    setEditGrades(has ? editGrades.filter(g => g !== grade) : [...editGrades, grade])
-  }
-
-  const handleSubmit = async () => {
-    if (!form.first_name || !form.last_name || !form.role) {
-      setError('First name, last name, and role are required.')
-      return
-    }
-    setSaving(true)
-    setError(null)
-    const { grade_assignments, ...rest } = form
-    const payload = { ...rest, grade_assignments, school_id: user.id, hire_date: form.hire_date || null }
-    const { error } = await supabase.from('staff').insert([payload])
-    if (error) {
-      setError(error.message)
-    } else {
-      setForm(EMPTY_FORM)
-      setShowForm(false)
-      fetchStaff()
-    }
-    setSaving(false)
-  }
-
-  const saveEdit = async () => {
-    setSaving(true)
-    setError(null)
-    const { first_name, last_name, email, phone, role, hire_date, status, notes } = editForm
-    const { data, error } = await supabase
-      .from('staff')
-      .update({ first_name, last_name, email, phone, role, grade_assignments: editGrades, hire_date: hire_date || null, status, notes })
-      .eq('id', selected.id)
-      .select()
-      .single()
-    if (error) {
-      setError(error.message)
-    } else {
-      setSelected(data)
-      setEditing(false)
-      fetchStaff()
-    }
-    setSaving(false)
-  }
-
-  const deleteStaff = async () => {
-    const { error } = await supabase.from('staff').delete().eq('id', selected.id)
-    if (error) {
-      setError(error.message)
-    } else {
-      closeProfile()
-      fetchStaff()
-    }
-  }
-
-  const openProfile = (member) => {
-    setSelected(member)
-    setEditing(false)
-    setDeleteConfirm(false)
-    setError(null)
-  }
-
-  const closeProfile = () => {
-    setSelected(null)
-    setEditing(false)
-    setDeleteConfirm(false)
-    setError(null)
-  }
-
-  const startEdit = () => {
-    setEditForm({ ...selected })
-    setEditGrades(parseGradeAssignments(selected))
-    setEditing(true)
-    setDeleteConfirm(false)
-  }
-
-  const filtered = staff.filter(s => {
-    const name = `${s.first_name} ${s.last_name}`.toLowerCase()
-    const matchSearch = !search ||
-      name.includes(search.toLowerCase()) ||
-      (s.email || '').toLowerCase().includes(search.toLowerCase()) ||
-      (s.role || '').toLowerCase().includes(search.toLowerCase())
-    const matchRole = !filterRole || s.role === filterRole
-    const matchStatus = !filterStatus || s.status === filterStatus
-    const assignments = parseGradeAssignments(s)
-    const matchDivision = !filterDivision || assignments.some(g => getDivision(g, school?.divisions)?.name === filterDivision)
-    return matchSearch && matchRole && matchStatus && matchDivision
-  })
-
-  const roleColor = (role) => ROLE_COLORS[role] || '#6b7280'
+  const {
+    staff, loading, filtered, stats,
+    configuredGrades, grades,
+    showForm, toggleForm,
+    form, handleChange, toggleGradeInForm,
+    saving, error, submit,
+    selected, openProfile, closeProfile,
+    editing, editForm, editGrades,
+    startEdit, handleEditChange, toggleGradeInEdit,
+    saveEdit, remove,
+    deleteConfirm, setDeleteConfirm,
+    search, setSearch,
+    filterRole, setFilterRole,
+    filterStatus, setFilterStatus,
+    filterDivision, setFilterDivision,
+    clearFilters,
+  } = useStaff(user.id, school)
 
   const inputStyle = {
     width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem',
-    padding: '0.5rem 0.75rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem'
+    padding: '0.5rem 0.75rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem',
   }
   const labelStyle = { display: 'block', fontSize: '0.8rem', fontWeight: '500', color: '#6b7280', marginBottom: '0.25rem' }
   const formLabelStyle = { display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }
-
-  const activeCount = staff.filter(s => s.status === 'Active').length
-  const inactiveCount = staff.filter(s => s.status === 'Inactive').length
-
-  // Grade picker used in both add form and edit drawer
-  const GradePicker = ({ selected: picked, onToggle, locked }) => {
-    const sorted = [...GRADES].sort((a, b) => ALL_GRADES.indexOf(a) - ALL_GRADES.indexOf(b))
-    // grades assigned to this staff member that are no longer in the school's config
-    const orphaned = configuredGrades
-      ? picked.filter(g => !configuredGrades.includes(g)).sort((a, b) => ALL_GRADES.indexOf(a) - ALL_GRADES.indexOf(b))
-      : []
-    return (
-      <div>
-        {locked ? (
-          <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: 0 }}>Configure grades in Settings → Academic Config first.</p>
-        ) : sorted.length === 0 ? (
-          <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: 0 }}>No grades configured yet.</p>
-        ) : (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
-            {sorted.map(grade => {
-              const active = picked.includes(grade)
-              const div = getDivision(grade, school?.divisions)
-              const color = div ? div.color : primaryColor
-              return (
-                <button key={grade} type="button" onClick={() => onToggle(grade)}
-                  style={{
-                    padding: '0.25rem 0.625rem', borderRadius: '9999px', fontSize: '0.8rem',
-                    fontWeight: active ? '600' : '400', cursor: 'pointer',
-                    border: `1.5px solid ${active ? color : '#d1d5db'}`,
-                    background: active ? color : 'white',
-                    color: active ? 'white' : '#374151',
-                    transition: 'all 0.1s',
-                  }}
-                >
-                  {grade}
-                </button>
-              )
-            })}
-            {orphaned.map(grade => (
-              <button key={grade} type="button" onClick={() => onToggle(grade)}
-                title="This grade is no longer offered at your school. Click to remove."
-                style={{
-                  padding: '0.25rem 0.625rem', borderRadius: '9999px', fontSize: '0.8rem',
-                  fontWeight: '400', cursor: 'pointer',
-                  border: '1.5px solid #fcd34d',
-                  background: '#fefce8',
-                  color: '#92400e',
-                  textDecoration: 'line-through',
-                  transition: 'all 0.1s',
-                }}
-              >
-                ⚠ {grade}
-              </button>
-            ))}
-          </div>
-        )}
-        {orphaned.length > 0 && (
-          <p style={{ fontSize: '0.75rem', color: '#d97706', marginTop: '0.5rem', marginBottom: 0 }}>
-            ⚠ {orphaned.length} grade{orphaned.length !== 1 ? 's are' : ' is'} no longer offered at this school. Click to remove.
-          </p>
-        )}
-        {picked.length > 0 && orphaned.length === 0 && (
-          <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.375rem', marginBottom: 0 }}>
-            {picked.length} grade{picked.length !== 1 ? 's' : ''} assigned
-          </p>
-        )}
-      </div>
-    )
-  }
-
-  // Renders grade pills + unique division badges for a staff member
-  const GradeBadges = ({ member, compact = false }) => {
-    const assignments = parseGradeAssignments(member)
-    if (assignments.length === 0) return null
-    const sorted = [...assignments].sort((a, b) => ALL_GRADES.indexOf(a) - ALL_GRADES.indexOf(b))
-    const isOrphaned = (g) => configuredGrades && !configuredGrades.includes(g)
-    // only derive divisions from active (non-orphaned) grades
-    const uniqueDivisions = []
-    sorted.filter(g => !isOrphaned(g)).forEach(g => {
-      const div = getDivision(g, school?.divisions)
-      if (div && !uniqueDivisions.find(d => d.name === div.name)) uniqueDivisions.push(div)
-    })
-    if (compact) {
-      return (
-        <div style={{ marginBottom: '0.5rem' }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginBottom: uniqueDivisions.length > 0 ? '0.25rem' : 0 }}>
-            {sorted.map(g => isOrphaned(g)
-              ? <span key={g} title="Grade no longer offered" style={{ fontSize: '0.72rem', background: '#fefce8', color: '#92400e', borderRadius: '9999px', padding: '0.15rem 0.5rem', textDecoration: 'line-through', border: '1px solid #fcd34d' }}>⚠ {g}</span>
-              : <span key={g} style={{ fontSize: '0.72rem', background: '#f3f4f6', color: '#374151', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>{g}</span>
-            )}
-          </div>
-          {uniqueDivisions.map(div => (
-            <span key={div.name} style={{ fontSize: '0.72rem', color: div.color, fontWeight: '600', background: div.color + '15', borderRadius: '9999px', padding: '0.1rem 0.5rem', marginRight: '0.25rem', display: 'inline-block' }}>{div.name}</span>
-          ))}
-        </div>
-      )
-    }
-    return (
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Grade Assignments</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: uniqueDivisions.length > 0 ? '1.25rem' : 0 }}>
-          {sorted.map(g => {
-            if (isOrphaned(g)) {
-              return (
-                <span key={g} title="Grade no longer offered at this school"
-                  style={{ fontSize: '0.8rem', fontWeight: '400', background: '#fefce8', color: '#92400e', border: '1px solid #fcd34d', borderRadius: '9999px', padding: '0.2rem 0.625rem', textDecoration: 'line-through' }}>
-                  ⚠ {g}
-                </span>
-              )
-            }
-            const div = getDivision(g, school?.divisions)
-            const color = div ? div.color : primaryColor
-            return (
-              <span key={g} style={{ fontSize: '0.8rem', fontWeight: '500', background: color + '15', color, border: `1px solid ${color}30`, borderRadius: '9999px', padding: '0.2rem 0.625rem' }}>{g}</span>
-            )
-          })}
-        </div>
-        {sorted.some(isOrphaned) && (
-          <p style={{ fontSize: '0.75rem', color: '#d97706', margin: '0 0 1rem' }}>
-            ⚠ Strikethrough grades are no longer offered. Edit this profile to remove them.
-          </p>
-        )}
-        {uniqueDivisions.length > 0 && (
-          <>
-            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>School Divisions</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
-              {uniqueDivisions.map(div => (
-                <span key={div.name} style={{ fontSize: '0.8rem', color: div.color, fontWeight: '600', background: div.color + '12', border: `1px solid ${div.color}30`, borderRadius: '9999px', padding: '0.2rem 0.75rem' }}>
-                  {div.name}
-                </span>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-    )
-  }
+  const hasFilters = search || filterRole || filterStatus || filterDivision
+  const divisions = parseDivisions(school?.divisions).filter(d => d.grades?.length > 0)
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
@@ -357,7 +44,7 @@ export default function Staff({ user, school }) {
           <p style={{ color: '#6b7280', marginTop: '0.25rem' }}>Manage your school's staff directory</p>
         </div>
         <button
-          onClick={() => { setShowForm(!showForm); setError(null) }}
+          onClick={toggleForm}
           style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}
         >
           {showForm ? 'Cancel' : '+ Add Staff Member'}
@@ -379,23 +66,17 @@ export default function Staff({ user, school }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
             {[
               { label: 'First Name', name: 'first_name', type: 'text', required: true },
-              { label: 'Last Name', name: 'last_name', type: 'text', required: true },
-              { label: 'Email', name: 'email', type: 'email' },
-              { label: 'Phone', name: 'phone', type: 'tel' },
-              { label: 'Hire Date', name: 'hire_date', type: 'date' },
+              { label: 'Last Name',  name: 'last_name',  type: 'text', required: true },
+              { label: 'Email',      name: 'email',      type: 'email' },
+              { label: 'Phone',      name: 'phone',      type: 'tel' },
+              { label: 'Hire Date',  name: 'hire_date',  type: 'date' },
             ].map(field => (
               <div key={field.name}>
                 <label style={formLabelStyle}>{field.label} {field.required && <span style={{ color: '#ef4444' }}>*</span>}</label>
-                <input
-                  type={field.type}
-                  name={field.name}
-                  value={form[field.name]}
-                  onChange={handleChange}
-                  style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
-                />
+                <input type={field.type} name={field.name} value={form[field.name]} onChange={handleChange}
+                  style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }} />
               </div>
             ))}
-
             <div>
               <label style={formLabelStyle}>Role <span style={{ color: '#ef4444' }}>*</span></label>
               <select name="role" value={form.role} onChange={handleChange}
@@ -404,7 +85,6 @@ export default function Staff({ user, school }) {
                 {ROLES.map(r => <option key={r}>{r}</option>)}
               </select>
             </div>
-
             <div>
               <label style={formLabelStyle}>Status</label>
               <select name="status" value={form.status} onChange={handleChange}
@@ -415,10 +95,10 @@ export default function Staff({ user, school }) {
             </div>
           </div>
 
-          {/* Grade picker — full width below grid */}
           <div style={{ marginTop: '1rem' }}>
             <label style={formLabelStyle}>Grade Assignments</label>
-            <GradePicker selected={form.grade_assignments} onToggle={toggleGradeInForm} locked={!configuredGrades} />
+            <GradePicker selected={form.grade_assignments} onToggle={toggleGradeInForm} locked={!configuredGrades}
+              grades={grades} configuredGrades={configuredGrades} school={school} primaryColor={primaryColor} />
           </div>
 
           <div style={{ marginTop: '1rem' }}>
@@ -429,7 +109,7 @@ export default function Staff({ user, school }) {
 
           {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.5rem' }}>{error}</p>}
 
-          <button onClick={handleSubmit} disabled={saving}
+          <button onClick={submit} disabled={saving}
             style={{ marginTop: '1.5rem', background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}>
             {saving ? 'Saving...' : 'Save Staff Member'}
           </button>
@@ -439,9 +119,9 @@ export default function Staff({ user, school }) {
       {/* Summary counts */}
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         {[
-          { label: 'Total Staff', value: staff.length },
-          { label: 'Active', value: activeCount, color: '#10b981' },
-          { label: 'Inactive', value: inactiveCount, color: '#6b7280' },
+          { label: 'Total Staff', value: stats.total },
+          { label: 'Active',      value: stats.active,   color: '#10b981' },
+          { label: 'Inactive',    value: stats.inactive, color: '#6b7280' },
         ].map(s => (
           <div key={s.label} style={{ background: 'white', borderRadius: '0.75rem', padding: '0.75rem 1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             {s.color && <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: s.color, display: 'inline-block' }} />}
@@ -451,39 +131,27 @@ export default function Staff({ user, school }) {
         ))}
       </div>
 
-      {/* Search + Filters */}
+      {/* Filters */}
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <input
-          type="text"
-          placeholder="Search by name, email, or role..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ ...inputStyle, flex: '1', minWidth: '220px' }}
-        />
-        <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '160px' }}>
+        <input type="text" placeholder="Search by name, email, or role..." value={search}
+          onChange={e => setSearch(e.target.value)} style={{ ...inputStyle, flex: '1', minWidth: '220px' }} />
+        <select value={filterRole} onChange={e => setFilterRole(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '160px' }}>
           <option value="">All Roles</option>
           {ROLES.map(r => <option key={r}>{r}</option>)}
         </select>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '140px' }}>
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '140px' }}>
           <option value="">All Statuses</option>
           <option>Active</option>
           <option>Inactive</option>
         </select>
-        {(() => {
-          try {
-            const divs = school?.divisions ? (typeof school.divisions === 'string' ? JSON.parse(school.divisions) : school.divisions) : []
-            const named = Array.isArray(divs) ? divs.filter(d => d.grades?.length > 0) : []
-            if (named.length === 0) return null
-            return (
-              <select value={filterDivision} onChange={e => setFilterDivision(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '160px' }}>
-                <option value="">All Divisions</option>
-                {named.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
-              </select>
-            )
-          } catch { return null }
-        })()}
-        {(search || filterRole || filterStatus || filterDivision) && (
-          <button onClick={() => { setSearch(''); setFilterRole(''); setFilterStatus(''); setFilterDivision('') }}
+        {divisions.length > 0 && (
+          <select value={filterDivision} onChange={e => setFilterDivision(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '160px' }}>
+            <option value="">All Divisions</option>
+            {divisions.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
+          </select>
+        )}
+        {hasFilters && (
+          <button onClick={clearFilters}
             style={{ background: 'transparent', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', color: '#6b7280', fontSize: '0.9rem' }}>
             Clear
           </button>
@@ -503,39 +171,28 @@ export default function Staff({ user, school }) {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
           {filtered.map(member => (
-            <div
-              key={member.id}
-              onClick={() => openProfile(member)}
-              style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', cursor: 'pointer', borderTop: `3px solid ${roleColor(member.role)}`, transition: 'box-shadow 0.15s' }}
+            <div key={member.id} onClick={() => openProfile(member)}
+              style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', cursor: 'pointer', borderTop: `3px solid ${getRoleColor(member.role)}`, transition: 'box-shadow 0.15s' }}
               onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)'}
               onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.08)'}
             >
-              {/* Avatar */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: roleColor(member.role) + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', fontWeight: 'bold', color: roleColor(member.role), flexShrink: 0 }}>
+                <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: getRoleColor(member.role) + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', fontWeight: 'bold', color: getRoleColor(member.role), flexShrink: 0 }}>
                   {member.first_name?.[0]}{member.last_name?.[0]}
                 </div>
                 <div>
                   <div style={{ fontWeight: '600', color: '#1f2937', fontSize: '0.95rem' }}>{member.first_name} {member.last_name}</div>
-                  <div style={{ fontSize: '0.8rem', color: roleColor(member.role), fontWeight: '500' }}>{member.role}</div>
+                  <div style={{ fontSize: '0.8rem', color: getRoleColor(member.role), fontWeight: '500' }}>{member.role}</div>
                 </div>
               </div>
 
-              <GradeBadges member={member} compact />
+              <GradeBadges member={member} compact configuredGrades={configuredGrades} school={school} primaryColor={primaryColor} />
 
-              {member.email && (
-                <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.4rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>✉️ {member.email}</div>
-              )}
-              {member.phone && (
-                <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.4rem' }}>📞 {member.phone}</div>
-              )}
+              {member.email && <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.4rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>✉️ {member.email}</div>}
+              {member.phone && <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.4rem' }}>📞 {member.phone}</div>}
 
               <div style={{ marginTop: '0.75rem' }}>
-                <span style={{
-                  background: member.status === 'Active' ? '#f0fdf4' : '#f3f4f6',
-                  color: member.status === 'Active' ? '#15803d' : '#6b7280',
-                  borderRadius: '9999px', padding: '0.2rem 0.65rem', fontSize: '0.75rem', fontWeight: '600'
-                }}>
+                <span style={{ background: member.status === 'Active' ? '#f0fdf4' : '#f3f4f6', color: member.status === 'Active' ? '#15803d' : '#6b7280', borderRadius: '9999px', padding: '0.2rem 0.65rem', fontSize: '0.75rem', fontWeight: '600' }}>
                   {member.status || 'Active'}
                 </span>
               </div>
@@ -546,14 +203,11 @@ export default function Staff({ user, school }) {
 
       {/* Profile Drawer */}
       {selected && (
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 50, display: 'flex', justifyContent: 'flex-end' }}
-          onClick={e => { if (e.target === e.currentTarget) closeProfile() }}
-        >
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 50, display: 'flex', justifyContent: 'flex-end' }}
+          onClick={e => { if (e.target === e.currentTarget) closeProfile() }}>
           <div style={{ width: '420px', maxWidth: '100%', background: 'white', height: '100%', overflowY: 'auto', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)' }}>
 
-            {/* Drawer Header */}
-            <div style={{ background: roleColor(selected.role), padding: '1.5rem', color: 'white' }}>
+            <div style={{ background: getRoleColor(selected.role), padding: '1.5rem', color: 'white' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 'bold' }}>
@@ -583,7 +237,7 @@ export default function Staff({ user, school }) {
                     {selected.notes && <DrawerField label="Notes" value={selected.notes} />}
                   </DrawerSection>
 
-                  <GradeBadges member={selected} />
+                  <GradeBadges member={selected} configuredGrades={configuredGrades} school={school} primaryColor={primaryColor} />
 
                   <DrawerSection title="Contact">
                     <DrawerField label="Email" value={selected.email || '—'} />
@@ -632,7 +286,7 @@ export default function Staff({ user, school }) {
                       <p style={{ color: '#991b1b', fontWeight: '600', margin: '0 0 0.5rem' }}>Remove {selected.first_name} {selected.last_name}?</p>
                       <p style={{ color: '#b91c1c', fontSize: '0.875rem', margin: '0 0 1rem' }}>This cannot be undone.</p>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button onClick={deleteStaff} style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: '600', cursor: 'pointer' }}>Yes, Remove</button>
+                        <button onClick={remove} style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: '600', cursor: 'pointer' }}>Yes, Remove</button>
                         <button onClick={() => setDeleteConfirm(false)} style={{ background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer' }}>Cancel</button>
                       </div>
                     </div>
@@ -642,14 +296,8 @@ export default function Staff({ user, school }) {
                 <>
                   <div style={{ display: 'grid', gap: '1rem' }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                      <div>
-                        <label style={labelStyle}>First Name</label>
-                        <input name="first_name" value={editForm.first_name || ''} onChange={handleEditChange} style={inputStyle} />
-                      </div>
-                      <div>
-                        <label style={labelStyle}>Last Name</label>
-                        <input name="last_name" value={editForm.last_name || ''} onChange={handleEditChange} style={inputStyle} />
-                      </div>
+                      <div><label style={labelStyle}>First Name</label><input name="first_name" value={editForm.first_name || ''} onChange={handleEditChange} style={inputStyle} /></div>
+                      <div><label style={labelStyle}>Last Name</label><input name="last_name" value={editForm.last_name || ''} onChange={handleEditChange} style={inputStyle} /></div>
                     </div>
                     <div>
                       <label style={labelStyle}>Role</label>
@@ -660,7 +308,8 @@ export default function Staff({ user, school }) {
                     </div>
                     <div>
                       <label style={labelStyle}>Grade Assignments</label>
-                      <GradePicker selected={editGrades} onToggle={toggleGradeInEdit} locked={!configuredGrades} />
+                      <GradePicker selected={editGrades} onToggle={toggleGradeInEdit} locked={!configuredGrades}
+                        grades={grades} configuredGrades={configuredGrades} school={school} primaryColor={primaryColor} />
                     </div>
                     <div>
                       <label style={labelStyle}>Status</label>
@@ -669,22 +318,10 @@ export default function Staff({ user, school }) {
                         <option>Inactive</option>
                       </select>
                     </div>
-                    <div>
-                      <label style={labelStyle}>Email</label>
-                      <input type="email" name="email" value={editForm.email || ''} onChange={handleEditChange} style={inputStyle} />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Phone</label>
-                      <input type="tel" name="phone" value={editForm.phone || ''} onChange={handleEditChange} style={inputStyle} />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Hire Date</label>
-                      <input type="date" name="hire_date" value={editForm.hire_date || ''} onChange={handleEditChange} style={inputStyle} />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Notes</label>
-                      <textarea name="notes" value={editForm.notes || ''} onChange={handleEditChange} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
-                    </div>
+                    <div><label style={labelStyle}>Email</label><input type="email" name="email" value={editForm.email || ''} onChange={handleEditChange} style={inputStyle} /></div>
+                    <div><label style={labelStyle}>Phone</label><input type="tel" name="phone" value={editForm.phone || ''} onChange={handleEditChange} style={inputStyle} /></div>
+                    <div><label style={labelStyle}>Hire Date</label><input type="date" name="hire_date" value={editForm.hire_date || ''} onChange={handleEditChange} style={inputStyle} /></div>
+                    <div><label style={labelStyle}>Notes</label><textarea name="notes" value={editForm.notes || ''} onChange={handleEditChange} rows={3} style={{ ...inputStyle, resize: 'vertical' }} /></div>
                   </div>
                   <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
                     <button onClick={saveEdit} disabled={saving}
@@ -701,6 +338,109 @@ export default function Staff({ user, school }) {
             </div>
           </div>
         </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Local render helpers ─────────────────────────────────────────────────────
+
+function GradePicker({ selected: picked, onToggle, locked, grades, configuredGrades, school, primaryColor }) {
+  const sorted = [...grades].sort((a, b) => ALL_GRADES.indexOf(a) - ALL_GRADES.indexOf(b))
+  const orphaned = getOrphanedGrades(picked, configuredGrades)
+  return (
+    <div>
+      {locked ? (
+        <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: 0 }}>Configure grades in Settings → Academic Config first.</p>
+      ) : sorted.length === 0 ? (
+        <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: 0 }}>No grades configured yet.</p>
+      ) : (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+          {sorted.map(grade => {
+            const active = picked.includes(grade)
+            const div = getDivision(grade, school?.divisions)
+            const color = div ? div.color : primaryColor
+            return (
+              <button key={grade} type="button" onClick={() => onToggle(grade)}
+                style={{ padding: '0.25rem 0.625rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: active ? '600' : '400', cursor: 'pointer', border: `1.5px solid ${active ? color : '#d1d5db'}`, background: active ? color : 'white', color: active ? 'white' : '#374151', transition: 'all 0.1s' }}>
+                {grade}
+              </button>
+            )
+          })}
+          {orphaned.map(grade => (
+            <button key={grade} type="button" onClick={() => onToggle(grade)}
+              title="This grade is no longer offered at your school. Click to remove."
+              style={{ padding: '0.25rem 0.625rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: '400', cursor: 'pointer', border: '1.5px solid #fcd34d', background: '#fefce8', color: '#92400e', textDecoration: 'line-through', transition: 'all 0.1s' }}>
+              ⚠ {grade}
+            </button>
+          ))}
+        </div>
+      )}
+      {orphaned.length > 0 && (
+        <p style={{ fontSize: '0.75rem', color: '#d97706', marginTop: '0.5rem', marginBottom: 0 }}>
+          ⚠ {orphaned.length} grade{orphaned.length !== 1 ? 's are' : ' is'} no longer offered. Click to remove.
+        </p>
+      )}
+      {picked.length > 0 && orphaned.length === 0 && (
+        <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.375rem', marginBottom: 0 }}>
+          {picked.length} grade{picked.length !== 1 ? 's' : ''} assigned
+        </p>
+      )}
+    </div>
+  )
+}
+
+function GradeBadges({ member, compact = false, configuredGrades, school, primaryColor }) {
+  const assignments = parseGradeAssignments(member)
+  if (assignments.length === 0) return null
+  const sorted = [...assignments].sort((a, b) => ALL_GRADES.indexOf(a) - ALL_GRADES.indexOf(b))
+  const isOrphaned = (g) => configuredGrades && !configuredGrades.includes(g)
+  const uniqueDivisions = getAssignmentDivisions(assignments, configuredGrades, school?.divisions)
+
+  if (compact) {
+    return (
+      <div style={{ marginBottom: '0.5rem' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginBottom: uniqueDivisions.length > 0 ? '0.25rem' : 0 }}>
+          {sorted.map(g => isOrphaned(g)
+            ? <span key={g} title="Grade no longer offered" style={{ fontSize: '0.72rem', background: '#fefce8', color: '#92400e', borderRadius: '9999px', padding: '0.15rem 0.5rem', textDecoration: 'line-through', border: '1px solid #fcd34d' }}>⚠ {g}</span>
+            : <span key={g} style={{ fontSize: '0.72rem', background: '#f3f4f6', color: '#374151', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>{g}</span>
+          )}
+        </div>
+        {uniqueDivisions.map(div => (
+          <span key={div.name} style={{ fontSize: '0.72rem', color: div.color, fontWeight: '600', background: div.color + '15', borderRadius: '9999px', padding: '0.1rem 0.5rem', marginRight: '0.25rem', display: 'inline-block' }}>{div.name}</span>
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ marginBottom: '1.5rem' }}>
+      <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Grade Assignments</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: uniqueDivisions.length > 0 ? '1.25rem' : 0 }}>
+        {sorted.map(g => {
+          if (isOrphaned(g)) return (
+            <span key={g} title="Grade no longer offered at this school"
+              style={{ fontSize: '0.8rem', fontWeight: '400', background: '#fefce8', color: '#92400e', border: '1px solid #fcd34d', borderRadius: '9999px', padding: '0.2rem 0.625rem', textDecoration: 'line-through' }}>
+              ⚠ {g}
+            </span>
+          )
+          const div = getDivision(g, school?.divisions)
+          const color = div ? div.color : primaryColor
+          return <span key={g} style={{ fontSize: '0.8rem', fontWeight: '500', background: color + '15', color, border: `1px solid ${color}30`, borderRadius: '9999px', padding: '0.2rem 0.625rem' }}>{g}</span>
+        })}
+      </div>
+      {sorted.some(isOrphaned) && (
+        <p style={{ fontSize: '0.75rem', color: '#d97706', margin: '0 0 1rem' }}>⚠ Strikethrough grades are no longer offered. Edit this profile to remove them.</p>
+      )}
+      {uniqueDivisions.length > 0 && (
+        <>
+          <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>School Divisions</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+            {uniqueDivisions.map(div => (
+              <span key={div.name} style={{ fontSize: '0.8rem', color: div.color, fontWeight: '600', background: div.color + '12', border: `1px solid ${div.color}30`, borderRadius: '9999px', padding: '0.2rem 0.75rem' }}>{div.name}</span>
+            ))}
+          </div>
+        </>
       )}
     </div>
   )

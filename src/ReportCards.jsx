@@ -1,179 +1,24 @@
-import { useState, useEffect } from 'react'
-import { supabase } from './supabase'
-
-const DIVISION_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444']
-
-const getDivision = (grade, divisionsRaw) => {
-  if (!grade || !divisionsRaw) return null
-  try {
-    const divs = typeof divisionsRaw === 'string' ? JSON.parse(divisionsRaw) : divisionsRaw
-    if (!Array.isArray(divs)) return null
-    const idx = divs.findIndex(d => d.grades?.includes(grade))
-    if (idx === -1) return null
-    return { name: divs[idx].name, color: DIVISION_COLORS[idx % DIVISION_COLORS.length] }
-  } catch { return null }
-}
-
-const DEFAULT_SUBJECTS = [
-  'Reading / ELA', 'Writing', 'Mathematics', 'Science',
-  'Social Studies', 'Art', 'Music', 'Physical Education', 'Social-Emotional Learning',
-]
-
-const GRADE_OPTIONS = {
-  Letter: ['A+', 'A', 'A-', 'B+', 'B', 'B-', 'C+', 'C', 'C-', 'D+', 'D', 'F', 'INC', 'N/A'],
-  Standards: ['4 - Exceeds', '3 - Meets', '2 - Approaching', '1 - Beginning', 'N/A'],
-  Satisfactory: ['E - Excellent', 'S - Satisfactory', 'N - Needs Improvement', 'N/A'],
-}
-
-const GRADE_COLORS = {
-  'A+': '#10b981', 'A': '#10b981', 'A-': '#10b981',
-  'B+': '#3b82f6', 'B': '#3b82f6', 'B-': '#3b82f6',
-  'C+': '#f59e0b', 'C': '#f59e0b', 'C-': '#f59e0b',
-  'D+': '#ef4444', 'D': '#ef4444', 'F': '#ef4444',
-  '4 - Exceeds': '#10b981', '3 - Meets': '#3b82f6',
-  '2 - Approaching': '#f59e0b', '1 - Beginning': '#ef4444',
-  'E - Excellent': '#10b981', 'S - Satisfactory': '#3b82f6',
-  'N - Needs Improvement': '#ef4444',
-}
-
-const getTerms = (gradingPeriod) => {
-  if (gradingPeriod === 'Trimesters') return ['T1', 'T2', 'T3']
-  if (gradingPeriod === 'Semesters') return ['S1 - Fall', 'S2 - Spring']
-  if (gradingPeriod === 'Annual') return ['Annual']
-  return ['Q1', 'Q2', 'Q3', 'Q4']
-}
-
-const getAcademicYear = () => {
-  const now = new Date()
-  const year = now.getFullYear()
-  return now.getMonth() >= 7 ? `${year}-${year + 1}` : `${year - 1}-${year}`
-}
-
-const parseSubjects = (val) => {
-  try {
-    const s = JSON.parse(val)
-    if (Array.isArray(s) && s.length > 0) return s
-  } catch {}
-  return DEFAULT_SUBJECTS
-}
+import { useReportCards } from './hooks/useReportCards'
+import { GRADE_COLORS, gradedCount } from './domain/reportCards'
+import { parseDivisions } from './domain/school'
 
 export default function ReportCards({ user, school }) {
   const primaryColor = school?.primary_color || '#f97316'
-  const terms = getTerms(school?.grading_period)
-  const gradeOptions = GRADE_OPTIONS[school?.grading_scale] || GRADE_OPTIONS.Letter
-  const subjects = parseSubjects(school?.subjects_offered)
 
-  const emptyForm = () => ({
-    student_id: '',
-    student_name: '',
-    student_grade: '',
-    academic_year: school?.academic_year || getAcademicYear(),
-    term: terms[0],
-    grades: subjects.map(s => ({ subject: s, grade: '', comment: '' })),
-    teacher_notes: '',
-  })
-
-  const [reportCards, setReportCards] = useState([])
-  const [students, setStudents] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [selected, setSelected] = useState(null)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState(null)
-  const [search, setSearch] = useState('')
-  const [filterTerm, setFilterTerm] = useState('')
-  const [filterStatus, setFilterStatus] = useState('')
-  const [filterDivision, setFilterDivision] = useState('')
-  const [form, setForm] = useState(emptyForm())
-
-  useEffect(() => {
-    fetchReportCards()
-    fetchStudents()
-  }, [])
-
-  const fetchReportCards = async () => {
-    setLoading(true)
-    const { data } = await supabase
-      .from('report_cards')
-      .select('*')
-      .eq('school_id', user.id)
-      .order('created_at', { ascending: false })
-    if (data) setReportCards(data)
-    setLoading(false)
-  }
-
-  const fetchStudents = async () => {
-    const { data } = await supabase
-      .from('students')
-      .select('id, first_name, last_name, grade')
-      .eq('school_id', user.id)
-      .eq('status', 'Enrolled')
-      .order('last_name')
-    if (data) setStudents(data)
-  }
-
-  const handleStudentSelect = (studentId) => {
-    const s = students.find(st => st.id === studentId)
-    setForm({
-      ...form,
-      student_id: studentId,
-      student_name: s ? `${s.first_name} ${s.last_name}` : '',
-      student_grade: s?.grade || '',
-    })
-  }
-
-  const handleGradeChange = (idx, field, value) => {
-    const updated = [...form.grades]
-    updated[idx] = { ...updated[idx], [field]: value }
-    setForm({ ...form, grades: updated })
-  }
-
-  const handleSubmit = async () => {
-    if (!form.student_id) { setError('Please select a student.'); return }
-    setSaving(true)
-    setError(null)
-    const { error: err } = await supabase.from('report_cards').insert([{
-      student_id: form.student_id,
-      student_name: form.student_name,
-      student_grade: form.student_grade,
-      academic_year: form.academic_year,
-      term: form.term,
-      grades: form.grades,
-      teacher_notes: form.teacher_notes,
-      published: false,
-      school_id: user.id,
-    }])
-    if (err) {
-      setError(err.message)
-    } else {
-      setForm(emptyForm())
-      setShowForm(false)
-      fetchReportCards()
-    }
-    setSaving(false)
-  }
-
-  const togglePublished = async (rc) => {
-    const next = !rc.published
-    await supabase.from('report_cards').update({ published: next }).eq('id', rc.id)
-    setSelected(prev => prev ? { ...prev, published: next } : null)
-    setReportCards(prev => prev.map(r => r.id === rc.id ? { ...r, published: next } : r))
-  }
-
-  const deleteReportCard = async (id) => {
-    await supabase.from('report_cards').delete().eq('id', id)
-    setSelected(null)
-    fetchReportCards()
-  }
-
-  const filtered = reportCards.filter(rc => {
-    const matchSearch = !search || rc.student_name?.toLowerCase().includes(search.toLowerCase())
-    const matchTerm = !filterTerm || rc.term === filterTerm
-    const matchStatus = !filterStatus ||
-      (filterStatus === 'published' ? rc.published : !rc.published)
-    const matchDivision = !filterDivision || getDivision(rc.student_grade, school?.divisions)?.name === filterDivision
-    return matchSearch && matchTerm && matchStatus && matchDivision
-  })
+  const {
+    students, loading, filtered, stats,
+    showForm, openForm, closeForm,
+    form, setForm, saving, error,
+    handleStudentSelect, handleGradeChange, submit,
+    selected, setSelected,
+    togglePublished, remove,
+    search, setSearch,
+    filterTerm, setFilterTerm,
+    filterStatus, setFilterStatus,
+    filterDivision, setFilterDivision,
+    clearFilters,
+    terms, gradeOptions,
+  } = useReportCards(user.id, school)
 
   const inputStyle = {
     width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem',
@@ -184,7 +29,8 @@ export default function ReportCards({ user, school }) {
     color: '#6b7280', marginBottom: '0.25rem',
   }
 
-  const gradedCount = (grades) => (grades || []).filter(g => g.grade && g.grade !== '').length
+  const divisions = parseDivisions(school?.divisions).filter(d => d.grades?.length > 0)
+  const hasFilters = search || filterTerm || filterStatus || filterDivision
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
@@ -196,7 +42,7 @@ export default function ReportCards({ user, school }) {
           <p style={{ color: '#6b7280', marginTop: '0.25rem' }}>Create and manage student report cards by term</p>
         </div>
         <button
-          onClick={() => { setShowForm(!showForm); setError(null); setForm(emptyForm()) }}
+          onClick={showForm ? closeForm : openForm}
           style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}
         >
           {showForm ? 'Cancel' : '+ New Report Card'}
@@ -215,7 +61,6 @@ export default function ReportCards({ user, school }) {
         <div style={{ background: 'white', borderRadius: '1rem', padding: '2rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: '2rem' }}>
           <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#1f2937', marginTop: 0, marginBottom: '1.5rem' }}>New Report Card</h3>
 
-          {/* Top fields */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
             <div>
               <label style={labelStyle}>Student <span style={{ color: '#ef4444' }}>*</span></label>
@@ -288,7 +133,7 @@ export default function ReportCards({ user, school }) {
 
           {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginBottom: '1rem' }}>{error}</p>}
 
-          <button onClick={handleSubmit} disabled={saving}
+          <button onClick={submit} disabled={saving}
             style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}>
             {saving ? 'Saving...' : 'Save Report Card'}
           </button>
@@ -298,9 +143,9 @@ export default function ReportCards({ user, school }) {
       {/* Summary bar */}
       <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         {[
-          { label: 'Total', count: reportCards.length, color: '#6b7280' },
-          { label: 'Published', count: reportCards.filter(r => r.published).length, color: '#10b981' },
-          { label: 'Draft', count: reportCards.filter(r => !r.published).length, color: '#f59e0b' },
+          { label: 'Total', count: stats.total, color: '#6b7280' },
+          { label: 'Published', count: stats.published, color: '#10b981' },
+          { label: 'Draft', count: stats.draft, color: '#f59e0b' },
         ].map(s => (
           <div key={s.label} style={{ background: 'white', borderRadius: '0.75rem', padding: '0.75rem 1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: s.color, display: 'inline-block' }} />
@@ -328,21 +173,14 @@ export default function ReportCards({ user, school }) {
           <option value="published">Published</option>
           <option value="draft">Draft</option>
         </select>
-        {(() => {
-          try {
-            const divs = school?.divisions ? (typeof school.divisions === 'string' ? JSON.parse(school.divisions) : school.divisions) : []
-            const named = Array.isArray(divs) ? divs.filter(d => d.grades?.length > 0) : []
-            if (named.length === 0) return null
-            return (
-              <select value={filterDivision} onChange={e => setFilterDivision(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '160px' }}>
-                <option value="">All Divisions</option>
-                {named.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
-              </select>
-            )
-          } catch { return null }
-        })()}
-        {(search || filterTerm || filterStatus || filterDivision) && (
-          <button onClick={() => { setSearch(''); setFilterTerm(''); setFilterStatus(''); setFilterDivision('') }}
+        {divisions.length > 0 && (
+          <select value={filterDivision} onChange={e => setFilterDivision(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '160px' }}>
+            <option value="">All Divisions</option>
+            {divisions.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
+          </select>
+        )}
+        {hasFilters && (
+          <button onClick={clearFilters}
             style={{ background: 'transparent', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', color: '#6b7280', fontSize: '0.9rem' }}>
             Clear
           </button>
@@ -356,7 +194,7 @@ export default function ReportCards({ user, school }) {
         <div style={{ background: 'white', borderRadius: '1rem', padding: '3rem', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📝</div>
           <p style={{ color: '#6b7280', fontSize: '1.1rem' }}>
-            {reportCards.length === 0 ? 'No report cards yet. Create your first one above.' : 'No report cards match your filters.'}
+            {stats.total === 0 ? 'No report cards yet. Create your first one above.' : 'No report cards match your filters.'}
           </p>
         </div>
       ) : (
@@ -413,7 +251,6 @@ export default function ReportCards({ user, school }) {
         >
           <div style={{ width: '520px', maxWidth: '100%', background: 'white', height: '100%', overflowY: 'auto', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)' }}>
 
-            {/* Drawer header */}
             <div style={{ background: primaryColor, padding: '1.5rem', color: 'white' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
@@ -436,7 +273,6 @@ export default function ReportCards({ user, school }) {
 
             <div style={{ padding: '1.5rem' }}>
 
-              {/* Grades */}
               <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>Subject Grades</div>
               <div style={{ border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden', marginBottom: '1.5rem' }}>
                 {(selected.grades || []).map((g, i) => (
@@ -460,7 +296,6 @@ export default function ReportCards({ user, school }) {
                 ))}
               </div>
 
-              {/* Teacher notes */}
               {selected.teacher_notes && (
                 <div style={{ marginBottom: '1.5rem' }}>
                   <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Teacher Notes</div>
@@ -470,12 +305,10 @@ export default function ReportCards({ user, school }) {
                 </div>
               )}
 
-              {/* Created date */}
               <div style={{ fontSize: '0.8rem', color: '#9ca3af', marginBottom: '1.5rem' }}>
                 Created {new Date(selected.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
               </div>
 
-              {/* Actions */}
               <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <button
                   onClick={() => togglePublished(selected)}
@@ -488,7 +321,7 @@ export default function ReportCards({ user, school }) {
                   {selected.published ? 'Revert to Draft' : '✓ Publish Report Card'}
                 </button>
                 <button
-                  onClick={() => { if (window.confirm(`Delete ${selected.student_name}'s ${selected.term} report card?`)) deleteReportCard(selected.id) }}
+                  onClick={() => { if (window.confirm(`Delete ${selected.student_name}'s ${selected.term} report card?`)) remove(selected.id) }}
                   style={{ background: 'white', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '0.5rem', padding: '0.625rem 1rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}>
                   Delete
                 </button>

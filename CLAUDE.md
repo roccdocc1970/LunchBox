@@ -1,5 +1,11 @@
 # LunchBox — Claude Code Project Briefing
 
+## MCP Agent Data Convention
+
+**When creating any data via MCP tools, always prefix user-visible text fields (names, titles, notes, descriptions) with the ⚡ icon.** This lets the user instantly identify agent-created records in the UI versus human-entered data. Apply this to: student names, staff names, inquiry names, work order titles, report card notes, incident descriptions — any field that appears in a list or detail view.
+
+---
+
 LunchBox is a **K-12 School Operations SaaS Platform** — enrollment, communication, reporting, billing, and staff management in one place. Target customer: small-to-mid size private and charter K-12 schools. Business model: per-school monthly SaaS subscription tiered by enrollment size.
 
 > **ROADMAP.md** lives at `C:\Users\Daniel Rocco\Desktop\lunchbox\ROADMAP.md`.
@@ -29,6 +35,8 @@ LunchBox is a **K-12 School Operations SaaS Platform** — enrollment, communica
 | Auth | Supabase Auth | Email/password |
 | Hosting | Vercel | Auto-deploys from GitHub on push |
 | Email | Resend | Free tier, 3K emails/month |
+| Service Layer | Pure JS modules (`src/services/`) | Dependency-injected Supabase client — shared by UI and MCP server |
+| MCP Server | Node.js stdio (`mcp_server/`) | `@modelcontextprotocol/sdk` + Zod — exposes 27 tools to AI agents |
 
 ---
 
@@ -40,6 +48,8 @@ Stored in `.env.local` (never committed). Also set in Vercel for production.
 VITE_SUPABASE_URL=https://omroxjrlhqeovnskzyok.supabase.co
 VITE_SUPABASE_ANON_KEY=sb_publishable_yc2d1xNiGddeKcx5erg_iQ_pUE-HANS
 VITE_RESEND_API_KEY=re_your_key_here
+SUPABASE_SERVICE_ROLE_KEY=sb_secret_...   # MCP server only — bypasses RLS
+SCHOOL_ID=41beb9b7-ec0c-45f3-9a71-8f94cdd98078  # schools.user_id (NOT schools.id)
 ```
 
 ---
@@ -64,12 +74,43 @@ VITE_RESEND_API_KEY=re_your_key_here
 | `src/ReportCards.jsx` | Student report cards by term |
 | `src/Fundraising.jsx` | Campaigns, donations, events, LYBUNT donor analysis |
 | `src/Facilities.jsx` | Work order / ticket management |
+| `src/Rooms.jsx` | Room/classroom management — card grid, division assignment, capacity |
+| `src/Classes.jsx` | Class CRUD — card grid, subject/division/teacher/room assignment |
 | `src/Reports.jsx` | 7-tab reports — Enrollment, Attendance, Incidents, Communications, Staff, Fundraising, Facilities |
 | `src/Messages.jsx` | Parent communication module |
 | `src/supabase.js` | Supabase client initialization |
 | `src/index.css` | Tailwind import |
 | `src/main.jsx` | React entry point |
 | `vite.config.js` | Vite + Tailwind config |
+
+### Service Layer (`src/services/`)
+
+All Supabase business logic extracted from components. Every function takes `supabase` as first argument — anon client from UI, service-role client from MCP server.
+
+| File | Exports |
+|---|---|
+| `enrollment.js` | `getAcademicYear`, `getStudents`, `searchParents`, `enrollStudent`, `updateStudentStatus` |
+| `attendance.js` | `getStudentsWithAttendance`, `saveAttendance`, `getAttendanceHistory` |
+| `students.js` | `getStudents`, `updateStudent`, `deleteStudent`, `graduateStudentToAlumni`, `getGradeHistory`, `getReportCardCount`, `getStudentHealth`, `saveHealthProfile`, `addHealthEntry`, `updateHealthEntry`, `deleteHealthEntry`, `deleteHealthProfile`, `getIncidents`, `logIncident`, `updateIncident`, `resolveIncident`, `searchStaff` |
+| `admissions.js` | `getInquiries`, `createInquiry`, `updateInquiry`, `convertInquiryToStudent` |
+| `reportCards.js` | `getReportCards`, `getEnrolledStudents`, `createReportCard`, `setReportCardPublished`, `deleteReportCard` |
+| `staff.js` | `getStaff`, `createStaffMember`, `updateStaffMember`, `deleteStaffMember` |
+| `facilities.js` | `getWorkOrders`, `getFacilitiesStaff`, `createWorkOrder`, `updateWorkOrder`, `updateWorkOrderStatus` |
+| `rooms.js` | `getRooms`, `saveRoom`, `deleteRoom` |
+| `buildings.js` | `getBuildings`, `saveBuilding`, `deleteBuilding` |
+| `schedule.js` | `getPeriods`, `savePeriod`, `deletePeriod` |
+| `classes.js` | `getClasses`, `saveClass`, `deleteClass` |
+
+### MCP Server (`mcp_server/`)
+
+| File | Purpose |
+|---|---|
+| `supabase_admin.js` | Reads `.env.local` manually (no dotenv — stdout must stay clean for stdio protocol). Creates service-role Supabase client. Exports `supabaseAdmin` + `schoolId`. |
+| `server.js` | stdio MCP server — 27 tools registered with Zod schemas covering all 7 service domains. Run via `npm run mcp`. |
+
+**Run MCP server:** `npm run mcp`
+**Connect to Claude Desktop:** `%APPDATA%\Claude\claude_desktop_config.json` already configured.
+**SCHOOL_ID note:** Use `schools.user_id` (not `schools.id`) — all `school_id` FK columns reference `auth.users`.
 
 ---
 
@@ -120,6 +161,21 @@ VITE_RESEND_API_KEY=re_your_key_here
 > RLS: school_id = auth.uid() + staff layer.
 > Query with parent join: `select('*, parents(id, first_name, last_name, email, phone, address)')`
 
+### Table: `student_grade_history`
+
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID | PK auto |
+| school_id | UUID | References auth.users(id) |
+| student_id | UUID | |
+| grade | TEXT | Grade at time of record |
+| academic_year | TEXT | e.g. "2025-2026" |
+| recorded_at | TIMESTAMPTZ | Auto |
+| is_repeat | BOOLEAN | Student repeated the grade |
+| is_skip | BOOLEAN | Student skipped a grade |
+
+> Written on enroll, grade change, and convert-inquiry-to-student. Drives grade history timeline in student drawer.
+
 ### Table: `student_health`
 
 | Column | Type | Notes |
@@ -148,6 +204,23 @@ VITE_RESEND_API_KEY=re_your_key_here
 | date / expiration_date | DATE | Optional — expiration_date < today flags Expired |
 
 > RLS: Admin write. Staff read. Many rows per student.
+
+### Table: `incidents`
+
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID | PK auto |
+| school_id | UUID | References auth.users(id) |
+| student_id | UUID | |
+| student_name | TEXT | Denormalized at log time |
+| date | DATE | Incident date |
+| type | TEXT | Behavioral, Academic, Medical, Safety, Other |
+| description | TEXT | Required |
+| resolution | TEXT | Action taken / resolution notes |
+| reported_by | TEXT | Staff name (denormalized) |
+| status | TEXT | Open, Resolved |
+
+> **No `severity`, `action_taken`, or `student_grade` columns.** `resolution` = action taken. RLS: Admin + staff read/insert/update via get_staff_school_id().
 
 ### Table: `attendance`
 
@@ -189,6 +262,8 @@ VITE_RESEND_API_KEY=re_your_key_here
 | primary_color | TEXT | Hex — brand theming across the app |
 | motto | TEXT | Shown under school name in top nav |
 | divisions | JSONB | Array of `{ name, grades[] }` — max 6 |
+
+> **SCHOOL_ID = `schools.user_id`** (not `schools.id`). All FK columns in other tables reference `auth.users(id)` which equals the admin's `auth.uid()`.
 
 ### Table: `staff`
 
@@ -301,6 +376,62 @@ VITE_RESEND_API_KEY=re_your_key_here
 
 > RLS: Admin (school_id = auth.uid()). Staff read/insert/update via get_staff_school_id().
 
+### Table: `rooms`
+
+| Column | Type | Notes |
+|---|---|---|
+| id / school_id | UUID | |
+| name | TEXT | Required |
+| type | TEXT | Classroom, Science Lab, Art Room, Music Room, Gymnasium, Auditorium, Library, Office, Conference Room, Other |
+| building / floor | TEXT | Populated from buildings config via dropdown |
+| capacity | INTEGER | Max students |
+| divisions | JSONB | Array of division name strings |
+| notes | TEXT | Optional |
+
+> RLS: Admin full access (school_id = auth.uid()).
+
+### Table: `buildings`
+
+| Column | Type | Notes |
+|---|---|---|
+| id / school_id | UUID | |
+| name | TEXT | Required |
+| type | TEXT | Academic, Administrative, Athletic, Arts, Science, Support, Residential, Other |
+| floors | JSONB | Ordered array of floor name strings |
+| notes | TEXT | Optional |
+
+> Configured in Settings → Campus tab. Feeds Rooms building/floor dropdowns. RLS: Admin full access.
+
+### Table: `periods`
+
+| Column | Type | Notes |
+|---|---|---|
+| id / school_id | UUID | |
+| name | TEXT | Required — e.g. "Period 1", "Lunch" |
+| type | TEXT | Class, Break, Lunch, Assembly, Advisory, Study Hall, Other |
+| start_time / end_time | TIME | Required |
+| days_of_week | TEXT | e.g. "Mon–Fri", "Mon/Wed/Fri" |
+| sort_order | INTEGER | Display order |
+
+> Configured in Settings → Bell Schedule tab. Will be referenced by class sections in Phase 4. RLS: Admin full access.
+
+### Table: `classes`
+
+| Column | Type | Notes |
+|---|---|---|
+| id / school_id | UUID | |
+| name | TEXT | Required — e.g. "3rd Grade Math" |
+| subject | TEXT | From school's subjects_offered config |
+| division | TEXT | From school's divisions config |
+| teacher_id | UUID | References staff(id) ON DELETE SET NULL |
+| teacher_name | TEXT | Denormalized at save time |
+| room_id | UUID | References rooms(id) ON DELETE SET NULL |
+| room_name | TEXT | Denormalized at save time |
+| description / notes | TEXT | Optional |
+| status | TEXT | Active, Inactive |
+
+> RLS: Admin full access (school_id = auth.uid()). Phase 4 will add a `class_sections` table linking classes to periods + terms.
+
 ---
 
 ## App Architecture & Routing
@@ -338,9 +469,9 @@ State-based routing in `App.jsx` — no React Router. `activePage` state control
 Groups are collapsible (default expanded). Settings/Wizard live in ⚙️ top-nav gear dropdown.
 
 - **Dashboard** — standalone
-- **Academics** (`academics`): Students, Admissions, Enrollment, Report Cards, Parents
+- **Academics** (`academics`): Attendance, Admissions, Enrollment, Students, Classes, Report Cards, Parents
 - **People** (`people`): Staff, Alumni
-- **Operations** (`operations`): Fundraising, Facilities
+- **Operations** (`operations`): Fundraising, Facilities, Rooms
 - **Communicate** (`communicate`): Messages, Reports
 
 ### Staff Portal (`StaffDashboard.jsx`) — Role Gating
@@ -369,6 +500,162 @@ All staff-accessible tables have two policy layers:
 - **Staff:** `school_id = get_staff_school_id()` — SECURITY DEFINER function that looks up school_id from staff table
 
 Tables with staff policies: `schools` (read), `students` (read), `parents` (read), `incidents` (read/insert/update), `report_cards` (read/insert/update), `staff` (read own + update auth_user_id), `work_orders` (read/insert/update), `student_health` (read), `student_health_entries` (read)
+
+---
+
+## Feature-Sliced Design Architecture
+
+**All new features must follow this pattern. Existing modules are being refactored to match — see ROADMAP.md for the refactor queue.**
+
+### The Rule in One Sentence
+Every `.jsx` file should only render HTML. All logic belongs in a dedicated layer below it.
+
+### Folder Structure
+
+```
+src/
+  domain/          ← Pure business logic. No React. No Supabase. Just functions.
+    messages.js
+    facilities.js
+    students.js
+    ...
+  hooks/           ← Custom React hooks. UI behavior only. No DB calls.
+    useMessages.js
+    useFacilities.js
+    ...
+  services/        ← Supabase calls ONLY. Already exists. Do not move or restructure.
+    enrollment.js
+    students.js
+    ...
+  Messages.jsx     ← Thin shell. Imports from hooks + domain. Only renders JSX.
+  Facilities.jsx   ← Thin shell. Imports from hooks + domain. Only renders JSX.
+  ...
+```
+
+### What Goes in Each Layer
+
+| Layer | Folder | Job | Allowed to use |
+|---|---|---|---|
+| **Component** | `src/*.jsx` | Render HTML only | hooks, domain constants |
+| **Hook** | `src/hooks/` | UI state + behavior | React useState/useEffect, domain, services |
+| **Domain** | `src/domain/` | Business rules + validation | Plain JS only — no React, no Supabase |
+| **Service** | `src/services/` | Database calls | Supabase client only |
+
+### Layer Rules — What NOT to Do
+
+**Component (`*.jsx`):**
+- ❌ No `supabase.from(...)` calls — use a service via a hook
+- ❌ No complex validation logic — put it in domain
+- ❌ No business calculations — put them in domain
+- ✅ Only state that controls what's *visible* (drawer open, tab selected, loading spinner)
+
+**Hook (`hooks/use*.js`):**
+- ❌ No JSX/HTML
+- ❌ No direct Supabase calls — call service functions
+- ✅ `useState`, `useEffect`, `useCallback` are fine here
+- ✅ Coordinates between domain (validate) → service (save) → state (update UI)
+
+**Domain (`domain/*.js`):**
+- ❌ No React imports
+- ❌ No Supabase imports
+- ❌ No side effects
+- ✅ Pure functions: input → output, always the same result for the same input
+- ✅ Examples: `validateWorkOrder(form)`, `isOverdue(dueDate)`, `calcNetRevenue(event)`, `formatMessageDate(dateStr)`
+
+**Service (`services/*.js`):**
+- ✅ Already correct — keep as-is
+- ✅ Only change: ensure all functions accept `supabase` as first argument (DI pattern)
+- ❌ Do not add validation or business logic here — that belongs in domain
+
+### Example: What a Refactored Module Looks Like
+
+**Before (everything mixed together):**
+```jsx
+// Facilities.jsx — 423 lines of mixed concerns
+export default function Facilities({ user, school }) {
+  // UI state, business logic, DB calls all in one place
+  const isOverdue = (wo) => wo.due_date && wo.due_date < today() && wo.status !== 'Completed'
+  const completedThisMonth = workOrders.filter(w => ...)
+  const { data } = await supabase.from('work_orders').select(...)
+}
+```
+
+**After (each layer has one job):**
+```js
+// domain/facilities.js — pure logic, no React, no Supabase
+export const isOverdue = (wo) => wo.due_date && wo.due_date < today() && wo.status !== 'Completed'
+export const calcStats = (workOrders) => ({ open: ..., urgent: ..., completedThisMonth: ... })
+export const validateWorkOrder = (form) => { if (!form.title) throw new Error('Title required') }
+```
+```js
+// hooks/useFacilities.js — UI behavior, coordinates domain + service
+export function useFacilities(userId) {
+  const [workOrders, setWorkOrders] = useState([])
+  const load = async () => setWorkOrders(await getWorkOrders(supabase, userId))
+  const submit = async (form) => { validateWorkOrder(form); await createWorkOrder(supabase, userId, form); load() }
+  return { workOrders, stats: calcStats(workOrders), submit, ... }
+}
+```
+```jsx
+// Facilities.jsx — thin shell, just renders
+export default function Facilities({ user, school }) {
+  const { workOrders, stats, submit } = useFacilities(user.id)
+  return <div>... render only ...</div>
+}
+```
+
+### Naming Conventions
+- Domain files: `src/domain/<feature>.js` (e.g. `facilities.js`, `students.js`)
+- Hook files: `src/hooks/use<Feature>.js` (e.g. `useFacilities.js`, `useStudents.js`)
+- One domain file + one hook file per module
+- Domain functions are named as verbs: `validateWorkOrder`, `calcStats`, `isOverdue`, `formatDate`
+
+---
+
+## Service Layer Architecture
+
+All Supabase database calls live in `src/services/` as pure JS functions. **No Supabase calls in JSX files or domain files.**
+
+**Dependency injection pattern:**
+```js
+// UI (anon client — RLS enforced)
+import { supabase } from './supabase'
+const students = await getStudents(supabase, schoolId)
+
+// MCP server (service-role client — RLS bypassed)
+import { supabaseAdmin, schoolId } from './mcp_server/supabase_admin.js'
+const students = await getStudents(supabaseAdmin, schoolId)
+```
+
+Same service function. Different client. No code duplication.
+
+**Key rules:**
+- `getAcademicYear()` lives in `enrollment.js` — import from there, never redefine
+- `nullify(obj)` in `students.js` — converts empty strings to null before Supabase inserts
+- Cross-imports between services use explicit `.js` extension (Node ESM requirement)
+- `.env.local` is parsed manually in `supabase_admin.js` — dotenv prints to stdout which breaks the MCP stdio protocol
+
+---
+
+## MCP Server / AI Agent Integration
+
+**27 tools** registered across 7 domains. Runs as a Node.js stdio server.
+
+| Domain | Tools |
+|---|---|
+| Enrollment | `get_students`, `search_parents`, `enroll_student`, `update_student_status` |
+| Attendance | `get_attendance`, `save_attendance`, `get_attendance_history` |
+| Students | `get_students_full`, `delete_student`, `graduate_student_to_alumni`, `get_grade_history` |
+| Incidents | `get_incidents`, `log_incident`, `resolve_incident` |
+| Admissions | `get_inquiries`, `create_inquiry`, `convert_inquiry_to_student` |
+| Report Cards | `get_report_cards`, `create_report_card`, `set_report_card_published`, `delete_report_card` |
+| Staff | `get_staff`, `create_staff_member`, `delete_staff_member` |
+| Facilities | `get_work_orders`, `create_work_order`, `update_work_order_status` |
+
+**Next steps for agent integration:**
+- Phase 2: HTTP API wrapper (`mcp_server/api.js`) for web-embedded agents in the React UI
+- Phase 3: Domain-scoped agents (one per module, scoped tool subset + system prompt)
+- Phase 4: RAG/Policy module — pgvector on Supabase, policy document upload + semantic search
 
 ---
 
@@ -401,6 +688,7 @@ const DIVISION_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6', 
 
 ```bash
 npm run dev          # local dev at http://localhost:5173
+npm run mcp          # run MCP stdio server (connects to Claude Desktop)
 git add .
 git commit -m "..."
 git push             # Vercel auto-deploys in ~60 seconds
