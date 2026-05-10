@@ -11,6 +11,7 @@ export const NAV_GROUPS = [
     { id: 'enrollment',  label: 'Enrollment',     icon: '📋' },
     { id: 'students',    label: 'Students',       icon: '🎒' },
     { id: 'classes',     label: 'Classes',        icon: '📚' },
+    { id: 'schedule',    label: 'Schedule',       icon: '📅' },
     { id: 'reportcards', label: 'Report Cards',   icon: '📝' },
     { id: 'parents',     label: 'Parents',        icon: '👨‍👩‍👧' },
   ]},

@@ -24,6 +24,7 @@ import Facilities        from './Facilities'
 import Attendance        from './Attendance'
 import Rooms            from './Rooms'
 import Classes          from './Classes'
+import Scheduling       from './Scheduling'
 
 function App() {
   const [session,        setSession]        = useState(null)
@@ -232,7 +233,8 @@ function App() {
             {activePage === 'fundraising' && <Fundraising user={session.user} school={sc.school} />}
             {activePage === 'facilities'  && <Facilities  user={session.user} school={sc.school} />}
             {activePage === 'rooms'       && <Rooms       user={session.user} school={sc.school} />}
-            {activePage === 'classes'     && <Classes     user={session.user} school={sc.school} />}
+            {activePage === 'classes'     && <Classes      user={session.user} school={sc.school} />}
+            {activePage === 'schedule'    && <Scheduling   user={session.user} school={sc.school} />}
             {activePage === 'settings'    && <Settings    user={session.user} school={sc.school} onUpdate={sc.setSchool} />}
           </div>
         </div>
