@@ -76,6 +76,7 @@ SCHOOL_ID=41beb9b7-ec0c-45f3-9a71-8f94cdd98078  # schools.user_id (NOT schools.i
 | `src/Facilities.jsx` | Work order / ticket management |
 | `src/Rooms.jsx` | Room/classroom management — card grid, division assignment, capacity |
 | `src/Classes.jsx` | Class CRUD — card grid, subject/division/teacher/room assignment |
+| `src/Scheduling.jsx` | Visual schedule — timetable grid, building browser, drag-and-drop, auto-scheduler |
 | `src/Reports.jsx` | 7-tab reports — Enrollment, Attendance, Incidents, Communications, Staff, Fundraising, Facilities |
 | `src/Messages.jsx` | Parent communication module |
 | `src/supabase.js` | Supabase client initialization |
@@ -100,6 +101,7 @@ All Supabase business logic extracted from components. Every function takes `sup
 | `buildings.js` | `getBuildings`, `saveBuilding`, `deleteBuilding` |
 | `schedule.js` | `getPeriods`, `savePeriod`, `deletePeriod` |
 | `classes.js` | `getClasses`, `saveClass`, `deleteClass` |
+| `classSections.js` | `getSections`, `saveSection`, `deleteSection`, `batchSaveSections`, `clearSections` |
 
 ### MCP Server (`mcp_server/`)
 
@@ -413,7 +415,7 @@ All Supabase business logic extracted from components. Every function takes `sup
 | days_of_week | TEXT | e.g. "Mon–Fri", "Mon/Wed/Fri" |
 | sort_order | INTEGER | Display order |
 
-> Configured in Settings → Bell Schedule tab. Will be referenced by class sections in Phase 4. RLS: Admin full access.
+> Configured in Settings → Bell Schedule tab. Referenced by `class_sections` to assign classes to time slots. RLS: Admin full access.
 
 ### Table: `classes`
 
@@ -430,7 +432,19 @@ All Supabase business logic extracted from components. Every function takes `sup
 | description / notes | TEXT | Optional |
 | status | TEXT | Active, Inactive |
 
-> RLS: Admin full access (school_id = auth.uid()). Phase 4 will add a `class_sections` table linking classes to periods + terms.
+> RLS: Admin full access (school_id = auth.uid()). Linked to periods via `class_sections` table (Schedule module).
+
+### Table: `class_sections`
+
+| Column | Type | Notes |
+|---|---|---|
+| id / school_id | UUID | |
+| class_id | UUID | References classes(id) ON DELETE CASCADE |
+| period_id | UUID | References periods(id) ON DELETE CASCADE |
+| term | TEXT | Q1–Q4, T1–T3, S1–S2, or Annual — derived from school.grading_period |
+| academic_year | TEXT | e.g. "2025-2026" |
+
+> UNIQUE on (school_id, class_id, term, academic_year) — one period per class per term. RLS: Admin full access (school_id = auth.uid()). Auto-scheduler uses greedy constraint solver: most-constrained classes (teacher + room both set) placed first; blocks teacher and room double-booking.
 
 ---
 
@@ -469,7 +483,7 @@ State-based routing in `App.jsx` — no React Router. `activePage` state control
 Groups are collapsible (default expanded). Settings/Wizard live in ⚙️ top-nav gear dropdown.
 
 - **Dashboard** — standalone
-- **Academics** (`academics`): Attendance, Admissions, Enrollment, Students, Classes, Report Cards, Parents
+- **Academics** (`academics`): Attendance, Admissions, Enrollment, Students, Classes, Schedule, Report Cards, Parents
 - **People** (`people`): Staff, Alumni
 - **Operations** (`operations`): Fundraising, Facilities, Rooms
 - **Communicate** (`communicate`): Messages, Reports

@@ -64,6 +64,9 @@ Define school day periods in Settings → Bell Schedule tab. Each period has nam
 ### Classes Module (`Classes.jsx`)
 CRUD for school classes. Card grid with division color bar, subject + division chips, teacher and room shown inline. Dropdowns pull from live subjects (school config), divisions, active staff, and rooms. Teacher name and room name denormalized at save time. Filters: search (name/teacher/subject), division, status. Default filter: Active. `classes` table: name, subject, division, teacher_id + teacher_name, room_id + room_name, description, notes, status.
 
+### Schedule Module (`Scheduling.jsx`)
+Visual timetable grid + building browser for assigning classes to periods by term. Two views: Grid (period rows as drop targets — drag class cards to schedule, conflict detection on drop for teacher/room double-booking) and Buildings (buildings → floors → rooms showing assigned classes per term). Term selector derived from school's grading_period setting (Q1–Q4, T1–T3, S1–S2, Annual). Auto-scheduler: greedy constraint solver places all unscheduled active classes in one shot — most-constrained first (teacher + room both set), respects teacher and room conflicts, shows preview before committing. Clear button resets term. `class_sections` table: class_id + period_id + term + academic_year, UNIQUE per class per term.
+
 ### Reports Module (`Reports.jsx`)
 6 tabs: Enrollment · Student Incidents · Communications · Staff · Fundraising · Facilities. Each tab has stat cards, bar charts, and data tables. Facilities tab includes cost summary, assignee workload, overdue list.
 
@@ -267,8 +270,8 @@ Full audit found no critical vulnerabilities. Service role key is correctly serv
 | 2 | **Rooms** — Room CRUD with division assignment, capacity | ✅ Done |
 | 2.5 | **Buildings** — Campus config (buildings + floors) feeding Rooms dropdowns | ✅ Done |
 | 3 | **Classes** — Class CRUD (name, subject, division, teacher, room, status) | ✅ Done |
-| 4 | **Class Sections** — Assign periods + terms to classes; `class_sections` table (class_id, period_id, term, academic_year) | ⬜ Next |
-| 5 | **Student → Class Assignment** — Roster per class; add/remove students; `class_enrollments` table (class_id, student_id) | ⬜ Todo |
+| 4 | **Class Sections** — Assign periods + terms to classes; `class_sections` table (class_id, period_id, term, academic_year) | ✅ Done |
+| 5 | **Student → Class Assignment** — Roster per class; add/remove students; `class_enrollments` table (class_id, student_id) | ⬜ Next |
 | 6 | **Conflict Detection** — Warn when student or teacher is double-booked in same period | ⬜ Todo |
 | 7 | **Teacher Schedule View** — Read-only schedule grid in Staff Portal showing teacher's assigned classes by period | ⬜ Todo |
 | 8 | **Report Card Hookup** — Pre-populate report card subjects from student's enrolled classes | ⬜ Todo |
