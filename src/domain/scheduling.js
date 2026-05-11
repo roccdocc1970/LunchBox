@@ -43,27 +43,29 @@ export function detectConflict(classId, periodId, classes, sections) {
 /**
  * Greedy constraint solver — assigns unscheduled active classes to available
  * Class-type periods. Most-constrained classes (both teacher + room set) go first.
+ * Skips placement if the class's room capacity is less than the class size.
  *
- * Returns { sections: [{ class_id, period_id }], unplaceable: [className] }
+ * Returns { sections: [{ class_id, period_id }], unplaceable: [{ name, reason }] }
  */
-export function autoSchedule(classes, periods, existingSections) {
-  const slots = periods.filter(p => p.type === 'Class')
+export function autoSchedule(classes, periods, existingSections, rooms = []) {
+  const slots   = periods.filter(p => p.type === 'Class')
+  const roomMap = Object.fromEntries(rooms.map(r => [r.id, r]))
   if (slots.length === 0) return { sections: [], unplaceable: [] }
 
   // Build conflict maps from already-scheduled classes
-  const teacherMap = {}  // teacher_id → Set<period_id>
-  const roomMap    = {}  // room_id    → Set<period_id>
+  const teacherBusy = {}  // teacher_id → Set<period_id>
+  const roomBusy    = {}  // room_id    → Set<period_id>
 
   existingSections.forEach(s => {
     const cls = classes.find(c => c.id === s.class_id)
     if (!cls) return
     if (cls.teacher_id) {
-      if (!teacherMap[cls.teacher_id]) teacherMap[cls.teacher_id] = new Set()
-      teacherMap[cls.teacher_id].add(s.period_id)
+      if (!teacherBusy[cls.teacher_id]) teacherBusy[cls.teacher_id] = new Set()
+      teacherBusy[cls.teacher_id].add(s.period_id)
     }
     if (cls.room_id) {
-      if (!roomMap[cls.room_id]) roomMap[cls.room_id] = new Set()
-      roomMap[cls.room_id].add(s.period_id)
+      if (!roomBusy[cls.room_id]) roomBusy[cls.room_id] = new Set()
+      roomBusy[cls.room_id].add(s.period_id)
     }
   })
 
@@ -81,21 +83,30 @@ export function autoSchedule(classes, periods, existingSections) {
   const unplaceable = []
 
   for (const cls of sorted) {
+    // Capacity pre-check — fail fast before trying any slot
+    if (cls.room_id && cls.class_size) {
+      const room = roomMap[cls.room_id]
+      if (room && room.capacity && room.capacity < cls.class_size) {
+        unplaceable.push(`${cls.name} (class size ${cls.class_size} exceeds ${room.name} capacity of ${room.capacity})`)
+        continue
+      }
+    }
+
     let placed = false
     for (const slot of slots) {
-      const teacherFree = !cls.teacher_id || !teacherMap[cls.teacher_id]?.has(slot.id)
-      const roomFree    = !cls.room_id    || !roomMap[cls.room_id]?.has(slot.id)
+      const teacherFree = !cls.teacher_id || !teacherBusy[cls.teacher_id]?.has(slot.id)
+      const roomFree    = !cls.room_id    || !roomBusy[cls.room_id]?.has(slot.id)
 
       if (teacherFree && roomFree) {
         sections.push({ class_id: cls.id, period_id: slot.id })
 
         if (cls.teacher_id) {
-          if (!teacherMap[cls.teacher_id]) teacherMap[cls.teacher_id] = new Set()
-          teacherMap[cls.teacher_id].add(slot.id)
+          if (!teacherBusy[cls.teacher_id]) teacherBusy[cls.teacher_id] = new Set()
+          teacherBusy[cls.teacher_id].add(slot.id)
         }
         if (cls.room_id) {
-          if (!roomMap[cls.room_id]) roomMap[cls.room_id] = new Set()
-          roomMap[cls.room_id].add(slot.id)
+          if (!roomBusy[cls.room_id]) roomBusy[cls.room_id] = new Set()
+          roomBusy[cls.room_id].add(slot.id)
         }
         placed = true
         break

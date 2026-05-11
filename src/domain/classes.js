@@ -14,6 +14,7 @@ export const BLANK_CLASS = {
   teacher_name: '',
   room_id:      '',
   room_name:    '',
+  class_size:   '',
   description:  '',
   notes:        '',
   status:       'Active',

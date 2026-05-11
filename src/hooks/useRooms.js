@@ -8,11 +8,13 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { getRooms, saveRoom, deleteRoom } from '../services/rooms'
 import { getBuildings } from '../services/buildings'
+import { getClasses } from '../services/classes'
 import { BLANK_ROOM, validateRoom, calcRoomStats, parseRoomDivisions } from '../domain/rooms'
 
 export function useRooms(user, school) {
   const [rooms,       setRooms]       = useState([])
   const [buildings,   setBuildings]   = useState([])
+  const [classes,     setClasses]     = useState([])
   const [loading,     setLoading]     = useState(true)
   const [selected,    setSelected]    = useState(null)   // room open in drawer
   const [form,        setForm]        = useState({ ...BLANK_ROOM })
@@ -28,12 +30,14 @@ export function useRooms(user, school) {
 
   const load = async () => {
     setLoading(true)
-    const [data, bldgs] = await Promise.all([
+    const [data, bldgs, cls] = await Promise.all([
       getRooms(supabase, user.id),
       getBuildings(supabase, user.id),
+      getClasses(supabase, user.id),
     ])
     setRooms(data)
     setBuildings(bldgs)
+    setClasses(cls)
     setLoading(false)
   }
 
@@ -138,7 +142,7 @@ export function useRooms(user, school) {
   const stats = calcRoomStats(rooms)
 
   return {
-    rooms, buildings, filtered, loading, stats,
+    rooms, buildings, classes, filtered, loading, stats,
     selected, editing,
     form, setForm,
     saving, error, success,

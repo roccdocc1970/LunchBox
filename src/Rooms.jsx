@@ -178,6 +178,9 @@ export default function Rooms({ user, school }) {
             const color = ROOM_TYPE_COLORS[room.type] || '#6b7280'
             const roomDivs = parseRoomDivisions(room.divisions)
             const isOpen = r.selected?.id === room.id && !r.editing
+            const overCapacityClasses = room.capacity
+              ? r.classes.filter(c => c.room_id === room.id && c.class_size && c.class_size > room.capacity)
+              : []
 
             return (
               <div
@@ -214,6 +217,12 @@ export default function Rooms({ user, school }) {
                       <span>👥 {room.capacity} max</span>
                     )}
                   </div>
+
+                  {overCapacityClasses.length > 0 && (
+                    <div style={{ marginTop: '0.5rem', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '0.375rem', padding: '0.375rem 0.625rem', fontSize: '0.75rem', color: '#92400e' }}>
+                      ⚠️ Over capacity: {overCapacityClasses.map(c => `${c.name} (${c.class_size})`).join(', ')}
+                    </div>
+                  )}
 
                   {roomDivs.length > 0 && (
                     <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', marginTop: '0.625rem' }}>

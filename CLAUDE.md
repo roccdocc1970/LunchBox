@@ -75,8 +75,8 @@ SCHOOL_ID=41beb9b7-ec0c-45f3-9a71-8f94cdd98078  # schools.user_id (NOT schools.i
 | `src/Fundraising.jsx` | Campaigns, donations, events, LYBUNT donor analysis |
 | `src/Facilities.jsx` | Work order / ticket management |
 | `src/Rooms.jsx` | Room/classroom management — card grid, division assignment, capacity |
-| `src/Classes.jsx` | Class CRUD — card grid, subject/division/teacher/room assignment |
-| `src/Scheduling.jsx` | Visual schedule — timetable grid, building browser, drag-and-drop, auto-scheduler |
+| `src/Classes.jsx` | Class CRUD — card grid, subject/division/teacher/room assignment, class size cap, two-panel student enrollment |
+| `src/Scheduling.jsx` | Visual schedule — timetable grid, building browser, drag-and-drop, auto-scheduler, inline teacher/room pickers with conflict pre-check, ↗ jump-to-class |
 | `src/Reports.jsx` | 7-tab reports — Enrollment, Attendance, Incidents, Communications, Staff, Fundraising, Facilities |
 | `src/Messages.jsx` | Parent communication module |
 | `src/supabase.js` | Supabase client initialization |
@@ -102,6 +102,7 @@ All Supabase business logic extracted from components. Every function takes `sup
 | `schedule.js` | `getPeriods`, `savePeriod`, `deletePeriod` |
 | `classes.js` | `getClasses`, `saveClass`, `deleteClass` |
 | `classSections.js` | `getSections`, `saveSection`, `deleteSection`, `batchSaveSections`, `clearSections` |
+| `classEnrollments.js` | `getEnrollments`, `enrollStudent`, `unenrollStudent` |
 
 ### MCP Server (`mcp_server/`)
 
@@ -429,10 +430,11 @@ All Supabase business logic extracted from components. Every function takes `sup
 | teacher_name | TEXT | Denormalized at save time |
 | room_id | UUID | References rooms(id) ON DELETE SET NULL |
 | room_name | TEXT | Denormalized at save time |
+| class_size | INTEGER | Manual capacity cap — max enrolled students. Drives conflict badges and auto-scheduler capacity check. |
 | description / notes | TEXT | Optional |
 | status | TEXT | Active, Inactive |
 
-> RLS: Admin full access (school_id = auth.uid()). Linked to periods via `class_sections` table (Schedule module).
+> RLS: Admin full access (school_id = auth.uid()). Linked to periods via `class_sections` table (Schedule module). Enrollment managed via `class_enrollments` table.
 
 ### Table: `class_sections`
 
@@ -445,6 +447,17 @@ All Supabase business logic extracted from components. Every function takes `sup
 | academic_year | TEXT | e.g. "2025-2026" |
 
 > UNIQUE on (school_id, class_id, term, academic_year) — one period per class per term. RLS: Admin full access (school_id = auth.uid()). Auto-scheduler uses greedy constraint solver: most-constrained classes (teacher + room both set) placed first; blocks teacher and room double-booking.
+
+### Table: `class_enrollments`
+
+| Column | Type | Notes |
+|---|---|---|
+| id / school_id | UUID | |
+| class_id | UUID | References classes(id) ON DELETE CASCADE |
+| student_id | UUID | References students(id) ON DELETE CASCADE |
+| created_at | TIMESTAMPTZ | Auto |
+
+> UNIQUE on (school_id, class_id, student_id). Enrollment hard-blocked when count ≥ class_size. RLS: Admin full access (school_id = auth.uid()).
 
 ---
 

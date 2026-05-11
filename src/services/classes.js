@@ -23,6 +23,7 @@ export async function saveClass(supabase, schoolId, cls) {
     teacher_name: cls.teacher_name || null,
     room_id:      cls.room_id      || null,
     room_name:    cls.room_name    || null,
+    class_size:   cls.class_size   ? parseInt(cls.class_size, 10) : null,
     description:  cls.description?.trim() || null,
     notes:        cls.notes?.trim()       || null,
     status:       cls.status || 'Active',

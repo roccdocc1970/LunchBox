@@ -32,6 +32,12 @@ function App() {
   const [activePage,     setActivePage]     = useState('dashboard')
   const [collapsedGroups, setCollapsedGroups] = useState({ academics: false, people: false, operations: false, communicate: false })
   const [showSettingsMenu, setShowSettingsMenu] = useState(false)
+  const [openClassId,    setOpenClassId]    = useState(null)
+
+  const navigateToClass = (classId) => {
+    setOpenClassId(classId)
+    setActivePage('classes')
+  }
 
   const auth   = useAuth()
   const sc     = useSchool()
@@ -233,8 +239,8 @@ function App() {
             {activePage === 'fundraising' && <Fundraising user={session.user} school={sc.school} />}
             {activePage === 'facilities'  && <Facilities  user={session.user} school={sc.school} />}
             {activePage === 'rooms'       && <Rooms       user={session.user} school={sc.school} />}
-            {activePage === 'classes'     && <Classes      user={session.user} school={sc.school} />}
-            {activePage === 'schedule'    && <Scheduling   user={session.user} school={sc.school} />}
+            {activePage === 'classes'     && <Classes      user={session.user} school={sc.school} openClassId={openClassId} onClearOpenClass={() => setOpenClassId(null)} />}
+            {activePage === 'schedule'    && <Scheduling   user={session.user} school={sc.school} onNavigateToClass={navigateToClass} />}
             {activePage === 'settings'    && <Settings    user={session.user} school={sc.school} onUpdate={sc.setSchool} />}
           </div>
         </div>

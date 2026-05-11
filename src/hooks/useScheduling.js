@@ -7,10 +7,11 @@
 
 import { useState, useEffect } from 'react'
 import { supabase }            from '../supabase'
-import { getClasses }          from '../services/classes'
+import { getClasses, saveClass } from '../services/classes'
 import { getPeriods }          from '../services/schedule'
 import { getRooms }            from '../services/rooms'
 import { getBuildings }        from '../services/buildings'
+import { getStaff }            from '../services/staff'
 import { getAcademicYear }     from '../services/enrollment'
 import {
   getSections,
@@ -34,12 +35,17 @@ export function useScheduling(user, school) {
   const [allPeriods, setAllPeriods] = useState([])
   const [rooms,     setRooms]     = useState([])
   const [buildings, setBuildings] = useState([])
+  const [staff,     setStaff]     = useState([])
   const [sections,  setSections]  = useState([])
   const [loading,   setLoading]   = useState(true)
 
   const [term,         setTerm]         = useState(terms[0])
   const [academicYear, setAcademicYear] = useState(currentYear)
   const [activeView,   setActiveView]   = useState('grid')
+
+  // Picker state
+  const [roomPickerClassId,    setRoomPickerClassId]    = useState(null)
+  const [teacherPickerClassId, setTeacherPickerClassId] = useState(null)
 
   // Drag-and-drop state
   const [dragData,    setDragData]    = useState(null)  // { classId, sectionId, fromPeriodId }
@@ -61,16 +67,18 @@ export function useScheduling(user, school) {
 
   const loadAll = async () => {
     setLoading(true)
-    const [cls, per, rm, bld] = await Promise.all([
+    const [cls, per, rm, bld, st] = await Promise.all([
       getClasses(supabase, user.id),
       getPeriods(supabase, user.id),
       getRooms(supabase, user.id),
       getBuildings(supabase, user.id),
+      getStaff(supabase, user.id),
     ])
     setClasses(cls)
     setAllPeriods(per)
     setRooms(rm)
     setBuildings(bld)
+    setStaff(st.filter(s => s.status === 'Active'))
     setLoading(false)
   }
 
@@ -158,7 +166,7 @@ export function useScheduling(user, school) {
 
   const runAutoSchedule = () => {
     setError(null)
-    const result = autoSchedule(classes, periods, sections)
+    const result = autoSchedule(classes, periods, sections, rooms)
     if (result.sections.length === 0 && result.unplaceable.length === 0) {
       setError('All active classes are already scheduled.')
       return
@@ -189,6 +197,77 @@ export function useScheduling(user, school) {
   const discardPreview = () => {
     setPreview(null)
     setError(null)
+  }
+
+  const assignRoom = async (classId, roomId) => {
+    const cls  = classes.find(c => c.id === classId)
+    if (!cls) return
+    const room = roomId ? rooms.find(r => r.id === roomId) : null
+
+    // Pre-check: detect conflict before touching the DB so the original room is preserved on conflict
+    if (roomId) {
+      const classSection = sections.find(s => s.class_id === classId)
+      if (classSection) {
+        const testClasses = classes.map(c => c.id === classId
+          ? { ...c, room_id: roomId, room_name: room?.name || null }
+          : c
+        )
+        const conflict = detectConflict(classId, classSection.period_id, testClasses, sections)
+        if (conflict) {
+          setConflictMsg(conflict)
+          setTimeout(() => setConflictMsg(null), 4500)
+          setRoomPickerClassId(null)
+          return
+        }
+      }
+    }
+
+    try {
+      const updated = await saveClass(supabase, user.id, {
+        ...cls,
+        room_id:   roomId || null,
+        room_name: room?.name || null,
+      })
+      setClasses(prev => prev.map(c => c.id === classId ? updated : c))
+    } catch (err) {
+      setError(err.message)
+    }
+    setRoomPickerClassId(null)
+  }
+
+  const assignTeacher = async (classId, teacherId) => {
+    const cls     = classes.find(c => c.id === classId)
+    if (!cls) return
+    const member  = teacherId ? staff.find(s => s.id === teacherId) : null
+
+    if (teacherId) {
+      const classSection = sections.find(s => s.class_id === classId)
+      if (classSection) {
+        const testClasses = classes.map(c => c.id === classId
+          ? { ...c, teacher_id: teacherId, teacher_name: member ? `${member.first_name} ${member.last_name}` : null }
+          : c
+        )
+        const conflict = detectConflict(classId, classSection.period_id, testClasses, sections)
+        if (conflict) {
+          setConflictMsg(conflict)
+          setTimeout(() => setConflictMsg(null), 4500)
+          setTeacherPickerClassId(null)
+          return
+        }
+      }
+    }
+
+    try {
+      const updated = await saveClass(supabase, user.id, {
+        ...cls,
+        teacher_id:   teacherId || null,
+        teacher_name: member ? `${member.first_name} ${member.last_name}` : null,
+      })
+      setClasses(prev => prev.map(c => c.id === classId ? updated : c))
+    } catch (err) {
+      setError(err.message)
+    }
+    setTeacherPickerClassId(null)
   }
 
   const clearAll = async () => {
@@ -224,5 +303,9 @@ export function useScheduling(user, school) {
     // Auto-schedule
     preview, runAutoSchedule, applyPreview, discardPreview,
     clearAll,
+    // Room assignment
+    roomPickerClassId, setRoomPickerClassId, assignRoom,
+    // Teacher assignment
+    staff, teacherPickerClassId, setTeacherPickerClassId, assignTeacher,
   }
 }

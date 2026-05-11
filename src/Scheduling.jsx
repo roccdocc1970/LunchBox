@@ -2,7 +2,7 @@ import { useScheduling }                  from './hooks/useScheduling'
 import { DIVISION_COLORS, parseDivisions } from './domain/school'
 import { fmt12 }                           from './domain/schedule'
 
-export default function Scheduling({ user, school }) {
+export default function Scheduling({ user, school, onNavigateToClass }) {
   const primaryColor = school?.primary_color || '#f97316'
   const s = useScheduling(user, school)
 
@@ -157,7 +157,7 @@ export default function Scheduling({ user, school }) {
       )}
 
       {/* ── Views ──────────────────────────────────────────────────────────── */}
-      {s.activeView === 'grid'      && <GridView      s={s} primaryColor={primaryColor} divColorMap={divColorMap} />}
+      {s.activeView === 'grid'      && <GridView      s={s} primaryColor={primaryColor} divColorMap={divColorMap} onNavigateToClass={onNavigateToClass} />}
       {s.activeView === 'buildings' && <BuildingsView s={s} primaryColor={primaryColor} divColorMap={divColorMap} />}
     </div>
   )
@@ -167,7 +167,7 @@ export default function Scheduling({ user, school }) {
 // Grid View
 // ─────────────────────────────────────────────────────────────────────────────
 
-function GridView({ s, primaryColor, divColorMap }) {
+function GridView({ s, primaryColor, divColorMap, onNavigateToClass }) {
   if (s.periods.length === 0) {
     return (
       <div style={{ background: 'white', borderRadius: '1rem', padding: '4rem', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
@@ -201,8 +201,19 @@ function GridView({ s, primaryColor, divColorMap }) {
                   periodId={null}
                   isPreview={false}
                   divColorMap={divColorMap}
+                  rooms={s.rooms}
+                  staff={s.staff}
+                  roomPickerOpen={s.roomPickerClassId === cls.id}
+                  onOpenRoomPicker={() => s.setRoomPickerClassId(cls.id)}
+                  onCloseRoomPicker={() => s.setRoomPickerClassId(null)}
+                  onAssignRoom={roomId => s.assignRoom(cls.id, roomId)}
+                  teacherPickerOpen={s.teacherPickerClassId === cls.id}
+                  onOpenTeacherPicker={() => s.setTeacherPickerClassId(cls.id)}
+                  onCloseTeacherPicker={() => s.setTeacherPickerClassId(null)}
+                  onAssignTeacher={teacherId => s.assignTeacher(cls.id, teacherId)}
                   onDragStart={() => s.handleDragStart(cls.id, null, null)}
                   onRemove={null}
+                  onNavigateToClass={onNavigateToClass}
                 />
               ))
             )}
@@ -260,8 +271,19 @@ function GridView({ s, primaryColor, divColorMap }) {
                       periodId={period.id}
                       isPreview={!!sec.isPreview}
                       divColorMap={divColorMap}
+                      rooms={s.rooms}
+                      staff={s.staff}
+                      roomPickerOpen={s.roomPickerClassId === cls.id}
+                      onOpenRoomPicker={() => s.setRoomPickerClassId(cls.id)}
+                      onCloseRoomPicker={() => s.setRoomPickerClassId(null)}
+                      onAssignRoom={roomId => s.assignRoom(cls.id, roomId)}
+                      teacherPickerOpen={s.teacherPickerClassId === cls.id}
+                      onOpenTeacherPicker={() => s.setTeacherPickerClassId(cls.id)}
+                      onCloseTeacherPicker={() => s.setTeacherPickerClassId(null)}
+                      onAssignTeacher={teacherId => s.assignTeacher(cls.id, teacherId)}
                       onDragStart={() => s.handleDragStart(cls.id, sec.id, period.id)}
                       onRemove={sec.isPreview ? null : () => s.removeSection(sec.id)}
+                      onNavigateToClass={onNavigateToClass}
                     />
                   )
                 })}
@@ -278,7 +300,10 @@ function GridView({ s, primaryColor, divColorMap }) {
 // Class Card — used in both unscheduled panel and period rows
 // ─────────────────────────────────────────────────────────────────────────────
 
-function ClassCard({ cls, sectionId, periodId, isPreview, divColorMap, onDragStart, onRemove }) {
+function ClassCard({ cls, sectionId, periodId, isPreview, divColorMap, rooms, staff,
+  roomPickerOpen, onOpenRoomPicker, onCloseRoomPicker, onAssignRoom,
+  teacherPickerOpen, onOpenTeacherPicker, onCloseTeacherPicker, onAssignTeacher,
+  onDragStart, onRemove, onNavigateToClass }) {
   const divColor = cls.division ? (divColorMap[cls.division] || '#6b7280') : '#d1d5db'
 
   return (
@@ -308,31 +333,91 @@ function ClassCard({ cls, sectionId, periodId, isPreview, divColorMap, onDragSta
         <div style={{ fontWeight: '700', color: '#1f2937', fontSize: '0.82rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {cls.name}
         </div>
-        {cls.teacher_name && (
-          <div style={{ fontSize: '0.72rem', color: '#6b7280', marginTop: '0.1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            👩‍🏫 {cls.teacher_name}
+
+        {/* Teacher line — click to open picker */}
+        {teacherPickerOpen ? (
+          <select
+            autoFocus
+            draggable={false}
+            onDragStart={e => e.stopPropagation()}
+            defaultValue={cls.teacher_id || ''}
+            onChange={e => { e.stopPropagation(); onAssignTeacher(e.target.value || null) }}
+            onBlur={onCloseTeacherPicker}
+            onClick={e => e.stopPropagation()}
+            style={{ fontSize: '0.7rem', width: '100%', marginTop: '0.25rem', border: '1px solid #d1d5db', borderRadius: '0.25rem', padding: '0.1rem 0.2rem', outline: 'none', cursor: 'pointer' }}
+          >
+            <option value="">— No teacher —</option>
+            {(staff || []).map(m => (
+              <option key={m.id} value={m.id}>{m.first_name} {m.last_name} — {m.role}</option>
+            ))}
+          </select>
+        ) : (
+          <div
+            onClick={e => { e.stopPropagation(); onOpenTeacherPicker() }}
+            title="Click to assign teacher"
+            style={{ fontSize: '0.72rem', color: cls.teacher_name ? '#6b7280' : '#d1d5db', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer', marginTop: '0.1rem' }}
+            onMouseEnter={e => e.currentTarget.style.color = '#f97316'}
+            onMouseLeave={e => e.currentTarget.style.color = cls.teacher_name ? '#6b7280' : '#d1d5db'}
+          >
+            👩‍🏫 {cls.teacher_name || 'Assign teacher'}
           </div>
         )}
-        {cls.room_name && (
-          <div style={{ fontSize: '0.72rem', color: '#9ca3af', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            🚪 {cls.room_name}
+
+        {/* Room line — click to open picker */}
+        {roomPickerOpen ? (
+          <select
+            autoFocus
+            draggable={false}
+            onDragStart={e => e.stopPropagation()}
+            defaultValue={cls.room_id || ''}
+            onChange={e => { e.stopPropagation(); onAssignRoom(e.target.value || null) }}
+            onBlur={onCloseRoomPicker}
+            onClick={e => e.stopPropagation()}
+            style={{ fontSize: '0.7rem', width: '100%', marginTop: '0.25rem', border: '1px solid #d1d5db', borderRadius: '0.25rem', padding: '0.1rem 0.2rem', outline: 'none', cursor: 'pointer' }}
+          >
+            <option value="">— No room —</option>
+            {(rooms || []).map(r => (
+              <option key={r.id} value={r.id}>{r.name}</option>
+            ))}
+          </select>
+        ) : (
+          <div
+            onClick={e => { e.stopPropagation(); onOpenRoomPicker() }}
+            title="Click to assign room"
+            style={{ fontSize: '0.72rem', color: cls.room_name ? '#9ca3af' : '#d1d5db', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'pointer', marginTop: '0.1rem' }}
+            onMouseEnter={e => e.currentTarget.style.color = '#f97316'}
+            onMouseLeave={e => e.currentTarget.style.color = cls.room_name ? '#9ca3af' : '#d1d5db'}
+          >
+            🚪 {cls.room_name || 'Assign room'}
           </div>
         )}
+
         {cls.division && (
           <div style={{ fontSize: '0.68rem', color: divColor, fontWeight: '600', marginTop: '0.15rem' }}>
             {cls.division}
           </div>
         )}
       </div>
-      {onRemove && (
-        <button
-          onClick={e => { e.stopPropagation(); onRemove() }}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#d1d5db', fontSize: '0.75rem', padding: '0', lineHeight: 1, flexShrink: 0 }}
-          title="Remove from this period"
-          onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-          onMouseLeave={e => e.currentTarget.style.color = '#d1d5db'}
-        >✕</button>
-      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', flexShrink: 0 }}>
+        {onNavigateToClass && (
+          <button
+            onClick={e => { e.stopPropagation(); onNavigateToClass(cls.id) }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#d1d5db', fontSize: '0.7rem', padding: '0', lineHeight: 1 }}
+            title="Go to class details"
+            onMouseEnter={e => e.currentTarget.style.color = '#6366f1'}
+            onMouseLeave={e => e.currentTarget.style.color = '#d1d5db'}
+          >↗</button>
+        )}
+        {onRemove && (
+          <button
+            onClick={e => { e.stopPropagation(); onRemove() }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#d1d5db', fontSize: '0.75rem', padding: '0', lineHeight: 1 }}
+            title="Remove from this period"
+            onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+            onMouseLeave={e => e.currentTarget.style.color = '#d1d5db'}
+          >✕</button>
+        )}
+      </div>
     </div>
   )
 }
