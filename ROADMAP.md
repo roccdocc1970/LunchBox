@@ -17,7 +17,7 @@ Email/password sign up + sign in via Supabase Auth. Email confirmation flow. Ses
 5-step modal: Grades Offered → Divisions → Subjects → Grading Scale/Period → Brand Color/Logo. Each step saves to Supabase. Completion tracked in `localStorage` key `wizard_complete_{userId}`. Accessible via ⚙️ top-nav gear menu.
 
 ### Dashboard (`App.jsx`)
-Top nav with school logo/motto/color. Sidebar nav (collapsible groups). Live stat cards (Total Students, Pending Enrollment, Messages Sent, Active Staff — parallel count queries). Quick action buttons.
+Top nav with school logo/motto/color. Sidebar nav (collapsible groups) with live count badges on every item (batch COUNT queries via `navCounts` service, refreshed on each dashboard visit). Live stat cards (Total Students, Pending Enrollment, Messages Sent, Active Staff). Quick action buttons. Getting Started checklist widget: 7 setup steps with progress bar, dismissable (persisted to localStorage per user), re-openable via button at dashboard top-right, turns muted green with "(Completed)" label when all steps done.
 
 ### Students Module (`Students.jsx`)
 Roster table with division badge, parent, contact, status. Filters: search, grade, status, division. Summary counts. Grade progression (Enrolled-only, forward-only, repeat/skip checkboxes). Profile drawer: grade history timeline, report card count, health records, incident log, Graduate to Alumni flow. Config nudge banner if grades not configured.
@@ -52,17 +52,17 @@ Compose to All Parents. Fetches parent emails from students table. Saves to `mes
 ### Facilities Module (`Facilities.jsx`)
 Work order management. Stat cards: Open, In Progress, Urgent, Completed This Month. Create form with category, priority, assignee (Facilities/Maintenance roles + External Vendor). Status flow: Open → In Progress → On Hold → Completed/Cancelled. `completed_date` auto-set on Completed.
 
-### Rooms Module (`Rooms.jsx`)
-Card grid of classrooms and spaces. Type filter, search, division assignment (pill toggles), capacity tracking. Stat bar: total rooms, capacity, by-type breakdown. Building and floor dropdowns reference the Buildings config. `rooms` table: type, building, floor, capacity, divisions (JSONB), notes.
-
-### Buildings Module (`Settings.jsx` → Campus tab)
-Physical campus configuration in Settings → Campus tab. Buildings have name, type (Academic, Administrative, Athletic, Arts, Science, Support, Residential, Other), and an ordered floor list (add/remove/reorder with ↑↓). Floor and building data feeds Rooms dropdowns. `buildings` table: name, type, floors (JSONB), notes.
+### Campus Module (`Settings.jsx` → Campus tab)
+Unified building + room hierarchy in Settings → Campus tab. Buildings are the primary entity — click to expand and see all rooms inside. Each building shows its room count badge, floor chips, and notes. Inline room add/edit form appears within the building card. Building delete is blocked when it has rooms ("Remove rooms first"). `rooms.building_id` FK references `buildings(id) ON DELETE RESTRICT` — referential integrity enforced at DB level. Room form pre-fills building from context. `rooms` table: name, type, building_id (FK required), building (denormalized), floor, capacity, divisions (JSONB), notes. `buildings` table: name, type, floors (JSONB), notes.
 
 ### Bell Schedule (`Settings.jsx` → Bell Schedule tab)
 Define school day periods in Settings → Bell Schedule tab. Each period has name, type (Class, Break, Lunch, Assembly, Advisory, Study Hall, Other), start/end time, and days of week. Color-coded by type. `periods` table: name, type, start_time, end_time, days_of_week, sort_order.
 
 ### Classes Module (`Classes.jsx`)
-CRUD for school classes. Card grid with division color bar, subject + division chips, teacher and room shown inline. Dropdowns pull from live subjects (school config), divisions, active staff, and rooms. Teacher name and room name denormalized at save time. Filters: search (name/teacher/subject), division, status. Default filter: Active. `class_size` field sets the manual enrollment cap — drives capacity conflict badges on cards and in the edit form, enforced hard in the hook (blocks enrollment at cap). Student enrollment via two-panel UI in the edit form: left panel = available students (filterable pills, click to enroll), right panel = enrolled students (green pills, ✕ to remove). Capacity progress bar turns red at cap with lock banner. `classes` table: name, subject, division, teacher_id + teacher_name, room_id + room_name, class_size, description, notes, status. `class_enrollments` table: class_id + student_id, UNIQUE per student per class.
+CRUD for school classes. Card grid with division color bar, subject + division chips, teacher and room shown inline. Dropdowns pull from live subjects (school config), divisions, active staff, and rooms. Teacher name and room name denormalized at save time. Filters: search (name/teacher/subject), division, status. Default filter: Active. `class_size` field sets the manual enrollment cap — drives capacity conflict badges on cards and in the edit form, enforced hard in the hook (blocks enrollment at cap). **Class Enrollment** tab: two-panel UI — left = available students (filterable pills, click to enroll); right = enrolled students (green pills, ✕ to remove). Cohort assignment section below: assign a cohort → all members auto-enrolled immediately; removing a cohort link unenrolls its members. Capacity progress bar turns red at cap with lock banner. `classes` table: name, subject, division, teacher_id + teacher_name, room_id + room_name, class_size, description, notes, status. `class_enrollments` table: class_id + student_id, UNIQUE per student per class.
+
+### Cohorts Module (`Cohorts.jsx`)
+Group students into named cohorts (homerooms, tracks, grade cohorts). Card grid view with stat cards by status and division. Click a cohort card → full-screen detail with three tabs: **Cohort Info** (name, division, academic year, description, status), **Members** (two-panel pill UI — available students left, cohort members right), **Classes** (assign classes to cohort — auto-enrolls all members on assignment, unenrolls on removal). Division color coding matches school divisions config. `cohorts` table: name, division, academic_year, description, status. `cohort_students`: cohort_id + student_id. `cohort_classes`: cohort_id + class_id + auto_enroll (always true in current UI).
 
 ### Schedule Module (`Scheduling.jsx`)
 Visual timetable grid + building browser for assigning classes to periods by term. Two views: Grid (period rows as drop targets — drag class cards to schedule) and Buildings (buildings → floors → rooms showing assigned classes per term). Term selector derived from school's grading_period setting. Auto-scheduler: greedy constraint solver — most-constrained first (teacher + room both set), respects teacher/room conflicts and room capacity vs class_size, preview before commit. Inline pickers on every class card: click teacher line → staff dropdown, click room line → room dropdown — both run pre-save conflict detection (blocks double-booking before any DB write, keeps original assignment on conflict). ↗ button on each card navigates directly to that class's edit form in the Classes module. Clear button resets term. `class_sections` table: class_id + period_id + term + academic_year, UNIQUE per class per term.
@@ -267,12 +267,13 @@ Full audit found no critical vulnerabilities. Service role key is correctly serv
 | Phase | Description | Status |
 |---|---|---|
 | 1 | **Bell Schedule** — Period CRUD in Settings (name, type, start/end time, days) | ✅ Done |
-| 2 | **Rooms** — Room CRUD with division assignment, capacity | ✅ Done |
-| 2.5 | **Buildings** — Campus config (buildings + floors) feeding Rooms dropdowns | ✅ Done |
+| 2 | **Rooms** — Room CRUD with division assignment, capacity, building_id FK | ✅ Done |
+| 2.5 | **Buildings** — Campus config (buildings + floors); rooms nested inside building cards in Settings → Campus | ✅ Done |
 | 3 | **Classes** — Class CRUD (name, subject, division, teacher, room, status) | ✅ Done |
 | 4 | **Class Sections** — Assign periods + terms to classes; `class_sections` table (class_id, period_id, term, academic_year) | ✅ Done |
 | 5 | **Student → Class Assignment** — Roster per class; add/remove students; `class_enrollments` table (class_id, student_id) | ✅ Done |
-| 6 | **Conflict Detection** — Warn when student or teacher is double-booked in same period | 🔶 Partial — teacher/room conflicts on schedule assignment done; student period conflict not yet built |
+| 5.5 | **Cohorts** — Group students; assign cohort to class → bulk-enroll all members; `cohorts`, `cohort_students`, `cohort_classes` tables | ✅ Done |
+| 6 | **Conflict Detection** — Warn when teacher/room double-booked; cohort conflict detection (`detectCohortConflict`) on schedule drag-and-drop | 🔶 Partial — teacher/room/cohort conflicts on schedule assignment done; individual student period conflict not yet built |
 | 7 | **Teacher Schedule View** — Read-only schedule grid in Staff Portal showing teacher's assigned classes by period | ⬜ Todo |
 | 8 | **Report Card Hookup** — Pre-populate report card subjects from student's enrolled classes | ⬜ Todo |
 

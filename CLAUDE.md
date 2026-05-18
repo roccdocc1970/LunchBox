@@ -58,10 +58,10 @@ SCHOOL_ID=41beb9b7-ec0c-45f3-9a71-8f94cdd98078  # schools.user_id (NOT schools.i
 
 | File | Purpose |
 |---|---|
-| `src/App.jsx` | Main app — auth, routing, dashboard, nav. Detects admin vs staff on login. |
+| `src/App.jsx` | Main app — auth, routing, dashboard, nav. Detects admin vs staff on login. Getting Started checklist widget on dashboard. Live nav count badges. |
 | `src/Landing.jsx` | Public marketing/landing page |
 | `src/Onboarding.jsx` | First-time school setup flow |
-| `src/Settings.jsx` | School settings — profile, academic config, appearance |
+| `src/Settings.jsx` | School settings — profile, academic config, bell schedule, campus (buildings + nested rooms), communication, appearance |
 | `src/Students.jsx` | Student roster, profile drawer, health records, incidents, grade progression |
 | `src/Enrollment.jsx` | Enrollment module |
 | `src/Admissions.jsx` | Admissions pipeline — inquiry tracking, convert to student, Copy Application Link |
@@ -74,8 +74,9 @@ SCHOOL_ID=41beb9b7-ec0c-45f3-9a71-8f94cdd98078  # schools.user_id (NOT schools.i
 | `src/ReportCards.jsx` | Student report cards by term |
 | `src/Fundraising.jsx` | Campaigns, donations, events, LYBUNT donor analysis |
 | `src/Facilities.jsx` | Work order / ticket management |
-| `src/Rooms.jsx` | Room/classroom management — card grid, division assignment, capacity |
-| `src/Classes.jsx` | Class CRUD — card grid, subject/division/teacher/room assignment, class size cap, two-panel student enrollment |
+| `src/Rooms.jsx` | Room/classroom management — still exists as standalone page but no longer in nav; managed via Settings → Campus tab |
+| `src/Cohorts.jsx` | Cohort management — card grid + full-screen detail, Members tab (two-panel pill UI), Classes tab (assign classes, auto-enroll all members on assignment) |
+| `src/Classes.jsx` | Class CRUD — card grid, subject/division/teacher/room assignment, class size cap, two-panel Class Enrollment (individual students + cohort assignment) |
 | `src/Scheduling.jsx` | Visual schedule — timetable grid, building browser, drag-and-drop, auto-scheduler, inline teacher/room pickers with conflict pre-check, ↗ jump-to-class |
 | `src/Reports.jsx` | 7-tab reports — Enrollment, Attendance, Incidents, Communications, Staff, Fundraising, Facilities |
 | `src/Messages.jsx` | Parent communication module |
@@ -103,6 +104,8 @@ All Supabase business logic extracted from components. Every function takes `sup
 | `classes.js` | `getClasses`, `saveClass`, `deleteClass` |
 | `classSections.js` | `getSections`, `saveSection`, `deleteSection`, `batchSaveSections`, `clearSections` |
 | `classEnrollments.js` | `getEnrollments`, `enrollStudent`, `unenrollStudent` |
+| `cohorts.js` | `getCohorts`, `saveCohort`, `deleteCohort`, `getCohortStudents`, `getAllCohortStudents`, `addCohortStudent`, `removeCohortStudent`, `getCohortClasses`, `getAllCohortClasses`, `addCohortClass`, `removeCohortClass`, `bulkEnrollCohort` |
+| `navCounts.js` | `getNavCounts` — batch COUNT queries for all nav sections, returns counts keyed by page id |
 
 ### MCP Server (`mcp_server/`)
 
@@ -385,13 +388,14 @@ All Supabase business logic extracted from components. Every function takes `sup
 |---|---|---|
 | id / school_id | UUID | |
 | name | TEXT | Required |
-| type | TEXT | Classroom, Science Lab, Art Room, Music Room, Gymnasium, Auditorium, Library, Office, Conference Room, Other |
-| building / floor | TEXT | Populated from buildings config via dropdown |
+| type | TEXT | Classroom, Lab, Gymnasium, Auditorium, Library, Art Room, Music Room, Office, Storage, Other |
+| building_id | UUID | References buildings(id) ON DELETE RESTRICT — required, every room must belong to a building |
+| building / floor | TEXT | Denormalized from building record at save time |
 | capacity | INTEGER | Max students |
 | divisions | JSONB | Array of division name strings |
 | notes | TEXT | Optional |
 
-> RLS: Admin full access (school_id = auth.uid()).
+> RLS: Admin full access (school_id = auth.uid()). Managed via Settings → Campus tab (nested inside building cards). `building_id` FK enforces referential integrity — cannot delete a building that has rooms.
 
 ### Table: `buildings`
 
@@ -403,7 +407,41 @@ All Supabase business logic extracted from components. Every function takes `sup
 | floors | JSONB | Ordered array of floor name strings |
 | notes | TEXT | Optional |
 
-> Configured in Settings → Campus tab. Feeds Rooms building/floor dropdowns. RLS: Admin full access.
+> Configured in Settings → Campus tab. Buildings contain rooms — expand a building card to see/add/edit its rooms. Cannot delete a building that has rooms (RESTRICT constraint). RLS: Admin full access.
+
+### Table: `cohorts`
+
+| Column | Type | Notes |
+|---|---|---|
+| id / school_id | UUID | |
+| name | TEXT | Required — e.g. "Class of 2028", "Blue Track" |
+| division | TEXT | Optional, from school.divisions |
+| academic_year | TEXT | e.g. "2025-2026" |
+| description | TEXT | Optional |
+| status | TEXT | Active, Archived |
+
+> RLS: Admin full access (school_id = auth.uid()).
+
+### Table: `cohort_students`
+
+| Column | Type | Notes |
+|---|---|---|
+| id / school_id | UUID | |
+| cohort_id | UUID | References cohorts(id) ON DELETE CASCADE |
+| student_id | UUID | References students(id) ON DELETE CASCADE |
+
+> UNIQUE on (cohort_id, student_id). RLS: Admin full access.
+
+### Table: `cohort_classes`
+
+| Column | Type | Notes |
+|---|---|---|
+| id / school_id | UUID | |
+| cohort_id | UUID | References cohorts(id) ON DELETE CASCADE |
+| class_id | UUID | References classes(id) ON DELETE CASCADE |
+| auto_enroll | BOOLEAN | Default true — when true, all cohort members are bulk-enrolled into this class on assignment |
+
+> UNIQUE on (cohort_id, class_id). `auto_enroll = true` triggers `bulkEnrollCohort` on assignment; removing the link unenrolls cohort members from `class_enrollments`. RLS: Admin full access.
 
 ### Table: `periods`
 
@@ -493,13 +531,15 @@ State-based routing in `App.jsx` — no React Router. `activePage` state control
 
 ### Sidebar Nav Structure
 
-Groups are collapsible (default expanded). Settings/Wizard live in ⚙️ top-nav gear dropdown.
+Groups are collapsible (default expanded). Settings/Wizard live in ⚙️ top-nav gear dropdown. Each nav item shows a live count badge (record count from `navCounts` service, refreshed on every dashboard navigation).
 
-- **Dashboard** — standalone
-- **Academics** (`academics`): Attendance, Admissions, Enrollment, Students, Classes, Schedule, Report Cards, Parents
-- **People** (`people`): Staff, Alumni
-- **Operations** (`operations`): Fundraising, Facilities, Rooms
+- **Dashboard** — standalone. Getting Started checklist widget (7 steps, dismissable, re-openable, turns green when all done).
+- **Academics** (`academics`): Admissions, School Enrollment, Students, Classes, Cohorts, Schedule, Attendance, Report Cards
+- **People** (`people`): Staff, Parents, Alumni
+- **Operations** (`operations`): Fundraising, Facility Requests
 - **Communicate** (`communicate`): Messages, Reports
+
+> Nav order reflects the logical data-entry sequence. Rooms is no longer in the nav — managed via Settings → Campus tab.
 
 ### Staff Portal (`StaffDashboard.jsx`) — Role Gating
 
