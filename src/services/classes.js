@@ -15,18 +15,19 @@ export async function getClasses(supabase, schoolId) {
 
 export async function saveClass(supabase, schoolId, cls) {
   const payload = {
-    school_id:    schoolId,
-    name:         cls.name.trim(),
-    subject:      cls.subject      || null,
-    division:     cls.division     || null,
-    teacher_id:   cls.teacher_id   || null,
-    teacher_name: cls.teacher_name || null,
-    room_id:      cls.room_id      || null,
-    room_name:    cls.room_name    || null,
-    class_size:   cls.class_size   ? parseInt(cls.class_size, 10) : null,
-    description:  cls.description?.trim() || null,
-    notes:        cls.notes?.trim()       || null,
-    status:       cls.status || 'Active',
+    school_id:       schoolId,
+    name:            cls.name.trim(),
+    subject:         cls.subject         || null,
+    division:        cls.division        || null,
+    teacher_id:      cls.teacher_id      || null,
+    teacher_name:    cls.teacher_name    || null,
+    room_id:         cls.room_id         || null,
+    room_name:       cls.room_name       || null,
+    class_size:      cls.class_size      ? parseInt(cls.class_size, 10) : null,
+    enrollment_mode: cls.enrollment_mode || 'open',
+    description:     cls.description?.trim() || null,
+    notes:           cls.notes?.trim()        || null,
+    status:          cls.status || 'Active',
   }
 
   if (cls.id) {

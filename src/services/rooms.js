@@ -15,14 +15,15 @@ export async function getRooms(supabase, schoolId) {
 
 export async function saveRoom(supabase, schoolId, room) {
   const payload = {
-    school_id: schoolId,
-    name:      room.name.trim(),
-    type:      room.type,
-    building:  room.building?.trim() || null,
-    floor:     room.floor?.trim()    || null,
-    capacity:  room.capacity !== '' ? Number(room.capacity) : null,
-    divisions: room.divisions?.length ? room.divisions : null,
-    notes:     room.notes?.trim()    || null,
+    school_id:   schoolId,
+    name:        room.name.trim(),
+    type:        room.type,
+    building_id: room.building_id || null,
+    building:    room.building?.trim() || null,
+    floor:       room.floor?.trim()    || null,
+    capacity:    room.capacity !== '' ? Number(room.capacity) : null,
+    divisions:   room.divisions?.length ? room.divisions : null,
+    notes:       room.notes?.trim()    || null,
   }
 
   if (room.id) {

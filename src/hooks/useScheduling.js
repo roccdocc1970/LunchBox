@@ -5,7 +5,7 @@
  * Coordinates drag-and-drop, auto-schedule, and section CRUD.
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase }            from '../supabase'
 import { getClasses, saveClass } from '../services/classes'
 import { getPeriods }          from '../services/schedule'
@@ -20,9 +20,11 @@ import {
   batchSaveSections,
   clearSections,
 } from '../services/classSections'
+import { getAllCohortClasses, getAllCohortStudents } from '../services/cohorts'
 import {
   getTerms,
   detectConflict,
+  detectCohortConflict,
   autoSchedule,
   calcScheduleStats,
 } from '../domain/scheduling'
@@ -31,13 +33,15 @@ export function useScheduling(user, school) {
   const terms       = getTerms(school?.grading_period)
   const currentYear = getAcademicYear()
 
-  const [classes,   setClasses]   = useState([])
-  const [allPeriods, setAllPeriods] = useState([])
-  const [rooms,     setRooms]     = useState([])
-  const [buildings, setBuildings] = useState([])
-  const [staff,     setStaff]     = useState([])
-  const [sections,  setSections]  = useState([])
-  const [loading,   setLoading]   = useState(true)
+  const [classes,        setClasses]        = useState([])
+  const [allPeriods,     setAllPeriods]     = useState([])
+  const [rooms,          setRooms]          = useState([])
+  const [buildings,      setBuildings]      = useState([])
+  const [staff,          setStaff]          = useState([])
+  const [sections,       setSections]       = useState([])
+  const [cohortClasses,  setCohortClasses]  = useState([])  // all cohort_classes rows
+  const [cohortStudents, setCohortStudents] = useState([])  // all cohort_students rows
+  const [loading,        setLoading]        = useState(true)
 
   const [term,         setTerm]         = useState(terms[0])
   const [academicYear, setAcademicYear] = useState(currentYear)
@@ -59,26 +63,37 @@ export function useScheduling(user, school) {
   const [error,   setError]   = useState(null)
   const [success, setSuccess] = useState(null)
 
+  const initializedRef = useRef(false)
+
   useEffect(() => { loadAll() }, [])
 
   useEffect(() => {
-    if (!loading) loadSections()
+    // Skip mount — loadAll handles the first load.
+    // Only fire when the user explicitly changes term or academicYear.
+    if (!initializedRef.current) return
+    loadSections()
   }, [term, academicYear])
 
   const loadAll = async () => {
     setLoading(true)
-    const [cls, per, rm, bld, st] = await Promise.all([
+    const [cls, per, rm, bld, st, cc, cs] = await Promise.all([
       getClasses(supabase, user.id),
       getPeriods(supabase, user.id),
       getRooms(supabase, user.id),
       getBuildings(supabase, user.id),
       getStaff(supabase, user.id),
+      getAllCohortClasses(supabase, user.id),
+      getAllCohortStudents(supabase, user.id),
     ])
     setClasses(cls)
     setAllPeriods(per)
     setRooms(rm)
     setBuildings(bld)
     setStaff(st.filter(s => s.status === 'Active'))
+    setCohortClasses(cc)
+    setCohortStudents(cs)
+    initializedRef.current = true
+    await loadSections()
     setLoading(false)
   }
 
@@ -135,6 +150,7 @@ export function useScheduling(user, school) {
     if (fromPeriodId === toPeriodId) return
 
     const conflict = detectConflict(classId, toPeriodId, classes, sections)
+      || detectCohortConflict(classId, toPeriodId, cohortClasses, cohortStudents, sections)
     if (conflict) {
       setConflictMsg(conflict)
       setTimeout(() => setConflictMsg(null), 4000)

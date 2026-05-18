@@ -1,11 +1,13 @@
 import { useSettings } from './hooks/useSettings'
 import { useSchedule } from './hooks/useSchedule'
 import { useBuildings } from './hooks/useBuildings'
+import { useRooms } from './hooks/useRooms'
 import { MONTHS, SCHOOL_TYPES } from './domain/settings'
 import { ALL_GRADES } from './domain/enrollment'
-import { DIVISION_COLORS } from './domain/school'
+import { DIVISION_COLORS, parseDivisions } from './domain/school'
 import { PERIOD_TYPES, DAYS_OPTIONS, PERIOD_TYPE_COLORS, fmt12 } from './domain/schedule'
 import { BUILDING_TYPES, BUILDING_TYPE_COLORS } from './domain/buildings'
+import { ROOM_TYPES, ROOM_TYPE_COLORS, parseRoomDivisions } from './domain/rooms'
 
 export default function Settings({ user, school, onUpdate }) {
   const primaryColor = school?.primary_color || '#f97316'
@@ -24,6 +26,11 @@ export default function Settings({ user, school, onUpdate }) {
 
   const sc = useSchedule(user.id)
   const bld = useBuildings(user.id)
+  const rm = useRooms(user, school)
+
+  const divisions = parseDivisions(school?.divisions)
+    .map((d, i) => ({ ...d, color: DIVISION_COLORS[i % DIVISION_COLORS.length] }))
+    .filter(d => d.grades?.length > 0)
 
   const inputStyle = { width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.625rem 1rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }
   const labelStyle = { display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }
@@ -358,10 +365,12 @@ export default function Settings({ user, school, onUpdate }) {
       {/* ── Tab: Campus ────────────────────────────────────────────────────── */}
       {activeTab === 'campus' && (
         <div style={{ background: 'white', borderRadius: '1rem', padding: '2rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+
+          {/* Section header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
             <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#1f2937', margin: 0 }}>Campus Buildings</h3>
-              <p style={{ color: '#6b7280', fontSize: '0.875rem', marginTop: '0.25rem' }}>Configure your physical buildings and floors. Used when assigning rooms.</p>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#1f2937', margin: 0 }}>Campus</h3>
+              <p style={{ color: '#6b7280', fontSize: '0.875rem', marginTop: '0.25rem' }}>Buildings contain rooms. Expand a building to manage its spaces.</p>
             </div>
             {!bld.showForm && (
               <button onClick={bld.openAdd} style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.9rem' }}>
@@ -439,32 +448,99 @@ export default function Settings({ user, school, onUpdate }) {
             </div>
           )}
 
-          {/* Buildings list */}
-          {bld.loading ? (
+          {/* Feedback */}
+          {bld.success && <p style={{ color: '#15803d', fontSize: '0.875rem', marginBottom: '1rem', fontWeight: '500' }}>✓ {bld.success}</p>}
+          {rm.success && <p style={{ color: '#15803d', fontSize: '0.875rem', marginBottom: '1rem', fontWeight: '500' }}>✓ {rm.success}</p>}
+          {bld.error && !bld.showForm && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginBottom: '1rem' }}>{bld.error}</p>}
+
+          {/* Building add/edit form */}
+          {bld.showForm && (
+            <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '0.75rem', padding: '1.25rem', marginBottom: '1.5rem' }}>
+              <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>
+                {bld.editingId ? 'Edit Building' : 'New Building'}
+              </div>
+              {bld.error && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginBottom: '0.75rem' }}>{bld.error}</p>}
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.875rem', marginBottom: '1rem' }}>
+                <div>
+                  <label style={labelStyle}>Building Name *</label>
+                  <input value={bld.form.name} onChange={e => bld.setForm({ ...bld.form, name: e.target.value })} placeholder="e.g. Main Hall" style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Type</label>
+                  <select value={bld.form.type} onChange={e => bld.setForm({ ...bld.form, type: e.target.value })} style={inputStyle}>
+                    {BUILDING_TYPES.map(t => <option key={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={labelStyle}>Notes</label>
+                  <input value={bld.form.notes || ''} onChange={e => bld.setForm({ ...bld.form, notes: e.target.value })} placeholder="Optional notes about this building" style={inputStyle} />
+                </div>
+              </div>
+
+              {/* Floor editor */}
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={labelStyle}>Floors</label>
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <input value={bld.newFloor} onChange={e => bld.setNewFloor(e.target.value)} onKeyDown={e => e.key === 'Enter' && bld.addFloor()} placeholder="e.g. Ground Floor" style={{ ...inputStyle, flex: 1 }} />
+                  <button onClick={bld.addFloor} style={{ background: primaryColor + '18', color: primaryColor, border: `1px solid ${primaryColor}40`, borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>+ Add</button>
+                </div>
+                {bld.form.floors.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                    {bld.form.floors.map((floor, i) => (
+                      <div key={floor} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', background: 'white', border: '1px solid #e5e7eb', borderRadius: '0.5rem' }}>
+                        <span style={{ flex: 1, fontSize: '0.875rem', color: '#374151' }}>{floor}</span>
+                        <button onClick={() => bld.moveFloor(floor, -1)} disabled={i === 0} style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '0.25rem', padding: '0.1rem 0.4rem', cursor: i === 0 ? 'not-allowed' : 'pointer', color: i === 0 ? '#d1d5db' : '#6b7280', fontSize: '0.75rem' }}>↑</button>
+                        <button onClick={() => bld.moveFloor(floor, 1)} disabled={i === bld.form.floors.length - 1} style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '0.25rem', padding: '0.1rem 0.4rem', cursor: i === bld.form.floors.length - 1 ? 'not-allowed' : 'pointer', color: i === bld.form.floors.length - 1 ? '#d1d5db' : '#6b7280', fontSize: '0.75rem' }}>↓</button>
+                        <button onClick={() => bld.removeFloor(floor)} style={{ background: 'none', border: '1px solid #fca5a5', borderRadius: '0.25rem', padding: '0.1rem 0.4rem', cursor: 'pointer', color: '#ef4444', fontSize: '0.75rem' }}>✕</button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ fontSize: '0.8rem', color: '#9ca3af', fontStyle: 'italic', margin: 0 }}>No floors added yet.</p>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button onClick={bld.handleSave} disabled={bld.saving} style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem' }}>
+                  {bld.saving ? 'Saving…' : bld.editingId ? 'Update Building' : 'Add Building'}
+                </button>
+                <button onClick={bld.cancelForm} style={{ background: 'white', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', fontSize: '0.875rem' }}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          {/* Buildings list with nested rooms */}
+          {bld.loading || rm.loading ? (
             <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>Loading…</p>
           ) : bld.buildings.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>
               <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>🏛️</div>
-              <p style={{ margin: 0 }}>No buildings yet. Add your first building to organize your campus.</p>
+              <p style={{ margin: 0 }}>No buildings yet. Add your first building to get started.</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {bld.buildings.map(building => {
-                const color = BUILDING_TYPE_COLORS[building.type] || '#6b7280'
-                const floors = Array.isArray(building.floors) ? building.floors : []
+                const bldColor   = BUILDING_TYPE_COLORS[building.type] || '#6b7280'
+                const floors     = Array.isArray(building.floors) ? building.floors : []
                 const isExpanded = bld.expandedId === building.id
                 const isDeleting = bld.deleteId === building.id
+                const roomsHere  = rm.rooms.filter(r => r.building_id === building.id)
+                const hasRooms   = roomsHere.length > 0
+                const showRoomForm = rm.editing && rm.form.building_id === building.id
 
                 return (
-                  <div key={building.id} style={{ border: `1px solid ${color}25`, borderLeft: `4px solid ${color}`, borderRadius: '0.625rem', background: isDeleting ? '#fef2f2' : isExpanded ? '#fafafa' : 'white', overflow: 'hidden' }}>
-                    <div
-                      style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.875rem 1rem', cursor: 'pointer' }}
-                      onClick={() => bld.setExpandedId(isExpanded ? null : building.id)}
-                    >
+                  <div key={building.id} style={{ border: `1px solid ${bldColor}25`, borderLeft: `4px solid ${bldColor}`, borderRadius: '0.625rem', background: isDeleting ? '#fef2f2' : isExpanded ? '#fafafa' : 'white', overflow: 'hidden' }}>
+
+                    {/* Building header row */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.875rem 1rem', cursor: 'pointer' }} onClick={() => { bld.setExpandedId(isExpanded ? null : building.id); rm.cancelEdit() }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
                           <span style={{ fontWeight: '600', color: '#1f2937', fontSize: '0.9rem' }}>{building.name}</span>
-                          <span style={{ fontSize: '0.72rem', fontWeight: '700', color, background: color + '15', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>{building.type}</span>
+                          <span style={{ fontSize: '0.72rem', fontWeight: '700', color: bldColor, background: bldColor + '15', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>{building.type}</span>
+                          <span style={{ fontSize: '0.72rem', color: '#9ca3af', background: '#f3f4f6', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>
+                            {roomsHere.length} room{roomsHere.length !== 1 ? 's' : ''}
+                          </span>
                         </div>
                         <div style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: '0.15rem' }}>
                           {floors.length > 0 ? `${floors.length} floor${floors.length !== 1 ? 's' : ''}: ${floors.join(', ')}` : 'No floors configured'}
@@ -472,10 +548,12 @@ export default function Settings({ user, school, onUpdate }) {
                       </div>
 
                       {isDeleting ? (
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                          <span style={{ fontSize: '0.8rem', color: '#b91c1c' }}>Delete?</span>
-                          <button onClick={e => { e.stopPropagation(); bld.handleDelete(building.id) }} style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '0.375rem', padding: '0.25rem 0.625rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}>Yes</button>
-                          <button onClick={e => { e.stopPropagation(); bld.setDeleteId(null) }} style={{ background: 'white', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: '0.375rem', padding: '0.25rem 0.625rem', cursor: 'pointer', fontSize: '0.8rem' }}>No</button>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }} onClick={e => e.stopPropagation()}>
+                          <span style={{ fontSize: '0.8rem', color: '#b91c1c' }}>{hasRooms ? 'Remove rooms first' : 'Delete?'}</span>
+                          {!hasRooms && <>
+                            <button onClick={() => bld.handleDelete(building.id)} style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '0.375rem', padding: '0.25rem 0.625rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}>Yes</button>
+                          </>}
+                          <button onClick={() => bld.setDeleteId(null)} style={{ background: 'white', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: '0.375rem', padding: '0.25rem 0.625rem', cursor: 'pointer', fontSize: '0.8rem' }}>{hasRooms ? 'OK' : 'No'}</button>
                         </div>
                       ) : (
                         <div style={{ display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
@@ -486,20 +564,148 @@ export default function Settings({ user, school, onUpdate }) {
                       )}
                     </div>
 
-                    {/* Expanded detail */}
+                    {/* Expanded: rooms + inline room form */}
                     {isExpanded && (
-                      <div style={{ padding: '0 1rem 1rem', borderTop: '1px solid #f3f4f6' }}>
-                        {floors.length > 0 ? (
-                          <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', paddingTop: '0.75rem' }}>
+                      <div style={{ borderTop: '1px solid #f0f0f0', padding: '1rem' }}>
+
+                        {/* Floor chips */}
+                        {floors.length > 0 && (
+                          <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
                             {floors.map(f => (
-                              <span key={f} style={{ background: color + '15', color, border: `1px solid ${color}30`, borderRadius: '9999px', padding: '0.25rem 0.75rem', fontSize: '0.8rem', fontWeight: '600' }}>{f}</span>
+                              <span key={f} style={{ background: bldColor + '15', color: bldColor, border: `1px solid ${bldColor}30`, borderRadius: '9999px', padding: '0.2rem 0.625rem', fontSize: '0.78rem', fontWeight: '600' }}>{f}</span>
                             ))}
                           </div>
-                        ) : (
-                          <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: '0.75rem 0 0', fontStyle: 'italic' }}>No floors configured for this building.</p>
                         )}
                         {building.notes && (
-                          <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0.625rem 0 0' }}>{building.notes}</p>
+                          <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0 0 0.875rem' }}>{building.notes}</p>
+                        )}
+
+                        {/* Inline room form */}
+                        {showRoomForm && (
+                          <div style={{ background: 'white', border: `1px solid ${primaryColor}30`, borderRadius: '0.625rem', padding: '1rem', marginBottom: '1rem' }}>
+                            <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.875rem' }}>
+                              {rm.selected ? 'Edit Room' : `New Room · ${building.name}`}
+                            </div>
+                            {rm.error && <p style={{ color: '#ef4444', fontSize: '0.825rem', marginBottom: '0.625rem' }}>{rm.error}</p>}
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem', marginBottom: '0.875rem' }}>
+                              <div>
+                                <label style={labelStyle}>Room Name *</label>
+                                <input value={rm.form.name} onChange={e => rm.setForm({ ...rm.form, name: e.target.value })} placeholder="e.g. Room 204" style={inputStyle} autoFocus />
+                              </div>
+                              <div>
+                                <label style={labelStyle}>Type</label>
+                                <select value={rm.form.type} onChange={e => rm.setForm({ ...rm.form, type: e.target.value })} style={inputStyle}>
+                                  {ROOM_TYPES.map(t => <option key={t}>{t}</option>)}
+                                </select>
+                              </div>
+                              <div>
+                                <label style={labelStyle}>Floor</label>
+                                {floors.length > 0 ? (
+                                  <select value={rm.form.floor || ''} onChange={e => rm.setForm({ ...rm.form, floor: e.target.value })} style={inputStyle}>
+                                    <option value="">— None —</option>
+                                    {floors.map(f => <option key={f} value={f}>{f}</option>)}
+                                  </select>
+                                ) : (
+                                  <input value={rm.form.floor || ''} onChange={e => rm.setForm({ ...rm.form, floor: e.target.value })} placeholder="e.g. 2nd Floor" style={inputStyle} />
+                                )}
+                              </div>
+                              <div>
+                                <label style={labelStyle}>Capacity</label>
+                                <input type="number" min="1" value={rm.form.capacity} onChange={e => rm.setForm({ ...rm.form, capacity: e.target.value })} placeholder="Max students" style={inputStyle} />
+                              </div>
+                            </div>
+
+                            {divisions.length > 0 && (
+                              <div style={{ marginBottom: '0.875rem' }}>
+                                <label style={labelStyle}>Divisions</label>
+                                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                                  {divisions.map(div => {
+                                    const isSel = (rm.form.divisions || []).includes(div.name)
+                                    return (
+                                      <button key={div.name} type="button" onClick={() => rm.toggleDivision(div.name)} style={{ padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', background: isSel ? div.color : 'white', color: isSel ? 'white' : div.color, border: `2px solid ${div.color}` }}>
+                                        {div.name}
+                                      </button>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )}
+
+                            <div style={{ marginBottom: '0.875rem' }}>
+                              <label style={labelStyle}>Notes</label>
+                              <textarea value={rm.form.notes || ''} onChange={e => rm.setForm({ ...rm.form, notes: e.target.value })} rows={2} style={{ ...inputStyle, resize: 'vertical' }} placeholder="AV equipment, accessibility notes…" />
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              <button onClick={rm.handleSave} disabled={rm.saving} style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.45rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem' }}>
+                                {rm.saving ? 'Saving…' : rm.selected ? 'Update Room' : 'Add Room'}
+                              </button>
+                              <button onClick={rm.cancelEdit} style={{ background: 'white', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.45rem 1rem', cursor: 'pointer', fontSize: '0.875rem' }}>Cancel</button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Rooms list */}
+                        {roomsHere.length === 0 && !showRoomForm ? (
+                          <p style={{ fontSize: '0.825rem', color: '#9ca3af', fontStyle: 'italic', margin: '0 0 0.875rem' }}>No rooms yet in this building.</p>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem', marginBottom: roomsHere.length > 0 ? '0.875rem' : 0 }}>
+                            {roomsHere.map(room => {
+                              const rc = ROOM_TYPE_COLORS[room.type] || '#6b7280'
+                              const roomDivs = parseRoomDivisions(room.divisions)
+                              const isOpen = rm.selected?.id === room.id && !rm.editing
+                              const overCapacity = room.capacity
+                                ? rm.classes.filter(c => c.room_id === room.id && c.class_size && c.class_size > room.capacity)
+                                : []
+
+                              return (
+                                <div key={room.id} style={{ background: isOpen ? '#fafafa' : 'white', border: isOpen ? `1px solid ${primaryColor}40` : '1px solid #f0f0f0', borderRadius: '0.5rem', padding: '0.625rem 0.875rem', cursor: 'pointer', transition: 'background 0.1s' }}
+                                  onClick={() => isOpen ? rm.closeRoom() : rm.openRoom(room)}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+                                    <div style={{ flex: 1 }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        <span style={{ fontWeight: '600', color: '#1f2937', fontSize: '0.875rem' }}>{room.name}</span>
+                                        <span style={{ fontSize: '0.68rem', fontWeight: '700', color: rc, background: rc + '15', borderRadius: '9999px', padding: '0.1rem 0.45rem' }}>{room.type}</span>
+                                        {room.floor && <span style={{ fontSize: '0.68rem', color: '#9ca3af' }}>{room.floor}</span>}
+                                        {room.capacity && <span style={{ fontSize: '0.68rem', color: '#9ca3af' }}>👥 {room.capacity}</span>}
+                                        {roomDivs.map(d => {
+                                          const div = divisions.find(x => x.name === d)
+                                          const dc = div?.color || '#6b7280'
+                                          return <span key={d} style={{ fontSize: '0.65rem', fontWeight: '600', color: dc, background: dc + '15', borderRadius: '9999px', padding: '0.1rem 0.4rem' }}>{d}</span>
+                                        })}
+                                      </div>
+                                      {overCapacity.length > 0 && (
+                                        <div style={{ fontSize: '0.72rem', color: '#92400e', marginTop: '0.2rem' }}>⚠️ Over capacity: {overCapacity.map(c => c.name).join(', ')}</div>
+                                      )}
+                                    </div>
+                                    <span style={{ color: '#d1d5db', fontSize: '0.7rem' }}>{isOpen ? '▲' : '▼'}</span>
+                                  </div>
+
+                                  {isOpen && (
+                                    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.625rem', paddingTop: '0.625rem', borderTop: '1px solid #f0f0f0' }}>
+                                      <button onClick={e => { e.stopPropagation(); rm.startEdit(room); bld.setExpandedId(building.id) }} style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.375rem', padding: '0.3rem 0.875rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.8rem' }}>Edit</button>
+                                      {rm.deleteId === room.id ? (
+                                        <>
+                                          <button onClick={e => { e.stopPropagation(); rm.handleDelete(room.id) }} style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '0.375rem', padding: '0.3rem 0.875rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.8rem' }}>Confirm</button>
+                                          <button onClick={e => { e.stopPropagation(); rm.setDeleteId(null) }} style={{ background: 'white', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: '0.375rem', padding: '0.3rem 0.75rem', cursor: 'pointer', fontSize: '0.8rem' }}>Cancel</button>
+                                        </>
+                                      ) : (
+                                        <button onClick={e => { e.stopPropagation(); rm.setDeleteId(room.id) }} style={{ background: 'white', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '0.375rem', padding: '0.3rem 0.75rem', cursor: 'pointer', fontSize: '0.8rem' }}>Delete</button>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )}
+
+                        {/* Add room button */}
+                        {!showRoomForm && (
+                          <button onClick={e => { e.stopPropagation(); rm.startAdd(building) }} style={{ background: 'transparent', color: primaryColor, border: `1px dashed ${primaryColor}60`, borderRadius: '0.5rem', padding: '0.4rem 1rem', cursor: 'pointer', fontSize: '0.825rem', fontWeight: '600', width: '100%' }}>
+                            + Add Room to {building.name}
+                          </button>
                         )}
                       </div>
                     )}

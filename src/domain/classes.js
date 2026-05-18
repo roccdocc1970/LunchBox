@@ -6,18 +6,25 @@
 
 export const CLASS_STATUS = ['Active', 'Inactive']
 
+export const ENROLLMENT_MODES = [
+  { value: 'open',   label: 'Open',   description: 'Individual student enrollment only' },
+  { value: 'cohort', label: 'Cohort', description: 'Cohort bulk-enrollment only — individual add hidden' },
+  { value: 'mixed',  label: 'Mixed',  description: 'Both cohort bulk-enroll and individual add available' },
+]
+
 export const BLANK_CLASS = {
-  name:         '',
-  subject:      '',
-  division:     '',
-  teacher_id:   '',
-  teacher_name: '',
-  room_id:      '',
-  room_name:    '',
-  class_size:   '',
-  description:  '',
-  notes:        '',
-  status:       'Active',
+  name:            '',
+  subject:         '',
+  division:        '',
+  teacher_id:      '',
+  teacher_name:    '',
+  room_id:         '',
+  room_name:       '',
+  class_size:      '',
+  enrollment_mode: 'open',
+  description:     '',
+  notes:           '',
+  status:          'Active',
 }
 
 /** Validate a class form — returns error string or null */

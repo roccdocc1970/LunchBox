@@ -57,8 +57,13 @@ export function useRooms(user, school) {
     setDeleteId(null)
   }
 
-  const startAdd = () => {
-    setForm({ ...BLANK_ROOM })
+  // building = { id, name, floors[] } — required, rooms must belong to a building
+  const startAdd = (building) => {
+    setForm({
+      ...BLANK_ROOM,
+      building_id: building.id,
+      building:    building.name,
+    })
     setEditing(true)
     setSelected(null)
     setError(null)

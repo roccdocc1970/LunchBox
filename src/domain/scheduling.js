@@ -118,6 +118,62 @@ export function autoSchedule(classes, periods, existingSections, rooms = []) {
   return { sections, unplaceable }
 }
 
+/**
+ * Check whether placing classId into periodId would create a cohort student conflict.
+ *
+ * A conflict exists when a student is auto-enrolled in classId via a cohort AND
+ * is also auto-enrolled in another class already scheduled at periodId.
+ *
+ * @param {string}   classId        - class being placed
+ * @param {string}   periodId       - target period
+ * @param {object[]} cohortClasses  - all cohort_classes rows { cohort_id, class_id, auto_enroll }
+ * @param {object[]} cohortStudents - all cohort_students rows { cohort_id, student_id }
+ * @param {object[]} sections       - existing class_sections { class_id, period_id }
+ * @returns {string|null} human-readable conflict message, or null if clear
+ */
+export function detectCohortConflict(classId, periodId, cohortClasses, cohortStudents, sections) {
+  // 1. Cohorts that auto-enroll into classId
+  const myCohortIds = cohortClasses
+    .filter(cc => cc.class_id === classId && cc.auto_enroll)
+    .map(cc => cc.cohort_id)
+
+  if (myCohortIds.length === 0) return null  // class has no auto-enroll cohorts
+
+  // 2. Students who will be auto-enrolled into classId
+  const myStudentIds = new Set(
+    cohortStudents
+      .filter(cs => myCohortIds.includes(cs.cohort_id))
+      .map(cs => cs.student_id)
+  )
+
+  if (myStudentIds.size === 0) return null  // cohorts have no members
+
+  // 3. Other classes already at periodId
+  const otherClassIds = sections
+    .filter(s => s.period_id === periodId && s.class_id !== classId)
+    .map(s => s.class_id)
+
+  if (otherClassIds.length === 0) return null
+
+  // 4. Check each competing class for cohort student overlap
+  for (const otherClassId of otherClassIds) {
+    const otherCohortIds = cohortClasses
+      .filter(cc => cc.class_id === otherClassId && cc.auto_enroll)
+      .map(cc => cc.cohort_id)
+
+    if (otherCohortIds.length === 0) continue
+
+    const overlap = cohortStudents
+      .filter(cs => otherCohortIds.includes(cs.cohort_id) && myStudentIds.has(cs.student_id))
+
+    if (overlap.length > 0) {
+      return `${overlap.length} cohort student${overlap.length !== 1 ? 's' : ''} ${overlap.length !== 1 ? 'are' : 'is'} already auto-enrolled in another class at this period.`
+    }
+  }
+
+  return null
+}
+
 /** Summary counts for the schedule header */
 export function calcScheduleStats(classes, sections) {
   const active      = classes.filter(c => c.status === 'Active')

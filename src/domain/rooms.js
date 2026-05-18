@@ -23,18 +23,20 @@ export const ROOM_TYPE_COLORS = {
 }
 
 export const BLANK_ROOM = {
-  name:      '',
-  type:      'Classroom',
-  building:  '',
-  floor:     '',
-  capacity:  '',
-  divisions: [],
-  notes:     '',
+  name:        '',
+  type:        'Classroom',
+  building_id: null,
+  building:    '',
+  floor:       '',
+  capacity:    '',
+  divisions:   [],
+  notes:       '',
 }
 
 /** Validate a room form — returns error string or null */
 export function validateRoom(form) {
-  if (!form.name?.trim()) return 'Room name is required.'
+  if (!form.name?.trim())    return 'Room name is required.'
+  if (!form.building_id)     return 'A building is required.'
   if (form.capacity !== '' && form.capacity !== null && Number(form.capacity) < 1)
     return 'Capacity must be a positive number.'
   return null

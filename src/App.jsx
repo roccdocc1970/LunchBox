@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
-import { useAuth }   from './hooks/useAuth'
-import { useSchool } from './hooks/useSchool'
-import { NAV_GROUPS, QUICK_ACTIONS } from './domain/app'
+import { useAuth }      from './hooks/useAuth'
+import { useSchool }    from './hooks/useSchool'
+import { useNavCounts } from './hooks/useNavCounts'
+import { NAV_GROUPS, QUICK_ACTIONS, SETUP_STEPS } from './domain/app'
 
 import Landing           from './Landing'
 import Onboarding        from './Onboarding'
@@ -24,6 +25,7 @@ import Facilities        from './Facilities'
 import Attendance        from './Attendance'
 import Rooms            from './Rooms'
 import Classes          from './Classes'
+import Cohorts          from './Cohorts'
 import Scheduling       from './Scheduling'
 
 function App() {
@@ -41,8 +43,33 @@ function App() {
 
   const auth   = useAuth()
   const sc     = useSchool()
+  const { counts, refresh } = useNavCounts(session?.user?.id)
+
+  const [setupDismissed, setSetupDismissed] = useState(false)
+  const dismissSetup = () => {
+    if (session?.user?.id) localStorage.setItem(`lb_setup_${session.user.id}`, '1')
+    setSetupDismissed(true)
+  }
+
+  const restoreSetup = () => {
+    if (session?.user?.id) localStorage.removeItem(`lb_setup_${session.user.id}`)
+    setSetupDismissed(false)
+    setActivePage('dashboard')
+  }
 
   const toggleGroup = (key) => setCollapsedGroups(prev => ({ ...prev, [key]: !prev[key] }))
+
+  // Restore dismissed state from localStorage once session is known
+  useEffect(() => {
+    if (session?.user?.id) {
+      setSetupDismissed(!!localStorage.getItem(`lb_setup_${session.user.id}`))
+    }
+  }, [session?.user?.id])
+
+  // Refresh counts every time user returns to the dashboard
+  useEffect(() => {
+    if (activePage === 'dashboard' && session?.user?.id) refresh()
+  }, [activePage])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -164,35 +191,84 @@ function App() {
                   <span style={{ fontSize: '0.7rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{group.label}</span>
                   <span style={{ fontSize: '0.65rem', color: '#9ca3af', transform: collapsedGroups[group.key] ? 'rotate(-90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}>▼</span>
                 </button>
-                {!collapsedGroups[group.key] && group.items.map(item => (
-                  <button
-                    key={item.id}
-                    onClick={() => setActivePage(item.id)}
-                    style={{
-                      width: '100%', textAlign: 'left', padding: '0.5rem 1.25rem 0.5rem 1.75rem',
-                      background: activePage === item.id ? primaryColor + '18' : 'transparent',
-                      border: 'none', borderLeft: activePage === item.id ? `3px solid ${primaryColor}` : '3px solid transparent',
-                      color: activePage === item.id ? primaryColor : '#374151',
-                      fontWeight: activePage === item.id ? '600' : '400',
-                      cursor: 'pointer', fontSize: '0.875rem',
-                      display: 'flex', alignItems: 'center', gap: '0.625rem',
-                    }}
-                  >
-                    <span style={{ fontSize: '0.9rem' }}>{item.icon}</span>
-                    <span>{item.label}</span>
-                  </button>
-                ))}
+                {!collapsedGroups[group.key] && group.items.map(item => {
+                  const isActive = activePage === item.id
+                  const count    = counts[item.id]
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setActivePage(item.id)}
+                      style={{
+                        width: '100%', textAlign: 'left', padding: '0.5rem 1rem 0.5rem 1.75rem',
+                        background: isActive ? primaryColor + '18' : 'transparent',
+                        border: 'none', borderLeft: isActive ? `3px solid ${primaryColor}` : '3px solid transparent',
+                        color: isActive ? primaryColor : '#374151',
+                        fontWeight: isActive ? '600' : '400',
+                        cursor: 'pointer', fontSize: '0.875rem',
+                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                      }}
+                    >
+                      <span style={{ fontSize: '0.9rem', flexShrink: 0 }}>{item.icon}</span>
+                      <span style={{ flex: 1 }}>{item.label}</span>
+                      {count > 0 && (
+                        <span style={{
+                          fontSize: '0.68rem', color: isActive ? primaryColor : '#9ca3af',
+                          background: isActive ? primaryColor + '18' : '#f3f4f6',
+                          borderRadius: '9999px', padding: '0.1rem 0.4rem',
+                          minWidth: '1.25rem', textAlign: 'center', lineHeight: 1.5, flexShrink: 0,
+                        }}>
+                          {count > 999 ? '999+' : count}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
                 <div style={{ height: '0.5rem' }} />
               </div>
             ))}
+
           </div>
 
           {/* Main Content */}
           <div style={{ flex: 1, overflow: 'auto' }}>
             {activePage === 'dashboard' && (
               <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>Welcome, {sc.school?.name || 'Your School'} 👋</h2>
-                <p style={{ color: '#6b7280', marginBottom: '2rem' }}>Your school operations dashboard</p>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '2rem' }}>
+                  <div>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.25rem' }}>Welcome, {sc.school?.name || 'Your School'} 👋</h2>
+                    <p style={{ color: '#6b7280', margin: 0 }}>Your school operations dashboard</p>
+                  </div>
+                  {setupDismissed && (() => {
+                    const allDone = SETUP_STEPS.every(s => s.done(counts, sc.school))
+                    return (
+                      <button
+                        onClick={restoreSetup}
+                        style={{
+                          background: allDone ? '#f0fdf4' : 'white',
+                          border: `1px solid ${allDone ? '#86efac' : '#e5e7eb'}`,
+                          borderRadius: '0.5rem', padding: '0.375rem 0.875rem',
+                          color: allDone ? '#15803d' : '#6b7280',
+                          fontSize: '0.8rem', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0,
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = allDone ? '#4ade80' : '#9ca3af' }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = allDone ? '#86efac' : '#e5e7eb' }}
+                      >
+                        {allDone ? '✅' : '🚀'} Getting Started Checklist{allDone ? ' (Completed)' : ''}
+                      </button>
+                    )
+                  })()}
+                </div>
+
+                {!setupDismissed && (
+                  <GettingStarted
+                    counts={counts}
+                    school={sc.school}
+                    primaryColor={primaryColor}
+                    onNavigate={setActivePage}
+                    onDismiss={dismissSetup}
+                  />
+                )}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
                   {[
                     { label: 'Total Students',     value: sc.stats.students, icon: '🎒' },
@@ -240,6 +316,7 @@ function App() {
             {activePage === 'facilities'  && <Facilities  user={session.user} school={sc.school} />}
             {activePage === 'rooms'       && <Rooms       user={session.user} school={sc.school} />}
             {activePage === 'classes'     && <Classes      user={session.user} school={sc.school} openClassId={openClassId} onClearOpenClass={() => setOpenClassId(null)} />}
+            {activePage === 'cohorts'     && <Cohorts      user={session.user} school={sc.school} />}
             {activePage === 'schedule'    && <Scheduling   user={session.user} school={sc.school} onNavigateToClass={navigateToClass} />}
             {activePage === 'settings'    && <Settings    user={session.user} school={sc.school} onUpdate={sc.setSchool} />}
           </div>
@@ -292,6 +369,86 @@ function App() {
           >Create Account</button>
         </div>
       </div>
+    </div>
+  )
+}
+
+function GettingStarted({ counts, school, primaryColor, onNavigate, onDismiss }) {
+  const steps       = SETUP_STEPS.map(s => ({ ...s, complete: s.done(counts, school) }))
+  const doneCount   = steps.filter(s => s.complete).length
+  const allDone     = doneCount === steps.length
+  const pct         = Math.round(doneCount / steps.length * 100)
+
+  return (
+    <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', padding: '1.5rem', marginBottom: '2rem' }}>
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span style={{ fontSize: '1.25rem' }}>{allDone ? '🎉' : '🚀'}</span>
+          <div>
+            <div style={{ fontWeight: '700', color: '#1f2937', fontSize: '1rem' }}>
+              {allDone ? "You're all set up!" : 'Getting Started'}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: '0.1rem' }}>
+              {allDone ? 'All setup steps complete.' : `${doneCount} of ${steps.length} steps complete`}
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={onDismiss}
+          style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '0.25rem 0.75rem', color: '#9ca3af', fontSize: '0.8rem', cursor: 'pointer' }}
+          onMouseEnter={e => e.currentTarget.style.color = '#6b7280'}
+          onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
+        >Dismiss</button>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ height: '6px', background: '#f3f4f6', borderRadius: '9999px', marginBottom: '1.25rem', overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${pct}%`, background: allDone ? '#10b981' : primaryColor, borderRadius: '9999px', transition: 'width 0.4s ease' }} />
+      </div>
+
+      {/* Steps */}
+      {!allDone && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '0.5rem' }}>
+          {steps.map(step => (
+            <button
+              key={step.id}
+              onClick={() => !step.complete && onNavigate(step.page)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.625rem',
+                padding: '0.5rem 0.75rem', borderRadius: '0.625rem', textAlign: 'left',
+                background: step.complete ? '#f0fdf4' : 'white',
+                border: `1px solid ${step.complete ? '#86efac' : '#e5e7eb'}`,
+                cursor: step.complete ? 'default' : 'pointer',
+                opacity: step.complete ? 0.65 : 1,
+                transition: 'border-color 0.15s, opacity 0.15s',
+              }}
+              onMouseEnter={e => { if (!step.complete) e.currentTarget.style.borderColor = primaryColor }}
+              onMouseLeave={e => { if (!step.complete) e.currentTarget.style.borderColor = '#e5e7eb' }}
+            >
+              {/* Circle indicator */}
+              <span style={{
+                width: '18px', height: '18px', borderRadius: '50%', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: step.complete ? '#10b981' : 'white',
+                border: `2px solid ${step.complete ? '#10b981' : '#d1d5db'}`,
+                fontSize: '0.65rem', color: 'white', fontWeight: '700',
+              }}>
+                {step.complete ? '✓' : ''}
+              </span>
+              <span style={{
+                fontSize: '0.85rem', fontWeight: step.complete ? '400' : '500',
+                color: step.complete ? '#6b7280' : '#1f2937', flex: 1,
+              }}>
+                {step.label}
+              </span>
+              {!step.complete && <span style={{ fontSize: '0.75rem', color: '#9ca3af', flexShrink: 0 }}>→</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
     </div>
   )
 }

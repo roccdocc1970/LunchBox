@@ -11,6 +11,7 @@ import { getStaff } from '../services/staff'
 import { getRooms } from '../services/rooms'
 import { getStudents } from '../services/enrollment'
 import { getEnrollments, enrollStudent, unenrollStudent } from '../services/classEnrollments'
+import { getCohorts, getClassCohorts, getCohortStudents, addCohortClass, removeCohortClass, bulkEnrollCohort } from '../services/cohorts'
 import { BLANK_CLASS, validateClass, calcClassStats } from '../domain/classes'
 import { parseDivisions } from '../domain/school'
 
@@ -19,6 +20,7 @@ export function useClasses(user, school) {
   const [staff,        setStaff]        = useState([])
   const [rooms,        setRooms]        = useState([])
   const [students,     setStudents]     = useState([])
+  const [cohorts,      setCohorts]      = useState([])
   const [loading,      setLoading]      = useState(true)
   const [selected,     setSelected]     = useState(null)
   const [editing,      setEditing]      = useState(false)
@@ -31,10 +33,15 @@ export function useClasses(user, school) {
   const [filterDiv,    setFilterDiv]    = useState('')
   const [filterStatus, setFilterStatus] = useState('Active')
 
-  // Enrollment state
+  // Individual enrollment state
   const [enrollments,    setEnrollments]    = useState([])
   const [enrollSearch,   setEnrollSearch]   = useState('')
   const [enrollSaving,   setEnrollSaving]   = useState(false)
+
+  // Cohort assignment state
+  const [classCohorts,   setClassCohorts]   = useState([])  // cohort_classes rows for selected class
+  const [cohortSearch,   setCohortSearch]   = useState('')
+  const [cohortEnrolling, setCohortEnrolling] = useState(false)
 
   // Derived from school config
   const divisions = parseDivisions(school?.divisions).filter(d => d.grades?.length > 0)
@@ -43,29 +50,42 @@ export function useClasses(user, school) {
   useEffect(() => { load() }, [])
 
   useEffect(() => {
-    if (selected) loadEnrollments(selected.id)
-    else setEnrollments([])
+    if (selected) {
+      loadEnrollments(selected.id)
+      loadClassCohorts(selected.id)
+    } else {
+      setEnrollments([])
+      setClassCohorts([])
+    }
     setEnrollSearch('')
+    setCohortSearch('')
   }, [selected?.id])
 
   const load = async () => {
     setLoading(true)
-    const [cls, st, rm, stu] = await Promise.all([
+    const [cls, st, rm, stu, coh] = await Promise.all([
       getClasses(supabase, user.id),
       getStaff(supabase, user.id),
       getRooms(supabase, user.id),
       getStudents(supabase, user.id),
+      getCohorts(supabase, user.id),
     ])
     setClasses(cls)
     setStaff(st.filter(s => s.status === 'Active'))
     setRooms(rm)
     setStudents(stu.filter(s => s.status === 'Enrolled'))
+    setCohorts(coh.filter(c => c.status === 'Active'))
     setLoading(false)
   }
 
   const loadEnrollments = async (classId) => {
     const data = await getEnrollments(supabase, user.id, classId)
     setEnrollments(data)
+  }
+
+  const loadClassCohorts = async (classId) => {
+    const data = await getClassCohorts(supabase, classId)
+    setClassCohorts(data)
   }
 
   // ── Detail panel ──────────────────────────────────────────────────────────
@@ -199,7 +219,57 @@ export function useClasses(user, school) {
     }
   }
 
-  // Students eligible to add: enrolled status, not already in this class
+  // ── Cohort assignment ─────────────────────────────────────────────────────
+
+  const handleAddCohort = async (cohortId) => {
+    if (!selected) return
+    setCohortEnrolling(true)
+    setError(null)
+    try {
+      await addCohortClass(supabase, user.id, cohortId, selected.id, true)
+      const result = await bulkEnrollCohort(supabase, user.id, cohortId, selected.id)
+      await Promise.all([loadClassCohorts(selected.id), loadEnrollments(selected.id)])
+      if (result.enrolled > 0) {
+        setSuccess(`Cohort assigned — ${result.enrolled} student${result.enrolled !== 1 ? 's' : ''} enrolled.${result.skipped > 0 ? ` ${result.skipped} skipped (already enrolled).` : ''}`)
+      } else if (result.skipped > 0) {
+        setSuccess(`Cohort assigned — all ${result.skipped} member${result.skipped !== 1 ? 's' : ''} already enrolled.`)
+      } else {
+        setSuccess('Cohort assigned — no members to enroll yet.')
+      }
+      setTimeout(() => setSuccess(null), 4000)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setCohortEnrolling(false)
+    }
+  }
+
+  const handleRemoveCohort = async (cohortClassId, cohortId) => {
+    if (!selected) return
+    try {
+      // Unenroll this cohort's students from the class
+      const members  = await getCohortStudents(supabase, cohortId)
+      const memberIds = new Set(members.map(m => m.student_id))
+      const toUnenroll = enrollments.filter(e => memberIds.has(e.student_id))
+      await Promise.all(toUnenroll.map(e => unenrollStudent(supabase, e.id)))
+      // Remove the cohort_classes link
+      await removeCohortClass(supabase, cohortClassId)
+      await Promise.all([loadClassCohorts(selected.id), loadEnrollments(selected.id)])
+    } catch (e) {
+      setError(e.message)
+    }
+  }
+
+  // Cohorts not yet assigned to this class
+  const assignedCohortIds  = new Set(classCohorts.map(cc => cc.cohort_id))
+  const availableCohorts   = cohorts.filter(c =>
+    !assignedCohortIds.has(c.id) &&
+    (cohortSearch === '' ||
+      c.name.toLowerCase().includes(cohortSearch.toLowerCase()) ||
+      (c.division || '').toLowerCase().includes(cohortSearch.toLowerCase()))
+  )
+
+  // ── Students eligible to add: enrolled status, not already in this class
   const enrolledStudentIds = new Set(enrollments.map(e => e.student_id))
   const availableStudents  = students.filter(s =>
     !enrolledStudentIds.has(s.id) &&
@@ -224,7 +294,7 @@ export function useClasses(user, school) {
   const stats = calcClassStats(classes)
 
   return {
-    classes, filtered, staff, rooms, students, loading, stats,
+    classes, filtered, staff, rooms, students, cohorts, loading, stats,
     divisions, subjects,
     selected, editing,
     form, setForm,
@@ -237,9 +307,13 @@ export function useClasses(user, school) {
     startAdd, startEdit, cancelEdit,
     selectTeacher, selectRoom,
     handleSave, handleDelete,
-    // Enrollment
+    // Individual enrollment
     enrollments, enrollSearch, setEnrollSearch,
     enrollSaving, availableStudents,
     handleEnroll, handleUnenroll,
+    // Cohort assignment
+    classCohorts, cohortSearch, setCohortSearch,
+    availableCohorts, cohortEnrolling,
+    handleAddCohort, handleRemoveCohort,
   }
 }
