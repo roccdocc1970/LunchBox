@@ -178,6 +178,39 @@ Local stdio MCP server built with `@modelcontextprotocol/sdk`. 27 tools register
 
 ---
 
+## Tailwind CSS Refactor Queue
+
+All `.jsx` files are being migrated from inline `style={{}}` objects to Tailwind utility classes. Inline `style={{}}` is kept only for runtime-dynamic values (brand color, division colors, status/type color maps).
+
+### Refactor Status
+
+| # | File | Status |
+|---|---|---|
+| 1 | `App.jsx` | ✅ Done |
+| 2 | `Settings.jsx` | ✅ Done |
+| 3 | `Classes.jsx` | ✅ Done |
+| 4 | `Scheduling.jsx` | ✅ Done |
+| 5 | `Reports.jsx` | ✅ Done |
+| 6 | `Cohorts.jsx` | ✅ Done |
+| 7 | `StaffDashboard.jsx` | ✅ Done |
+| 8 | `ApplicationPortal.jsx` | ✅ Done |
+| 9 | `Onboarding.jsx` | ✅ Done |
+| 10 | `Landing.jsx` | ✅ Done |
+| 11 | `Rooms.jsx` | ✅ Done |
+| 12 | `SetupWizard.jsx` | ⬜ Todo |
+| 13 | `StudentProfile.jsx` | ⬜ Todo |
+| 14 | `Fundraising.jsx` | ⬜ Todo |
+| 15 | `Staff.jsx` | ⬜ Todo |
+| 16 | `Admissions.jsx` | ⬜ Todo |
+| 17 | `Alumni.jsx` | ⬜ Todo |
+| 18 | `Facilities.jsx` | ⬜ Todo |
+| 19 | `Parents.jsx` | ⬜ Todo |
+| 20 | `ReportCards.jsx` | ⬜ Todo |
+| 21 | `Attendance.jsx` | ⬜ Todo |
+| 22 | `Enrollment.jsx` | ⬜ Todo |
+
+---
+
 ## Feature-Sliced Design Refactor Queue
 
 All existing modules are being refactored one-by-one to follow the Feature-Sliced Design pattern documented in CLAUDE.md. Each refactor extracts business/domain logic into `src/domain/<module>.js` and UI behavior into `src/hooks/use<Module>.js`, leaving the `.jsx` file as a thin rendering shell.

@@ -1,7 +1,10 @@
 import { useRooms } from './hooks/useRooms'
 import { ROOM_TYPES, ROOM_TYPE_COLORS, parseRoomDivisions } from './domain/rooms'
-import { getFloorsForBuilding, parseFloors } from './domain/buildings'
+import { getFloorsForBuilding } from './domain/buildings'
 import { parseDivisions, DIVISION_COLORS } from './domain/school'
+
+const fieldCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 outline-none text-[0.9rem]'
+const labelCls = 'block text-[0.8rem] font-medium text-gray-500 mb-1'
 
 export default function Rooms({ user, school }) {
   const primaryColor = school?.primary_color || '#f97316'
@@ -11,67 +14,59 @@ export default function Rooms({ user, school }) {
     .map((d, i) => ({ ...d, color: DIVISION_COLORS[i % DIVISION_COLORS.length] }))
     .filter(d => d.grades?.length > 0)
 
-  const inputStyle = { width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }
-  const labelStyle = { display: 'block', fontSize: '0.8rem', fontWeight: '500', color: '#6b7280', marginBottom: '0.25rem' }
-
-  // ── Form (add or edit) ───────────────────────────────────────────────────
   const renderForm = () => (
-    <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', padding: '1.75rem', marginBottom: '1.5rem' }}>
-      <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1.25rem' }}>
+    <div className="bg-white rounded-2xl shadow-sm p-7 mb-6">
+      <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-5">
         {r.selected ? 'Edit Room' : 'New Room'}
       </div>
-      {r.error && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginBottom: '1rem' }}>{r.error}</p>}
+      {r.error && <p className="text-red-500 text-sm mb-4">{r.error}</p>}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+      <div className="grid gap-4 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
         <div>
-          <label style={labelStyle}>Room Name *</label>
-          <input value={r.form.name} onChange={e => r.setForm({ ...r.form, name: e.target.value })} placeholder="e.g. Room 204" style={inputStyle} />
+          <label className={labelCls}>Room Name *</label>
+          <input value={r.form.name} onChange={e => r.setForm({ ...r.form, name: e.target.value })} placeholder="e.g. Room 204" className={fieldCls} />
         </div>
         <div>
-          <label style={labelStyle}>Type</label>
-          <select value={r.form.type} onChange={e => r.setForm({ ...r.form, type: e.target.value })} style={inputStyle}>
+          <label className={labelCls}>Type</label>
+          <select value={r.form.type} onChange={e => r.setForm({ ...r.form, type: e.target.value })} className={fieldCls}>
             {ROOM_TYPES.map(t => <option key={t}>{t}</option>)}
           </select>
         </div>
         <div>
-          <label style={labelStyle}>Building</label>
+          <label className={labelCls}>Building</label>
           {r.buildings.length > 0 ? (
-            <select
-              value={r.form.building || ''}
-              onChange={e => r.setForm({ ...r.form, building: e.target.value, floor: '' })}
-              style={inputStyle}
-            >
+            <select value={r.form.building || ''} onChange={e => r.setForm({ ...r.form, building: e.target.value, floor: '' })} className={fieldCls}>
               <option value="">— None —</option>
               {r.buildings.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
             </select>
           ) : (
-            <input value={r.form.building || ''} onChange={e => r.setForm({ ...r.form, building: e.target.value })} placeholder="e.g. Main Building" style={inputStyle} />
+            <input value={r.form.building || ''} onChange={e => r.setForm({ ...r.form, building: e.target.value })} placeholder="e.g. Main Building" className={fieldCls} />
           )}
         </div>
         <div>
-          <label style={labelStyle}>Floor</label>
+          <label className={labelCls}>Floor</label>
           {(() => {
             const floors = getFloorsForBuilding(r.buildings, r.form.building)
             return floors.length > 0 ? (
-              <select value={r.form.floor || ''} onChange={e => r.setForm({ ...r.form, floor: e.target.value })} style={inputStyle}>
+              <select value={r.form.floor || ''} onChange={e => r.setForm({ ...r.form, floor: e.target.value })} className={fieldCls}>
                 <option value="">— None —</option>
                 {floors.map(f => <option key={f} value={f}>{f}</option>)}
               </select>
             ) : (
-              <input value={r.form.floor || ''} onChange={e => r.setForm({ ...r.form, floor: e.target.value })} placeholder="e.g. 2nd Floor" style={inputStyle} />
+              <input value={r.form.floor || ''} onChange={e => r.setForm({ ...r.form, floor: e.target.value })} placeholder="e.g. 2nd Floor" className={fieldCls} />
             )
           })()}
         </div>
         <div>
-          <label style={labelStyle}>Capacity</label>
-          <input type="number" min="1" value={r.form.capacity} onChange={e => r.setForm({ ...r.form, capacity: e.target.value })} placeholder="Max students" style={inputStyle} />
+          <label className={labelCls}>Capacity</label>
+          <input type="number" min="1" value={r.form.capacity} onChange={e => r.setForm({ ...r.form, capacity: e.target.value })} placeholder="Max students" className={fieldCls} />
         </div>
       </div>
 
       {divisions.length > 0 && (
-        <div style={{ marginBottom: '1rem' }}>
-          <label style={labelStyle}>Assigned Divisions</label>
-          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+        <div className="mb-4">
+          <label className={labelCls}>Assigned Divisions</label>
+          <div className="flex gap-2 flex-wrap mt-1">
             {divisions.map(div => {
               const selected = (r.form.divisions || []).includes(div.name)
               return (
@@ -79,12 +74,11 @@ export default function Rooms({ user, school }) {
                   key={div.name}
                   type="button"
                   onClick={() => r.toggleDivision(div.name)}
+                  className="px-3.5 py-1 rounded-full text-[0.825rem] font-semibold cursor-pointer border-2 transition-all"
                   style={{
-                    padding: '0.3rem 0.875rem', borderRadius: '9999px', fontSize: '0.825rem', fontWeight: '600', cursor: 'pointer',
                     background: selected ? div.color : 'white',
                     color: selected ? 'white' : div.color,
-                    border: `2px solid ${div.color}`,
-                    transition: 'all 0.15s',
+                    borderColor: div.color,
                   }}
                 >{div.name}</button>
               )
@@ -93,47 +87,49 @@ export default function Rooms({ user, school }) {
         </div>
       )}
 
-      <div style={{ marginBottom: '1.25rem' }}>
-        <label style={labelStyle}>Notes</label>
-        <textarea value={r.form.notes || ''} onChange={e => r.setForm({ ...r.form, notes: e.target.value })} rows={2} style={{ ...inputStyle, resize: 'vertical' }} placeholder="AV equipment, accessibility notes…" />
+      <div className="mb-5">
+        <label className={labelCls}>Notes</label>
+        <textarea value={r.form.notes || ''} onChange={e => r.setForm({ ...r.form, notes: e.target.value })} rows={2} className={`${fieldCls} resize-y`} placeholder="AV equipment, accessibility notes…" />
       </div>
 
-      <div style={{ display: 'flex', gap: '0.75rem' }}>
-        <button onClick={r.handleSave} disabled={r.saving} style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.9rem' }}>
+      <div className="flex gap-3">
+        <button onClick={r.handleSave} disabled={r.saving}
+          className="text-white border-0 rounded-lg px-6 py-2 font-semibold cursor-pointer text-[0.9rem] hover:opacity-90 transition-opacity disabled:opacity-60"
+          style={{ background: primaryColor }}>
           {r.saving ? 'Saving…' : r.selected ? 'Update Room' : 'Add Room'}
         </button>
-        <button onClick={r.cancelEdit} style={{ background: 'white', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+        <button onClick={r.cancelEdit} className="bg-white text-gray-500 border border-gray-300 rounded-lg px-4 py-2 cursor-pointer text-[0.9rem] hover:bg-gray-50">
           Cancel
         </button>
       </div>
     </div>
   )
 
-  // ── Main ─────────────────────────────────────────────────────────────────
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="p-8 max-w-[1200px] mx-auto">
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+      <div className="flex justify-between items-start mb-6">
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Rooms</h2>
-          <p style={{ color: '#6b7280', marginTop: '0.25rem' }}>Manage classrooms and spaces across your school</p>
+          <h2 className="text-2xl font-bold text-gray-800 m-0">Rooms</h2>
+          <p className="text-gray-500 mt-1">Manage classrooms and spaces across your school</p>
         </div>
         {!r.editing && (
-          <button onClick={r.startAdd} style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.9rem' }}>
+          <button onClick={r.startAdd}
+            className="text-white border-0 rounded-lg px-5 py-2.5 font-semibold cursor-pointer text-[0.9rem] hover:opacity-90 transition-opacity"
+            style={{ background: primaryColor }}>
             + Add Room
           </button>
         )}
       </div>
 
-      {r.success && <p style={{ color: '#15803d', fontSize: '0.875rem', marginBottom: '1rem', fontWeight: '500' }}>✓ {r.success}</p>}
+      {r.success && <p className="text-green-700 text-sm mb-4 font-medium">✓ {r.success}</p>}
 
-      {/* Add / Edit form */}
       {r.editing && renderForm()}
 
       {/* Stat cards */}
       {!r.editing && (
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <div className="flex gap-4 mb-6 flex-wrap">
           <StatCard label="Total Rooms" value={r.stats.total} icon="🏫" />
           <StatCard label="Total Capacity" value={r.stats.capacity || '—'} icon="👥" />
           {Object.entries(r.stats.byType).map(([type, count]) => (
@@ -144,36 +140,40 @@ export default function Rooms({ user, school }) {
 
       {/* Filters */}
       {!r.editing && (
-        <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <div className="flex gap-4 mb-6 flex-wrap">
           <input
             type="text"
             placeholder="Search by name or building…"
             value={r.search}
             onChange={e => r.setSearch(e.target.value)}
-            style={{ ...inputStyle, flex: 1, minWidth: '200px' }}
+            className="flex-1 min-w-[200px] border border-gray-300 rounded-lg px-3 py-2 outline-none text-[0.9rem]"
           />
-          <select value={r.filterType} onChange={e => r.setFilterType(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '160px' }}>
+          <select value={r.filterType} onChange={e => r.setFilterType(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 outline-none text-[0.9rem] min-w-[160px] bg-white">
             <option value="">All Types</option>
             {ROOM_TYPES.map(t => <option key={t}>{t}</option>)}
           </select>
           {(r.search || r.filterType) && (
-            <button onClick={() => { r.setSearch(''); r.setFilterType('') }} style={{ background: 'transparent', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', color: '#6b7280', fontSize: '0.9rem' }}>Clear</button>
+            <button onClick={() => { r.setSearch(''); r.setFilterType('') }}
+              className="bg-transparent border border-gray-300 rounded-lg px-4 py-2 cursor-pointer text-gray-500 text-[0.9rem] hover:bg-gray-50">
+              Clear
+            </button>
           )}
         </div>
       )}
 
       {/* Room list */}
       {r.loading ? (
-        <p style={{ color: '#9ca3af' }}>Loading rooms…</p>
+        <p className="text-gray-400">Loading rooms…</p>
       ) : r.filtered.length === 0 ? (
-        <div style={{ background: 'white', borderRadius: '1rem', padding: '3rem', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏫</div>
-          <p style={{ color: '#6b7280', fontSize: '1.1rem' }}>
+        <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
+          <div className="text-[3rem] mb-4">🏫</div>
+          <p className="text-gray-500 text-[1.1rem]">
             {r.rooms.length === 0 ? 'No rooms yet. Add your first room to get started.' : 'No rooms match your filters.'}
           </p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
           {r.filtered.map(room => {
             const color = ROOM_TYPE_COLORS[room.type] || '#6b7280'
             const roomDivs = parseRoomDivisions(room.divisions)
@@ -185,75 +185,81 @@ export default function Rooms({ user, school }) {
             return (
               <div
                 key={room.id}
-                style={{
-                  background: 'white', borderRadius: '1rem',
-                  boxShadow: isOpen ? `0 0 0 2px ${primaryColor}` : '0 1px 4px rgba(0,0,0,0.08)',
-                  overflow: 'hidden', cursor: 'pointer', transition: 'box-shadow 0.15s',
-                }}
+                className="bg-white rounded-2xl overflow-hidden cursor-pointer transition-shadow"
+                style={{ boxShadow: isOpen ? `0 0 0 2px ${primaryColor}` : '0 1px 4px rgba(0,0,0,0.08)' }}
                 onClick={() => isOpen ? r.closeRoom() : r.openRoom(room)}
                 onMouseEnter={e => { if (!isOpen) e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)' }}
                 onMouseLeave={e => { if (!isOpen) e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.08)' }}
               >
-                {/* Color bar */}
-                <div style={{ height: '4px', background: color }} />
+                <div className="h-1" style={{ background: color }} />
 
-                <div style={{ padding: '1.25rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.625rem' }}>
+                <div className="p-5">
+                  <div className="flex justify-between items-start mb-2.5">
                     <div>
-                      <div style={{ fontWeight: '700', color: '#1f2937', fontSize: '1rem' }}>{room.name}</div>
+                      <div className="font-bold text-gray-800 text-base">{room.name}</div>
                       {(room.building || room.floor) && (
-                        <div style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: '0.1rem' }}>
+                        <div className="text-[0.78rem] text-gray-400 mt-0.5">
                           {[room.building, room.floor].filter(Boolean).join(' · ')}
                         </div>
                       )}
                     </div>
-                    <span style={{ fontSize: '0.72rem', fontWeight: '700', color, background: color + '15', borderRadius: '9999px', padding: '0.2rem 0.625rem', whiteSpace: 'nowrap' }}>
+                    <span className="text-[0.72rem] font-bold rounded-full px-2.5 py-0.5 whitespace-nowrap"
+                      style={{ color, background: color + '15' }}>
                       {room.type}
                     </span>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '1rem', fontSize: '0.825rem', color: '#6b7280' }}>
-                    {room.capacity && (
-                      <span>👥 {room.capacity} max</span>
-                    )}
+                  <div className="flex gap-4 text-[0.825rem] text-gray-500">
+                    {room.capacity && <span>👥 {room.capacity} max</span>}
                   </div>
 
                   {overCapacityClasses.length > 0 && (
-                    <div style={{ marginTop: '0.5rem', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '0.375rem', padding: '0.375rem 0.625rem', fontSize: '0.75rem', color: '#92400e' }}>
+                    <div className="mt-2 bg-amber-50 border border-amber-300 rounded-md px-2.5 py-1.5 text-xs text-amber-900">
                       ⚠️ Over capacity: {overCapacityClasses.map(c => `${c.name} (${c.class_size})`).join(', ')}
                     </div>
                   )}
 
                   {roomDivs.length > 0 && (
-                    <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', marginTop: '0.625rem' }}>
+                    <div className="flex gap-1.5 flex-wrap mt-2.5">
                       {roomDivs.map(d => {
                         const div = divisions.find(x => x.name === d)
                         const dc = div?.color || '#6b7280'
                         return (
-                          <span key={d} style={{ fontSize: '0.7rem', fontWeight: '600', color: dc, background: dc + '15', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>{d}</span>
+                          <span key={d} className="text-[0.7rem] font-semibold rounded-full px-2 py-0.5"
+                            style={{ color: dc, background: dc + '15' }}>{d}</span>
                         )
                       })}
                     </div>
                   )}
 
                   {room.notes && (
-                    <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: '0.625rem 0 0', lineHeight: 1.4 }}>{room.notes}</p>
+                    <p className="text-[0.78rem] text-gray-400 mt-2.5 mb-0 leading-snug">{room.notes}</p>
                   )}
 
-                  {/* Expanded actions */}
                   {isOpen && (
-                    <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '0.5rem' }}>
+                    <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2">
                       <button
                         onClick={e => { e.stopPropagation(); r.startEdit(room) }}
-                        style={{ flex: 1, background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.45rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}
-                      >Edit</button>
+                        className="flex-1 text-white border-0 rounded-lg py-1.5 font-semibold cursor-pointer text-[0.85rem] hover:opacity-90 transition-opacity"
+                        style={{ background: primaryColor }}>
+                        Edit
+                      </button>
                       {r.deleteId === room.id ? (
                         <>
-                          <button onClick={e => { e.stopPropagation(); r.handleDelete(room.id) }} style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.45rem 0.875rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}>Confirm</button>
-                          <button onClick={e => { e.stopPropagation(); r.setDeleteId(null) }} style={{ background: 'white', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.45rem 0.875rem', cursor: 'pointer', fontSize: '0.85rem' }}>Cancel</button>
+                          <button onClick={e => { e.stopPropagation(); r.handleDelete(room.id) }}
+                            className="bg-red-500 text-white border-0 rounded-lg px-3.5 py-1.5 font-semibold cursor-pointer text-[0.85rem] hover:bg-red-600">
+                            Confirm
+                          </button>
+                          <button onClick={e => { e.stopPropagation(); r.setDeleteId(null) }}
+                            className="bg-white text-gray-500 border border-gray-300 rounded-lg px-3.5 py-1.5 cursor-pointer text-[0.85rem] hover:bg-gray-50">
+                            Cancel
+                          </button>
                         </>
                       ) : (
-                        <button onClick={e => { e.stopPropagation(); r.setDeleteId(room.id) }} style={{ background: 'white', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '0.5rem', padding: '0.45rem 0.875rem', cursor: 'pointer', fontSize: '0.85rem' }}>Delete</button>
+                        <button onClick={e => { e.stopPropagation(); r.setDeleteId(room.id) }}
+                          className="bg-white text-red-500 border border-red-500 rounded-lg px-3.5 py-1.5 cursor-pointer text-[0.85rem] hover:bg-red-50">
+                          Delete
+                        </button>
                       )}
                     </div>
                   )}
@@ -269,11 +275,11 @@ export default function Rooms({ user, school }) {
 
 function StatCard({ label, value, icon, color }) {
   return (
-    <div style={{ background: 'white', borderRadius: '0.75rem', padding: '0.875rem 1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-      {icon && <span style={{ fontSize: '1.25rem' }}>{icon}</span>}
-      {color && <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }} />}
-      <span style={{ fontWeight: '700', color: '#1f2937' }}>{value}</span>
-      <span style={{ color: '#6b7280', fontSize: '0.85rem' }}>{label}</span>
+    <div className="bg-white rounded-xl px-5 py-3.5 shadow-sm flex items-center gap-3">
+      {icon  && <span className="text-xl">{icon}</span>}
+      {color && <span className="w-2.5 h-2.5 rounded-full inline-block shrink-0" style={{ background: color }} />}
+      <span className="font-bold text-gray-800">{value}</span>
+      <span className="text-gray-500 text-[0.85rem]">{label}</span>
     </div>
   )
 }

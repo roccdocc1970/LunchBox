@@ -13,6 +13,12 @@ const BLANK = {
   _honeypot: '',
 }
 
+const labelCls = 'block text-[0.8rem] font-semibold text-gray-700 mb-1'
+const fieldCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-[0.9rem] outline-none'
+const SectionHead = ({ text }) => (
+  <div className="text-[0.7rem] font-bold text-gray-400 uppercase tracking-widest mb-3.5 mt-1">{text}</div>
+)
+
 export default function ApplicationPortal({ schoolId }) {
   const [school, setSchool] = useState(null)
   const [loadingSchool, setLoadingSchool] = useState(true)
@@ -52,7 +58,7 @@ export default function ApplicationPortal({ schoolId }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (form._honeypot) return // silent bot reject
+    if (form._honeypot) return
 
     if (!form.parent_first_name.trim() || !form.parent_last_name.trim()) {
       setError('Parent name is required.')
@@ -92,18 +98,18 @@ export default function ApplicationPortal({ schoolId }) {
 
   if (loadingSchool) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: '#9ca3af', fontSize: '1rem' }}>Loading...</div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-gray-400 text-base">Loading...</div>
       </div>
     )
   }
 
   if (notFound) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-        <div style={{ textAlign: 'center', color: '#6b7280' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🍱</div>
-          <h2 style={{ color: '#1f2937', marginBottom: '0.5rem' }}>Application Not Found</h2>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
+        <div className="text-center text-gray-500">
+          <div className="text-[3rem] mb-4">🍱</div>
+          <h2 className="text-gray-800 mb-2">Application Not Found</h2>
           <p>This application link may be invalid or expired. Please contact the school directly.</p>
         </div>
       </div>
@@ -112,48 +118,42 @@ export default function ApplicationPortal({ schoolId }) {
 
   if (submitted) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-        <div style={{ background: 'white', borderRadius: '1.25rem', boxShadow: '0 8px 32px rgba(0,0,0,0.1)', padding: '3rem', maxWidth: '480px', width: '100%', textAlign: 'center' }}>
-          <div style={{ width: '64px', height: '64px', background: '#10b98118', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', fontSize: '2rem' }}>✅</div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: '0 0 0.75rem' }}>Application Submitted!</h2>
-          <p style={{ color: '#6b7280', margin: '0 0 1.5rem', lineHeight: 1.6 }}>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
+        <div className="bg-white rounded-[1.25rem] shadow-xl p-12 max-w-[480px] w-full text-center">
+          <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6 text-[2rem]">✅</div>
+          <h2 className="text-2xl font-bold text-gray-800 mt-0 mb-3">Application Submitted!</h2>
+          <p className="text-gray-500 mb-6 leading-relaxed">
             Thank you for your interest in <strong>{school?.name}</strong>. The admissions team will be in touch soon.
           </p>
-          <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '1.5rem' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🍱</div>
-            <div style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Powered by LunchBox</div>
+          <div className="border-t border-gray-100 pt-6">
+            <div className="text-[2rem] mb-1">🍱</div>
+            <div className="text-[0.8rem] text-gray-400">Powered by LunchBox</div>
           </div>
         </div>
       </div>
     )
   }
 
-  const labelStyle = { display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#374151', marginBottom: '0.3rem' }
-  const inputStyle = { width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }
-  const sectionHead = (text) => (
-    <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.875rem', marginTop: '0.25rem' }}>{text}</div>
-  )
-
   return (
-    <div style={{ minHeight: '100vh', background: '#f9fafb' }}>
+    <div className="min-h-screen bg-gray-50">
 
       {/* Header */}
-      <div style={{ background: primaryColor, padding: '1.25rem 2rem', display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+      <div className="flex items-center gap-3.5 px-8 py-5" style={{ background: primaryColor }}>
         {school?.logo_url
-          ? <img src={school.logo_url} alt="School logo" style={{ height: '2rem', borderRadius: '0.25rem', objectFit: 'contain' }} onError={e => e.target.style.display = 'none'} />
-          : <span style={{ fontSize: '1.75rem' }}>🍱</span>
+          ? <img src={school.logo_url} alt="School logo" className="h-8 rounded object-contain" onError={e => e.target.style.display = 'none'} />
+          : <span className="text-[1.75rem]">🍱</span>
         }
         <div>
-          <div style={{ color: 'white', fontWeight: 'bold', fontSize: '1.15rem', lineHeight: 1.2 }}>{school?.name}</div>
-          {school?.motto && <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.75rem' }}>{school.motto}</div>}
+          <div className="text-white font-bold text-[1.15rem] leading-tight">{school?.name}</div>
+          {school?.motto && <div className="text-white/75 text-xs">{school.motto}</div>}
         </div>
       </div>
 
       {/* Form card */}
-      <div style={{ maxWidth: '600px', margin: '2.5rem auto', padding: '0 1rem' }}>
-        <div style={{ background: 'white', borderRadius: '1.25rem', boxShadow: '0 4px 24px rgba(0,0,0,0.08)', padding: '2rem' }}>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 'bold', color: '#1f2937', margin: '0 0 0.375rem' }}>Admissions Inquiry</h2>
-          <p style={{ color: '#6b7280', fontSize: '0.9rem', margin: '0 0 1.75rem', lineHeight: 1.5 }}>
+      <div className="max-w-[600px] mx-auto mt-10 mb-8 px-4">
+        <div className="bg-white rounded-[1.25rem] shadow-lg p-8">
+          <h2 className="text-[1.4rem] font-bold text-gray-800 mt-0 mb-1">Admissions Inquiry</h2>
+          <p className="text-gray-500 text-[0.9rem] mt-0 mb-7 leading-relaxed">
             Fill out the form below and our admissions team will reach out shortly.
           </p>
 
@@ -165,64 +165,64 @@ export default function ApplicationPortal({ schoolId }) {
               name="website"
               value={form._honeypot}
               onChange={e => set('_honeypot', e.target.value)}
-              style={{ display: 'none' }}
+              className="hidden"
               tabIndex={-1}
               autoComplete="off"
             />
 
-            {sectionHead('Parent / Guardian Information')}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.875rem', marginBottom: '0.875rem' }}>
+            <SectionHead text="Parent / Guardian Information" />
+            <div className="grid grid-cols-2 gap-3.5 mb-3.5">
               <div>
-                <label style={labelStyle}>First Name <span style={{ color: '#ef4444' }}>*</span></label>
-                <input style={inputStyle} value={form.parent_first_name} onChange={e => set('parent_first_name', e.target.value)} placeholder="Jane" />
+                <label className={labelCls}>First Name <span className="text-red-500">*</span></label>
+                <input className={fieldCls} value={form.parent_first_name} onChange={e => set('parent_first_name', e.target.value)} placeholder="Jane" />
               </div>
               <div>
-                <label style={labelStyle}>Last Name <span style={{ color: '#ef4444' }}>*</span></label>
-                <input style={inputStyle} value={form.parent_last_name} onChange={e => set('parent_last_name', e.target.value)} placeholder="Smith" />
+                <label className={labelCls}>Last Name <span className="text-red-500">*</span></label>
+                <input className={fieldCls} value={form.parent_last_name} onChange={e => set('parent_last_name', e.target.value)} placeholder="Smith" />
               </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.875rem', marginBottom: '1.5rem' }}>
+            <div className="grid grid-cols-2 gap-3.5 mb-6">
               <div>
-                <label style={labelStyle}>Email</label>
-                <input type="email" style={inputStyle} value={form.email} onChange={e => set('email', e.target.value)} placeholder="jane@example.com" />
+                <label className={labelCls}>Email</label>
+                <input type="email" className={fieldCls} value={form.email} onChange={e => set('email', e.target.value)} placeholder="jane@example.com" />
               </div>
               <div>
-                <label style={labelStyle}>Phone</label>
-                <input type="tel" style={inputStyle} value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="(555) 000-0000" />
+                <label className={labelCls}>Phone</label>
+                <input type="tel" className={fieldCls} value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="(555) 000-0000" />
               </div>
             </div>
 
-            {sectionHead('Student Information')}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.875rem', marginBottom: '0.875rem' }}>
+            <SectionHead text="Student Information" />
+            <div className="grid grid-cols-2 gap-3.5 mb-3.5">
               <div>
-                <label style={labelStyle}>First Name <span style={{ color: '#ef4444' }}>*</span></label>
-                <input style={inputStyle} value={form.student_first_name} onChange={e => set('student_first_name', e.target.value)} placeholder="Alex" />
+                <label className={labelCls}>First Name <span className="text-red-500">*</span></label>
+                <input className={fieldCls} value={form.student_first_name} onChange={e => set('student_first_name', e.target.value)} placeholder="Alex" />
               </div>
               <div>
-                <label style={labelStyle}>Last Name <span style={{ color: '#ef4444' }}>*</span></label>
-                <input style={inputStyle} value={form.student_last_name} onChange={e => set('student_last_name', e.target.value)} placeholder="Smith" />
+                <label className={labelCls}>Last Name <span className="text-red-500">*</span></label>
+                <input className={fieldCls} value={form.student_last_name} onChange={e => set('student_last_name', e.target.value)} placeholder="Smith" />
               </div>
             </div>
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={labelStyle}>Grade Applying For</label>
-              <select style={{ ...inputStyle, cursor: 'pointer' }} value={form.grade_applying_for} onChange={e => set('grade_applying_for', e.target.value)}>
+            <div className="mb-6">
+              <label className={labelCls}>Grade Applying For</label>
+              <select className={`${fieldCls} cursor-pointer`} value={form.grade_applying_for} onChange={e => set('grade_applying_for', e.target.value)}>
                 <option value="">Select a grade...</option>
                 {availableGrades.map(g => <option key={g} value={g}>{g}</option>)}
               </select>
             </div>
 
-            {sectionHead('Additional Information')}
-            <div style={{ marginBottom: '0.875rem' }}>
-              <label style={labelStyle}>How did you hear about us?</label>
-              <select style={{ ...inputStyle, cursor: 'pointer' }} value={form.source} onChange={e => set('source', e.target.value)}>
+            <SectionHead text="Additional Information" />
+            <div className="mb-3.5">
+              <label className={labelCls}>How did you hear about us?</label>
+              <select className={`${fieldCls} cursor-pointer`} value={form.source} onChange={e => set('source', e.target.value)}>
                 <option value="">Select one...</option>
                 {SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
-            <div style={{ marginBottom: '1.75rem' }}>
-              <label style={labelStyle}>Any questions or notes?</label>
+            <div className="mb-7">
+              <label className={labelCls}>Any questions or notes?</label>
               <textarea
-                style={{ ...inputStyle, resize: 'vertical', minHeight: '80px' }}
+                className={`${fieldCls} resize-y min-h-[80px]`}
                 value={form.notes}
                 onChange={e => set('notes', e.target.value)}
                 placeholder="Anything you'd like us to know..."
@@ -230,7 +230,7 @@ export default function ApplicationPortal({ schoolId }) {
             </div>
 
             {error && (
-              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.5rem', padding: '0.75rem 1rem', color: '#ef4444', fontSize: '0.875rem', marginBottom: '1rem' }}>
+              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-red-500 text-sm mb-4">
                 {error}
               </div>
             )}
@@ -238,20 +238,21 @@ export default function ApplicationPortal({ schoolId }) {
             <button
               type="submit"
               disabled={saving}
-              style={{ width: '100%', background: primaryColor, color: 'white', border: 'none', borderRadius: '0.625rem', padding: '0.75rem', fontWeight: '700', fontSize: '1rem', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}
+              className="w-full text-white border-0 rounded-xl py-3 font-bold text-base transition-opacity hover:opacity-90 disabled:opacity-70 disabled:cursor-not-allowed"
+              style={{ background: primaryColor }}
             >
               {saving ? 'Submitting...' : 'Submit Application'}
             </button>
 
-            <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#9ca3af', marginTop: '1rem', marginBottom: 0 }}>
+            <p className="text-center text-xs text-gray-400 mt-4 mb-0">
               Your information is kept private and will only be used by {school?.name} admissions staff.
             </p>
           </form>
         </div>
 
-        <div style={{ textAlign: 'center', marginTop: '1.5rem', marginBottom: '2rem' }}>
-          <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Powered by </span>
-          <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: '600' }}>🍱 LunchBox</span>
+        <div className="text-center mt-6 mb-8">
+          <span className="text-[0.8rem] text-gray-400">Powered by </span>
+          <span className="text-[0.8rem] text-gray-400 font-semibold">🍱 LunchBox</span>
         </div>
       </div>
     </div>
