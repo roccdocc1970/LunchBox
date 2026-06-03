@@ -48,7 +48,7 @@ export default function Alumni({ user, school }) {
       )}
 
       {/* Stat cards */}
-      <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
+      <div className="grid gap-4 mb-6 grid-cols-[repeat(auto-fit,minmax(160px,1fr))]">
         {[
           { label: 'Total Alumni',  value: stats.total,        color: primaryColor },
           { label: 'Active Donors', value: stats.activeDonors, color: '#10b981' },
@@ -103,7 +103,7 @@ export default function Alumni({ user, school }) {
           </p>
         </div>
       ) : (
-        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+        <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
           {filtered.map(alumnus => (
             <div
               key={alumnus.id}
@@ -240,11 +240,11 @@ export default function Alumni({ user, school }) {
                           return (
                             <div key={entry.id} className={`relative ${i < gradeHistory.length - 1 ? 'mb-3.5' : ''}`}>
                               <div
-                                className="absolute -left-[18px] top-1 w-2.5 h-2.5 rounded-full border-2"
-                                style={{ background: isFinal ? primaryColor : '#d1d5db', borderColor: isFinal ? primaryColor : '#e5e7eb' }}
+                                className={`absolute -left-[18px] top-1 w-2.5 h-2.5 rounded-full border-2 ${isFinal ? '' : 'bg-gray-300 border-gray-200'}`}
+                                style={isFinal ? { background: primaryColor, borderColor: primaryColor } : undefined}
                               />
                               <div className="flex justify-between items-center">
-                                <span className="text-sm" style={{ fontWeight: isFinal ? '600' : '400', color: isFinal ? primaryColor : '#374151' }}>{entry.grade}</span>
+                                <span className={`text-sm ${isFinal ? 'font-semibold' : 'font-normal text-gray-700'}`} style={isFinal ? { color: primaryColor } : undefined}>{entry.grade}</span>
                                 <span className="text-xs text-gray-400">{entry.academic_year}</span>
                               </div>
                               <div className="flex gap-2">
@@ -323,7 +323,7 @@ export default function Alumni({ user, school }) {
                     <div><label className={labelCls}>Email</label>  <input type="email" name="email" value={editForm.email || ''} onChange={handleEditChange} className={fieldCls} /></div>
                     <div><label className={labelCls}>Phone</label>  <input type="tel"   name="phone" value={editForm.phone || ''} onChange={handleEditChange} className={fieldCls} /></div>
                     <div><label className={labelCls}>Address</label><input name="address" value={editForm.address || ''} onChange={handleEditChange} className={fieldCls} /></div>
-                    <div className="grid gap-3" style={{ gridTemplateColumns: '2fr 1fr 1fr' }}>
+                    <div className="grid gap-3 grid-cols-[2fr_1fr_1fr]">
                       <div><label className={labelCls}>City</label> <input name="city"  value={editForm.city  || ''} onChange={handleEditChange} className={fieldCls} /></div>
                       <div><label className={labelCls}>State</label><input name="state" value={editForm.state || ''} onChange={handleEditChange} className={fieldCls} /></div>
                       <div><label className={labelCls}>ZIP</label>  <input name="zip"   value={editForm.zip   || ''} onChange={handleEditChange} className={fieldCls} /></div>

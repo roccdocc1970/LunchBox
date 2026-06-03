@@ -113,8 +113,8 @@ export default function Parents({ user, school, onCompose }) {
                     {p.email && (
                       <button
                         onClick={e => { e.stopPropagation(); onCompose && onCompose(p) }}
-                        className="border rounded-md px-2.5 py-1 text-xs font-semibold cursor-pointer hover:opacity-80 transition-opacity whitespace-nowrap"
-                        style={{ borderColor: primaryColor, color: primaryColor, background: 'transparent' }}
+                        className="border rounded-md px-2.5 py-1 text-xs font-semibold cursor-pointer hover:opacity-80 transition-opacity whitespace-nowrap bg-transparent"
+                        style={{ borderColor: primaryColor, color: primaryColor }}
                       >
                         ✉ Message
                       </button>
@@ -138,7 +138,7 @@ export default function Parents({ user, school, onCompose }) {
                 <div className="flex items-center gap-4">
                   <div
                     className="w-13 h-13 rounded-full flex items-center justify-center font-extrabold text-lg shrink-0"
-                    style={{ width: 52, height: 52, background: primaryColor + '20', color: primaryColor }}
+                    style={{ background: primaryColor + '20', color: primaryColor }}
                   >
                     {initials(selected)}
                   </div>

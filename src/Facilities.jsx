@@ -52,7 +52,7 @@ export default function Facilities({ user, school }) {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
+      <div className="grid gap-4 mb-6 grid-cols-[repeat(auto-fit,minmax(160px,1fr))]">
         {[
           { label: 'Open',                 value: stats.open,               color: '#3b82f6' },
           { label: 'In Progress',          value: stats.inProgress,         color: '#f59e0b' },
@@ -70,7 +70,7 @@ export default function Facilities({ user, school }) {
       {showForm && (
         <div className="bg-white rounded-2xl p-6 shadow-sm mb-6 border" style={{ borderColor: primaryColor + '30' }}>
           <h3 className="m-0 mb-5 text-lg font-bold text-gray-800">New Work Order</h3>
-          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+          <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(220px,1fr))]">
             <div className="col-span-2">
               <label className={labelCls}>Title *</label>
               <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Brief description of the issue" className={fieldCls} />
@@ -227,9 +227,8 @@ export default function Facilities({ user, school }) {
                     <button
                       key={s}
                       onClick={() => quickUpdateStatus(selected.id, s)}
-                      className="text-xs rounded-full px-3 py-1 cursor-pointer border transition-all"
+                      className={`text-xs rounded-full px-3 py-1 cursor-pointer border transition-all ${selected.status === s ? 'font-bold' : 'font-medium'}`}
                       style={{
-                        fontWeight: selected.status === s ? '700' : '500',
                         color: selected.status === s ? 'white' : STATUS_COLORS[s],
                         background: selected.status === s ? STATUS_COLORS[s] : STATUS_COLORS[s] + '18',
                         borderColor: STATUS_COLORS[s],
@@ -243,8 +242,8 @@ export default function Facilities({ user, school }) {
               <div className="flex justify-end">
                 <button
                   onClick={() => { setEditMode(!editMode); setEditForm({ ...selected }) }}
-                  className="text-xs font-semibold border rounded-md px-3 py-1.5 cursor-pointer hover:opacity-80 transition-opacity"
-                  style={{ color: primaryColor, borderColor: primaryColor, background: 'none' }}
+                  className="text-xs font-semibold border rounded-md px-3 py-1.5 cursor-pointer hover:opacity-80 transition-opacity bg-transparent"
+                  style={{ color: primaryColor, borderColor: primaryColor }}
                 >
                   {editMode ? 'Cancel Edit' : 'Edit'}
                 </button>

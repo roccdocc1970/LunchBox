@@ -56,7 +56,7 @@ export default function ReportCards({ user, school }) {
         <div className="bg-white rounded-2xl p-8 shadow-sm mb-8">
           <h3 className="text-lg font-semibold text-gray-800 mt-0 mb-6">New Report Card</h3>
 
-          <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+          <div className="grid gap-4 mb-6 grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
             <div>
               <label className={labelCls}>Student <span className="text-red-500">*</span></label>
               <select value={form.student_id} onChange={e => handleStudentSelect(e.target.value)} className={fieldCls}>
@@ -87,7 +87,7 @@ export default function ReportCards({ user, school }) {
               Subject Grades <span className="font-normal text-gray-400 text-xs">({school?.grading_scale || 'Letter'} scale)</span>
             </div>
             <div className="border border-gray-200 rounded-xl overflow-hidden">
-              <div className="grid bg-gray-50 px-4 py-2.5 border-b border-gray-200 gap-3" style={{ gridTemplateColumns: '200px 160px 1fr' }}>
+              <div className="grid bg-gray-50 px-4 py-2.5 border-b border-gray-200 gap-3 grid-cols-[200px_160px_1fr]">
                 <span className="text-xs font-bold text-gray-500 uppercase">Subject</span>
                 <span className="text-xs font-bold text-gray-500 uppercase">Grade</span>
                 <span className="text-xs font-bold text-gray-500 uppercase">Teacher Comment</span>
@@ -95,8 +95,7 @@ export default function ReportCards({ user, school }) {
               {form.grades.map((g, i) => (
                 <div
                   key={g.subject}
-                  className={`grid px-4 py-2 gap-3 items-center ${i < form.grades.length - 1 ? 'border-b border-gray-100' : ''}`}
-                  style={{ gridTemplateColumns: '200px 160px 1fr' }}
+                  className={`grid px-4 py-2 gap-3 items-center grid-cols-[200px_160px_1fr] ${i < form.grades.length - 1 ? 'border-b border-gray-100' : ''}`}
                 >
                   <span className="text-sm text-gray-700 font-medium">{g.subject}</span>
                   <select
@@ -306,11 +305,8 @@ export default function ReportCards({ user, school }) {
               <div className="flex gap-3">
                 <button
                   onClick={() => togglePublished(selected)}
-                  className="flex-1 border rounded-lg py-2.5 font-semibold cursor-pointer text-sm hover:opacity-90 transition-opacity"
-                  style={selected.published
-                    ? { background: 'white', color: '#374151', borderColor: '#d1d5db' }
-                    : { background: primaryColor, color: 'white', border: 'none' }
-                  }
+                  className={`flex-1 border rounded-lg py-2.5 font-semibold cursor-pointer text-sm hover:opacity-90 transition-opacity ${selected.published ? 'bg-white text-gray-700 border-gray-300' : 'text-white border-0'}`}
+                  style={selected.published ? undefined : { background: primaryColor }}
                 >
                   {selected.published ? 'Revert to Draft' : '✓ Publish Report Card'}
                 </button>

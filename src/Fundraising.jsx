@@ -48,12 +48,8 @@ export default function Fundraising({ user, school }) {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className="px-5 py-2 rounded-lg border-0 cursor-pointer text-sm transition-all"
-            style={{
-              fontWeight: activeTab === tab.id ? '600' : '400',
-              background: activeTab === tab.id ? primaryColor : 'transparent',
-              color: activeTab === tab.id ? 'white' : '#6b7280',
-            }}
+            className={`px-5 py-2 rounded-lg border-0 cursor-pointer text-sm transition-all ${activeTab === tab.id ? 'font-semibold text-white' : 'font-normal text-gray-500'}`}
+            style={{ background: activeTab === tab.id ? primaryColor : 'transparent' }}
           >{tab.label}</button>
         ))}
       </div>
@@ -62,7 +58,7 @@ export default function Fundraising({ user, school }) {
       {activeTab === 'campaigns' && (
         <>
           {/* Stats */}
-          <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
+          <div className="grid gap-4 mb-6 grid-cols-[repeat(auto-fit,minmax(160px,1fr))]">
             {[
               { label: 'Total Raised',     value: fmt(stats.totalRaised),  icon: '💰', color: '#10b981' },
               { label: 'Active Campaigns', value: stats.activeCampaigns,   icon: '🎯', color: primaryColor },
@@ -86,7 +82,7 @@ export default function Fundraising({ user, school }) {
           {showCampaignForm && (
             <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
               <h3 className="m-0 mb-5 text-base font-bold text-gray-800">{editingCampaign ? 'Edit Campaign' : 'New Campaign'}</h3>
-              <div className="grid gap-4 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+              <div className="grid gap-4 mb-4 grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
                 <div className="col-span-2">
                   <label className={labelCls}>Campaign Name *</label>
                   <input value={campaignForm.name} onChange={e => setCampaignForm({ ...campaignForm, name: e.target.value })} placeholder="e.g. Annual Fund 2026" className={fieldCls} />
@@ -108,7 +104,7 @@ export default function Fundraising({ user, school }) {
           {campaigns.length === 0 ? (
             <p className="text-gray-400">No campaigns yet. Create your first one above.</p>
           ) : (
-            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
+            <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(320px,1fr))]">
               {campaigns.map(c => {
                 const raised = getCampaignTotal(donations, c.id)
                 const pct    = getCampaignPct(raised, c.goal)
@@ -271,8 +267,8 @@ export default function Fundraising({ user, school }) {
             <div className="flex gap-2">
               {['all', ...DONOR_TYPES].map(f => (
                 <button key={f} onClick={() => setDonationFilter(f)}
-                  className="px-3.5 py-1.5 rounded-lg border text-sm cursor-pointer transition-all"
-                  style={{ fontWeight: donationFilter === f ? '600' : '400', background: donationFilter === f ? primaryColor : 'white', color: donationFilter === f ? 'white' : '#6b7280', borderColor: donationFilter === f ? primaryColor : '#d1d5db' }}>
+                  className={`px-3.5 py-1.5 rounded-lg border text-sm cursor-pointer transition-all ${donationFilter === f ? 'font-semibold text-white' : 'font-normal text-gray-500 bg-white border-gray-300'}`}
+                  style={donationFilter === f ? { background: primaryColor, borderColor: primaryColor } : undefined}>
                   {f === 'all' ? 'All' : f}
                 </button>
               ))}
@@ -285,7 +281,7 @@ export default function Fundraising({ user, school }) {
           {showDonationForm && (
             <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
               <h3 className="m-0 mb-5 text-base font-bold text-gray-800">Log Donation</h3>
-              <div className="grid gap-4 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+              <div className="grid gap-4 mb-4 grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
                 <div><label className={labelCls}>Campaign</label><select value={donationForm.campaign_id} onChange={e => setDonationForm({ ...donationForm, campaign_id: e.target.value })} className={fieldCls}><option value="">No campaign</option>{campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
                 <div><label className={labelCls}>Donor Type *</label><select value={donationForm.donor_type} onChange={e => handleDonorTypeChange(e.target.value)} className={fieldCls}>{DONOR_TYPES.map(t => <option key={t}>{t}</option>)}</select></div>
 
@@ -294,7 +290,7 @@ export default function Fundraising({ user, school }) {
                     <label className={labelCls}>Search {donationForm.donor_type} *</label>
                     <input value={donorSearch} onChange={e => handleDonorSearch(e.target.value, donationForm.donor_type)}
                       placeholder={donationForm.donor_id ? donationForm.donor_name : `Search ${donationForm.donor_type.toLowerCase()}s…`}
-                      className={fieldCls} style={{ borderColor: donationForm.donor_id ? '#10b981' : '#d1d5db' }} />
+                      className={`${fieldCls} ${donationForm.donor_id ? 'border-green-500' : 'border-gray-300'}`} />
                     {donorResults.length > 0 && (
                       <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg z-20 shadow-md">
                         {donorResults.map(r => (
@@ -364,8 +360,7 @@ export default function Fundraising({ user, school }) {
                         <td className="px-4 py-2.5 text-gray-500">{d.payment_method}</td>
                         <td className="px-4 py-2.5">
                           <button onClick={() => handleToggleReceipt(d.id, d.receipt_sent)}
-                            className="text-xs font-semibold border rounded-md px-2 py-0.5 cursor-pointer transition-colors"
-                            style={{ color: d.receipt_sent ? '#10b981' : '#9ca3af', borderColor: d.receipt_sent ? '#10b981' : '#d1d5db', background: 'none' }}>
+                            className={`text-xs font-semibold border rounded-md px-2 py-0.5 cursor-pointer transition-colors bg-transparent ${d.receipt_sent ? 'text-green-500 border-green-500' : 'text-gray-400 border-gray-300'}`}>
                             {d.receipt_sent ? '✓ Sent' : 'Mark Sent'}
                           </button>
                         </td>
@@ -391,7 +386,7 @@ export default function Fundraising({ user, school }) {
           {showEventForm && (
             <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
               <h3 className="m-0 mb-5 text-base font-bold text-gray-800">New Fundraising Event</h3>
-              <div className="grid gap-4 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+              <div className="grid gap-4 mb-4 grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
                 <div className="col-span-2"><label className={labelCls}>Event Name *</label><input value={eventForm.name} onChange={e => setEventForm({ ...eventForm, name: e.target.value })} placeholder="e.g. Spring Gala 2026" className={fieldCls} /></div>
                 <div><label className={labelCls}>Type</label><select value={eventForm.type} onChange={e => setEventForm({ ...eventForm, type: e.target.value })} className={fieldCls}>{EVENT_TYPES.map(t => <option key={t}>{t}</option>)}</select></div>
                 <div><label className={labelCls}>Linked Campaign</label><select value={eventForm.campaign_id} onChange={e => setEventForm({ ...eventForm, campaign_id: e.target.value })} className={fieldCls}><option value="">None</option>{campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
@@ -413,14 +408,14 @@ export default function Fundraising({ user, school }) {
           {events.length === 0 ? (
             <p className="text-gray-400">No events yet.</p>
           ) : (
-            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+            <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(300px,1fr))]">
               {events.map(ev => {
                 const revenue  = getEventRevenue(ev)
                 const net      = getEventNet(ev)
                 const pct      = getCampaignPct(revenue, ev.goal)
                 const campaign = campaigns.find(c => c.id === ev.campaign_id)
                 return (
-                  <div key={ev.id} className="bg-white rounded-2xl p-5 shadow-sm border-t-4" style={{ borderTopColor: '#f59e0b' }}>
+                  <div key={ev.id} className="bg-white rounded-2xl p-5 shadow-sm border-t-4 border-t-amber-400">
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <div className="font-bold text-gray-800">{ev.name}</div>
@@ -458,7 +453,7 @@ export default function Fundraising({ user, school }) {
       {/* ── Donors Tab ── */}
       {activeTab === 'donors' && (
         <>
-          <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
+          <div className="grid gap-4 mb-6 grid-cols-[repeat(auto-fit,minmax(160px,1fr))]">
             {[
               { label: 'Total Donors',  value: donorList.length,                                                    icon: '👥', color: '#8b5cf6' },
               { label: 'Alumni Donors', value: donorList.filter(d => d.donor_type === 'Alumni').length,             icon: '🎓', color: '#6366f1' },
@@ -551,7 +546,7 @@ export default function Fundraising({ user, school }) {
                           <td className="px-3 py-2.5 text-gray-500">{a.graduation_year ? `Class of ${a.graduation_year}` : '—'}</td>
                           <td className="px-3 py-2.5 text-gray-500">{a.email || '—'}</td>
                           <td className="px-3 py-2.5"><span className="text-xs font-semibold rounded-full px-2 py-0.5" style={{ color: statusColors[a.donor_status], background: (statusColors[a.donor_status] || '#6b7280') + '18' }}>{a.donor_status}</span></td>
-                          <td className="px-3 py-2.5 font-medium" style={{ color: given > 0 ? '#10b981' : '#9ca3af', fontWeight: given > 0 ? '700' : '400' }}>{given > 0 ? fmt(given) : 'No gifts yet'}</td>
+                          <td className={`px-3 py-2.5 ${given > 0 ? 'font-bold text-green-500' : 'font-normal text-gray-400'}`}>{given > 0 ? fmt(given) : 'No gifts yet'}</td>
                         </tr>
                       )
                     })}

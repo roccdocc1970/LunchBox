@@ -199,15 +199,15 @@ All `.jsx` files are being migrated from inline `style={{}}` objects to Tailwind
 | 11 | `Rooms.jsx` | ✅ Done |
 | 12 | `SetupWizard.jsx` | ✅ Done |
 | 13 | `StudentProfile.jsx` | ✅ Done |
-| 14 | `Fundraising.jsx` | ⬜ Todo |
-| 15 | `Staff.jsx` | ⬜ Todo |
-| 16 | `Admissions.jsx` | ⬜ Todo |
-| 17 | `Alumni.jsx` | ⬜ Todo |
-| 18 | `Facilities.jsx` | ⬜ Todo |
-| 19 | `Parents.jsx` | ⬜ Todo |
-| 20 | `ReportCards.jsx` | ⬜ Todo |
-| 21 | `Attendance.jsx` | ⬜ Todo |
-| 22 | `Enrollment.jsx` | ⬜ Todo |
+| 14 | `Fundraising.jsx` | ✅ Done |
+| 15 | `Staff.jsx` | ✅ Done |
+| 16 | `Admissions.jsx` | ✅ Done |
+| 17 | `Alumni.jsx` | ✅ Done |
+| 18 | `Facilities.jsx` | ✅ Done |
+| 19 | `Parents.jsx` | ✅ Done |
+| 20 | `ReportCards.jsx` | ✅ Done |
+| 21 | `Attendance.jsx` | ✅ Done |
+| 22 | `Enrollment.jsx` | ✅ Done |
 
 ---
 

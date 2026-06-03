@@ -61,7 +61,7 @@ export default function Staff({ user, school }) {
         <div className="bg-white rounded-2xl p-8 shadow-sm mb-8">
           <h3 className="text-lg font-semibold text-gray-800 mt-0 mb-6">New Staff Member</h3>
 
-          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
+          <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(240px,1fr))]">
             {[
               { label: 'First Name', name: 'first_name', type: 'text',  required: true },
               { label: 'Last Name',  name: 'last_name',  type: 'text',  required: true },
@@ -164,7 +164,7 @@ export default function Staff({ user, school }) {
           </p>
         </div>
       ) : (
-        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+        <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(280px,1fr))]">
           {filtered.map(member => (
             <div
               key={member.id}
@@ -261,8 +261,8 @@ export default function Staff({ user, school }) {
                             navigator.clipboard.writeText(link)
                             alert(`Invite link copied!\n\nSend this to ${selected.first_name}:\n${link}\n\nThey should sign up using: ${selected.email}`)
                           }}
-                          className="text-xs font-semibold border rounded-md px-2.5 py-1 cursor-pointer hover:opacity-80"
-                          style={{ color: primaryColor, borderColor: primaryColor, background: 'none' }}
+                          className="text-xs font-semibold border rounded-md px-2.5 py-1 cursor-pointer hover:opacity-80 bg-transparent"
+                          style={{ color: primaryColor, borderColor: primaryColor }}
                         >
                           Copy Invite Link
                         </button>
@@ -359,8 +359,8 @@ function GradePicker({ selected: picked, onToggle, locked, grades, configuredGra
             const color = div ? div.color : primaryColor
             return (
               <button key={grade} type="button" onClick={() => onToggle(grade)}
-                className="px-2.5 py-1 rounded-full text-xs cursor-pointer border-2 transition-all"
-                style={{ fontWeight: active ? '600' : '400', borderColor: active ? color : '#d1d5db', background: active ? color : 'white', color: active ? 'white' : '#374151' }}>
+                className={`px-2.5 py-1 rounded-full text-xs cursor-pointer border-2 transition-all ${active ? 'font-semibold text-white' : 'font-normal text-gray-700 bg-white border-gray-300'}`}
+                style={active ? { borderColor: color, background: color } : undefined}>
                 {grade}
               </button>
             )
@@ -368,8 +368,7 @@ function GradePicker({ selected: picked, onToggle, locked, grades, configuredGra
           {orphaned.map(grade => (
             <button key={grade} type="button" onClick={() => onToggle(grade)}
               title="This grade is no longer offered at your school. Click to remove."
-              className="px-2.5 py-1 rounded-full text-xs cursor-pointer border-2 line-through transition-all"
-              style={{ borderColor: '#fcd34d', background: '#fefce8', color: '#92400e' }}>
+              className="px-2.5 py-1 rounded-full text-xs cursor-pointer border-2 line-through transition-all border-yellow-300 bg-yellow-50 text-amber-800">
               ⚠ {grade}
             </button>
           ))}

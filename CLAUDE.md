@@ -9,9 +9,9 @@
 LunchBox is a **K-12 School Operations SaaS Platform** — enrollment, communication, reporting, billing, and staff management in one place. Target customer: small-to-mid size private and charter K-12 schools. Business model: per-school monthly SaaS subscription tiered by enrollment size.
 
 > **ROADMAP.md** lives at `C:\Users\Daniel Rocco\Desktop\lunchbox\ROADMAP.md`.
-> Read it when: (1) planning or scoping a new feature, (2) the user asks what's been built or what's next, (3) discussing the capability roadmap or build priorities, (4) referencing deferred work (custom roles, dark mode, config enforcement), (5) checking pricing tiers, or (6) continuing the in-progress Tailwind refactor. Do NOT load it for routine coding sessions — it's not needed to write or fix code.
+> Read it when: (1) planning or scoping a new feature, (2) the user asks what's been built or what's next, (3) discussing the capability roadmap or build priorities, (4) referencing deferred work (custom roles, dark mode, config enforcement), or (5) checking pricing tiers. Do NOT load it for routine coding sessions — it's not needed to write or fix code.
 
-> **IN-PROGRESS WORK:** Tailwind CSS refactor is underway. 13 of 22 `.jsx` files done. The next 9 files to refactor (in order) are: `Fundraising.jsx`, `Staff.jsx`, `Admissions.jsx`, `Alumni.jsx`, `Facilities.jsx`, `Parents.jsx`, `ReportCards.jsx`, `Attendance.jsx`, `Enrollment.jsx`. See ROADMAP.md → "Tailwind CSS Refactor Queue" for full status table. Pattern: replace all static `style={{}}` with Tailwind classes; keep `style={{}}` only for runtime-dynamic values (primaryColor, division colors, status/type color maps).
+> **Tailwind CSS refactor is complete.** All 22 `.jsx` files have been migrated. All static `style={{}}` have been replaced with Tailwind classes. Inline `style={{}}` is now used only for runtime-dynamic values (primaryColor, division colors, status/type color maps).
 
 ---
 

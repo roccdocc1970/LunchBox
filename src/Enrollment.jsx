@@ -90,7 +90,7 @@ export default function Enrollment({ user, school }) {
                   )}
                 </div>
 
-                <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+                <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(220px,1fr))]">
                   {[
                     { label: 'First Name', key: 'first_name', required: true },
                     { label: 'Last Name',  key: 'last_name',  required: true },
@@ -120,7 +120,7 @@ export default function Enrollment({ user, school }) {
           {/* Student Details */}
           <div>
             <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Student Details</div>
-            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+            <div className="grid gap-4 grid-cols-[repeat(auto-fit,minmax(220px,1fr))]">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">First Name <span className="text-red-500">*</span></label>
                 <input value={studentForm.first_name} onChange={e => setStudentForm({ ...studentForm, first_name: e.target.value })} className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none text-sm" />
@@ -163,7 +163,7 @@ export default function Enrollment({ user, school }) {
             onClick={submit}
             disabled={saving}
             className="mt-6 text-white border-0 rounded-lg px-6 py-2.5 font-semibold text-base disabled:opacity-70 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
-            style={{ background: primaryColor, cursor: saving ? 'not-allowed' : 'pointer' }}
+            style={{ background: primaryColor }}
           >
             {saving ? 'Saving…' : 'Save Student'}
           </button>

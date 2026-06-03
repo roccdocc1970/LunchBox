@@ -101,7 +101,7 @@ export default function Admissions({ user, school, onNavigate }) {
           <h3 className="text-lg font-bold text-gray-800 mt-0 mb-6">New Inquiry</h3>
 
           <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3.5">Parent / Guardian</div>
-          <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+          <div className="grid gap-4 mb-6 grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
             <FormField label="First Name" required><input value={form.parent_first_name} onChange={e => setForm({ ...form, parent_first_name: e.target.value })} className={fieldCls} /></FormField>
             <FormField label="Last Name"  required><input value={form.parent_last_name}  onChange={e => setForm({ ...form, parent_last_name:  e.target.value })} className={fieldCls} /></FormField>
             <FormField label="Email"><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className={fieldCls} /></FormField>
@@ -111,7 +111,7 @@ export default function Admissions({ user, school, onNavigate }) {
           <hr className="border-0 border-t border-gray-100 mb-6" />
 
           <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3.5">Student</div>
-          <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+          <div className="grid gap-4 mb-6 grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
             <FormField label="First Name" required><input value={form.student_first_name} onChange={e => setForm({ ...form, student_first_name: e.target.value })} className={fieldCls} /></FormField>
             <FormField label="Last Name"  required><input value={form.student_last_name}  onChange={e => setForm({ ...form, student_last_name:  e.target.value })} className={fieldCls} /></FormField>
             <FormField label="Grade Applying For">
@@ -125,7 +125,7 @@ export default function Admissions({ user, school, onNavigate }) {
           <hr className="border-0 border-t border-gray-100 mb-6" />
 
           <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3.5">Pipeline</div>
-          <div className="grid gap-4 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+          <div className="grid gap-4 mb-4 grid-cols-[repeat(auto-fit,minmax(200px,1fr))]">
             <FormField label="Status">
               <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className={fieldCls}>
                 {STATUSES.map(s => <option key={s}>{s}</option>)}
@@ -304,8 +304,8 @@ export default function Admissions({ user, school, onNavigate }) {
                     <>
                       <button
                         onClick={() => setConvertConfirm(true)}
-                        className="w-full border-2 rounded-lg py-2.5 font-bold cursor-pointer text-sm hover:opacity-90 transition-opacity"
-                        style={{ background: '#fff7ed', color: primaryColor, borderColor: primaryColor }}
+                        className="w-full border-2 rounded-lg py-2.5 font-bold cursor-pointer text-sm hover:opacity-90 transition-opacity bg-orange-50"
+                        style={{ color: primaryColor, borderColor: primaryColor }}
                       >
                         🎒 Convert to Student
                       </button>
