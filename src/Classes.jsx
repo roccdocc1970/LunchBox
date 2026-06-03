@@ -3,6 +3,9 @@ import { useClasses } from './hooks/useClasses'
 import { CLASS_STATUS, ENROLLMENT_MODES } from './domain/classes'
 import { DIVISION_COLORS, parseDivisions } from './domain/school'
 
+const fieldCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm'
+const labelCls = 'block text-xs font-medium text-gray-500 mb-1'
+
 export default function Classes({ user, school, openClassId, onClearOpenClass }) {
   const primaryColor = school?.primary_color || '#f97316'
   const c = useClasses(user, school)
@@ -11,31 +14,18 @@ export default function Classes({ user, school, openClassId, onClearOpenClass })
   const divColorMap = Object.fromEntries(allDivs.map((d, i) => [d.name, DIVISION_COLORS[i % DIVISION_COLORS.length]]))
   const divisions   = allDivs.filter(d => d.grades?.length > 0)
 
-  // Edit tab state — local UI only
   const [editTab, setEditTab] = useState('info')
 
-  // Capture the target ID at mount so prop-clearing doesn't race with async class load
   const pendingIdRef = useRef(openClassId)
   useEffect(() => {
     if (!pendingIdRef.current || c.loading || c.classes.length === 0) return
     const cls = c.classes.find(cl => cl.id === pendingIdRef.current)
-    if (cls) {
-      pendingIdRef.current = null
-      c.openClass(cls)
-      c.startEdit(cls)
-      onClearOpenClass?.()
-    }
+    if (cls) { pendingIdRef.current = null; c.openClass(cls); c.startEdit(cls); onClearOpenClass?.() }
   }, [c.loading, c.classes.length])
 
-  // Reset to info tab when edit opens
-  useEffect(() => {
-    if (c.editing) setEditTab('info')
-  }, [c.editing])
+  useEffect(() => { if (c.editing) setEditTab('info') }, [c.editing])
 
-  const inputStyle = { width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }
-  const labelStyle = { display: 'block', fontSize: '0.8rem', fontWeight: '500', color: '#6b7280', marginBottom: '0.25rem' }
-
-  // ── Edit view (full screen, two tabs) ─────────────────────────────────────
+  // ── Edit view ──────────────────────────────────────────────────────────────
   if (c.editing) {
     const cap   = c.form.class_size ? parseInt(c.form.class_size, 10) : null
     const count = c.enrollments.length
@@ -46,185 +36,116 @@ export default function Classes({ user, school, openClassId, onClearOpenClass })
     const showCohort     = mode === 'cohort' || mode === 'mixed'
 
     return (
-      <div style={{ padding: '2rem', maxWidth: '900px', margin: '0 auto' }}>
+      <div className="p-8 max-w-4xl mx-auto">
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <button
-              onClick={c.cancelEdit}
-              style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '0.25rem 0' }}
-            >← Classes</button>
-            <span style={{ color: '#d1d5db' }}>|</span>
-            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: '700', color: '#1f2937' }}>
-              {c.selected ? c.selected.name : 'New Class'}
-            </h2>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <button onClick={c.cancelEdit} className="bg-transparent border-0 text-gray-500 cursor-pointer text-sm flex items-center gap-1.5 hover:text-gray-700">← Classes</button>
+            <span className="text-gray-300">|</span>
+            <h2 className="m-0 text-xl font-bold text-gray-800">{c.selected ? c.selected.name : 'New Class'}</h2>
           </div>
-          <div style={{ display: 'flex', gap: '0.625rem', alignItems: 'center' }}>
-            <button
-              onClick={c.handleSave}
-              disabled={c.saving}
-              style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem' }}
-            >{c.saving ? 'Saving…' : c.selected ? 'Save Changes' : 'Add Class'}</button>
-            <button
-              onClick={c.cancelEdit}
-              style={{ background: 'white', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem' }}
-            >Cancel</button>
+          <div className="flex gap-2.5 items-center">
+            <button onClick={c.handleSave} disabled={c.saving} className="text-white border-0 rounded-lg px-6 py-2 font-semibold cursor-pointer text-sm disabled:opacity-70 hover:opacity-90 transition-opacity" style={{ background: primaryColor }}>
+              {c.saving ? 'Saving…' : c.selected ? 'Save Changes' : 'Add Class'}
+            </button>
+            <button onClick={c.cancelEdit} className="bg-white text-gray-500 border border-gray-300 rounded-lg px-5 py-2 font-semibold cursor-pointer text-sm hover:bg-gray-50">Cancel</button>
             {c.selected && (
               c.deleteId === c.selected.id ? (
                 <>
-                  <span style={{ fontSize: '0.8rem', color: '#b91c1c', fontWeight: '500' }}>Delete this class?</span>
-                  <button onClick={() => c.handleDelete(c.selected.id)} style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem' }}>Yes, Delete</button>
-                  <button onClick={() => c.setDeleteId(null)} style={{ background: 'white', color: '#6b7280', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', fontSize: '0.875rem' }}>Cancel</button>
+                  <span className="text-xs text-red-700 font-medium">Delete this class?</span>
+                  <button onClick={() => c.handleDelete(c.selected.id)} className="bg-red-500 text-white border-0 rounded-lg px-4 py-2 font-semibold cursor-pointer text-sm hover:bg-red-600">Yes, Delete</button>
+                  <button onClick={() => c.setDeleteId(null)} className="bg-white text-gray-500 border border-gray-300 rounded-lg px-4 py-2 cursor-pointer text-sm hover:bg-gray-50">Cancel</button>
                 </>
               ) : (
-                <button
-                  onClick={() => c.setDeleteId(c.selected.id)}
-                  style={{ background: 'white', color: '#ef4444', border: '1px solid #fca5a5', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem' }}
-                >Delete</button>
+                <button onClick={() => c.setDeleteId(c.selected.id)} className="bg-white text-red-500 border border-red-200 rounded-lg px-4 py-2 font-semibold cursor-pointer text-sm hover:bg-red-50">Delete</button>
               )
             )}
           </div>
         </div>
 
-        {c.error && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginBottom: '1rem', fontWeight: '500' }}>⚠ {c.error}</p>}
-        {c.success && <p style={{ color: '#15803d', fontSize: '0.875rem', marginBottom: '1rem', fontWeight: '500' }}>✓ {c.success}</p>}
+        {c.error   && <p className="text-red-500 text-sm mb-4 font-medium">⚠ {c.error}</p>}
+        {c.success && <p className="text-green-700 text-sm mb-4 font-medium">✓ {c.success}</p>}
 
         {/* Tab bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', gap: '0.25rem', background: '#f3f4f6', borderRadius: '0.75rem', padding: '0.25rem', width: 'fit-content' }}>
+        <div className="flex items-center gap-4 mb-6">
+          <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">
             {[
               { id: 'info',       label: '📚 Class Info' },
-              { id: 'enrollment', label: (() => {
-                if (!c.selected) return '👥 Class Enrollment'
-                if (count > 0) return `👥 Class Enrollment (${count} enrolled)`
-                return '👥 Class Enrollment'
-              })() },
+              { id: 'enrollment', label: count > 0 && c.selected ? `👥 Class Enrollment (${count} enrolled)` : '👥 Class Enrollment' },
             ].map(tab => {
               const isActive   = editTab === tab.id
               const isDisabled = tab.id === 'enrollment' && !c.selected
               return (
-                <button
-                  key={tab.id}
-                  onClick={() => !isDisabled && setEditTab(tab.id)}
+                <button key={tab.id} onClick={() => !isDisabled && setEditTab(tab.id)}
+                  className="px-5 py-2 rounded-lg border-0 text-sm transition-all"
                   style={{
-                    padding: '0.5rem 1.25rem', borderRadius: '0.625rem', border: 'none',
-                    cursor: isDisabled ? 'not-allowed' : 'pointer', fontSize: '0.875rem',
-                    fontWeight: isActive ? '600' : '400',
-                    background: isActive ? primaryColor : 'transparent',
-                    color: isActive ? 'white' : isDisabled ? '#d1d5db' : '#6b7280',
-                    boxShadow: isActive ? `0 1px 3px ${primaryColor}40` : 'none',
-                    transition: 'all 0.15s',
-                  }}
-                >{tab.label}</button>
+                    fontWeight:  isActive ? '600' : '400',
+                    background:  isActive ? primaryColor : 'transparent',
+                    color:       isActive ? 'white' : isDisabled ? '#d1d5db' : '#6b7280',
+                    cursor:      isDisabled ? 'not-allowed' : 'pointer',
+                  }}>
+                  {tab.label}
+                </button>
               )
             })}
           </div>
-          {!c.selected && (
-            <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontStyle: 'italic' }}>
-              Save the class first to manage enrollment
-            </span>
-          )}
+          {!c.selected && <span className="text-xs text-gray-400 italic">Save the class first to manage enrollment</span>}
         </div>
 
-        {/* ── Tab: Class Info ── */}
+        {/* ── Class Info tab ── */}
         {editTab === 'info' && (
-          <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', padding: '1.75rem' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-
+          <div className="bg-white rounded-2xl shadow-sm p-7">
+            <div className="grid gap-4 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
               <div>
-                <label style={labelStyle}>Class Name *</label>
-                <input
-                  value={c.form.name}
-                  onChange={e => c.setForm({ ...c.form, name: e.target.value })}
-                  placeholder="e.g. 3rd Grade Math"
-                  style={inputStyle}
-                />
+                <label className={labelCls}>Class Name *</label>
+                <input value={c.form.name} onChange={e => c.setForm({ ...c.form, name: e.target.value })} placeholder="e.g. 3rd Grade Math" className={fieldCls} />
               </div>
-
               <div>
-                <label style={labelStyle}>Subject</label>
-                {c.subjects.length > 0 ? (
-                  <select value={c.form.subject} onChange={e => c.setForm({ ...c.form, subject: e.target.value })} style={inputStyle}>
-                    <option value="">— None —</option>
-                    {c.subjects.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                ) : (
-                  <input value={c.form.subject} onChange={e => c.setForm({ ...c.form, subject: e.target.value })} placeholder="e.g. Mathematics" style={inputStyle} />
-                )}
+                <label className={labelCls}>Subject</label>
+                {c.subjects.length > 0
+                  ? <select value={c.form.subject} onChange={e => c.setForm({ ...c.form, subject: e.target.value })} className={fieldCls}><option value="">— None —</option>{c.subjects.map(s => <option key={s} value={s}>{s}</option>)}</select>
+                  : <input value={c.form.subject} onChange={e => c.setForm({ ...c.form, subject: e.target.value })} placeholder="e.g. Mathematics" className={fieldCls} />
+                }
               </div>
-
               <div>
-                <label style={labelStyle}>Division</label>
-                {c.divisions.length > 0 ? (
-                  <select value={c.form.division} onChange={e => c.setForm({ ...c.form, division: e.target.value })} style={inputStyle}>
-                    <option value="">— None —</option>
-                    {c.divisions.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
-                  </select>
-                ) : (
-                  <input value={c.form.division} onChange={e => c.setForm({ ...c.form, division: e.target.value })} placeholder="e.g. Lower School" style={inputStyle} />
-                )}
+                <label className={labelCls}>Division</label>
+                {c.divisions.length > 0
+                  ? <select value={c.form.division} onChange={e => c.setForm({ ...c.form, division: e.target.value })} className={fieldCls}><option value="">— None —</option>{c.divisions.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}</select>
+                  : <input value={c.form.division} onChange={e => c.setForm({ ...c.form, division: e.target.value })} placeholder="e.g. Lower School" className={fieldCls} />
+                }
               </div>
-
               <div>
-                <label style={labelStyle}>Teacher</label>
-                <select value={c.form.teacher_id} onChange={e => c.selectTeacher(e.target.value)} style={inputStyle}>
+                <label className={labelCls}>Teacher</label>
+                <select value={c.form.teacher_id} onChange={e => c.selectTeacher(e.target.value)} className={fieldCls}>
                   <option value="">— Unassigned —</option>
-                  {c.staff.map(s => (
-                    <option key={s.id} value={s.id}>{s.first_name} {s.last_name} — {s.role}</option>
-                  ))}
+                  {c.staff.map(s => <option key={s.id} value={s.id}>{s.first_name} {s.last_name} — {s.role}</option>)}
                 </select>
               </div>
-
               <div>
-                <label style={labelStyle}>Default Room</label>
-                <select value={c.form.room_id} onChange={e => c.selectRoom(e.target.value)} style={inputStyle}>
+                <label className={labelCls}>Default Room</label>
+                <select value={c.form.room_id} onChange={e => c.selectRoom(e.target.value)} className={fieldCls}>
                   <option value="">— Unassigned —</option>
-                  {c.rooms.map(r => (
-                    <option key={r.id} value={r.id}>{r.name}{r.building ? ` (${r.building})` : ''}{r.capacity ? ` — cap. ${r.capacity}` : ''}</option>
-                  ))}
+                  {c.rooms.map(r => <option key={r.id} value={r.id}>{r.name}{r.building ? ` (${r.building})` : ''}{r.capacity ? ` — cap. ${r.capacity}` : ''}</option>)}
                 </select>
               </div>
-
               <div>
-                <label style={labelStyle}>Class Size (cap)</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={c.form.class_size || ''}
-                  onChange={e => c.setForm({ ...c.form, class_size: e.target.value })}
-                  placeholder="Max students"
-                  style={inputStyle}
-                />
+                <label className={labelCls}>Class Size (cap)</label>
+                <input type="number" min="1" value={c.form.class_size || ''} onChange={e => c.setForm({ ...c.form, class_size: e.target.value })} placeholder="Max students" className={fieldCls} />
               </div>
-
               <div>
-                <label style={labelStyle}>Status</label>
-                <select value={c.form.status} onChange={e => c.setForm({ ...c.form, status: e.target.value })} style={inputStyle}>
+                <label className={labelCls}>Status</label>
+                <select value={c.form.status} onChange={e => c.setForm({ ...c.form, status: e.target.value })} className={fieldCls}>
                   {CLASS_STATUS.map(s => <option key={s}>{s}</option>)}
                 </select>
               </div>
-
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={labelStyle}>Description</label>
-                <textarea
-                  value={c.form.description || ''}
-                  onChange={e => c.setForm({ ...c.form, description: e.target.value })}
-                  rows={2}
-                  placeholder="Brief description of this class…"
-                  style={{ ...inputStyle, resize: 'vertical' }}
-                />
+              <div className="col-span-full">
+                <label className={labelCls}>Description</label>
+                <textarea value={c.form.description || ''} onChange={e => c.setForm({ ...c.form, description: e.target.value })} rows={2} placeholder="Brief description of this class…" className={`${fieldCls} resize-y`} />
               </div>
-
-              <div style={{ gridColumn: '1 / -1' }}>
-                <label style={labelStyle}>Notes</label>
-                <textarea
-                  value={c.form.notes || ''}
-                  onChange={e => c.setForm({ ...c.form, notes: e.target.value })}
-                  rows={2}
-                  placeholder="Internal notes…"
-                  style={{ ...inputStyle, resize: 'vertical' }}
-                />
+              <div className="col-span-full">
+                <label className={labelCls}>Notes</label>
+                <textarea value={c.form.notes || ''} onChange={e => c.setForm({ ...c.form, notes: e.target.value })} rows={2} placeholder="Internal notes…" className={`${fieldCls} resize-y`} />
               </div>
             </div>
 
@@ -234,131 +155,76 @@ export default function Classes({ user, school, openClassId, onClearOpenClass })
               const size = parseInt(c.form.class_size, 10)
               if (room && room.capacity && size && size > room.capacity) {
                 return (
-                  <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '0.5rem', padding: '0.625rem 1rem', color: '#92400e', fontSize: '0.875rem' }}>
+                  <div className="bg-amber-50 border border-amber-300 rounded-lg px-4 py-2.5 text-amber-800 text-sm">
                     ⚠️ Class size ({size}) exceeds <strong>{room.name}</strong> capacity ({room.capacity}). Consider a larger room or reduce class size.
                   </div>
                 )
               }
               return null
             })()}
-
           </div>
         )}
 
-        {/* ── Tab: Class Enrollment ── */}
+        {/* ── Class Enrollment tab ── */}
         {editTab === 'enrollment' && c.selected && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div className="flex flex-col gap-6">
 
             {/* Mode selector */}
-            <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', padding: '1.5rem' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.875rem' }}>
-                Class Enrollment Mode
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <div className="bg-white rounded-2xl shadow-sm p-6">
+              <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3.5">Class Enrollment Mode</div>
+              <div className="flex gap-3">
                 {ENROLLMENT_MODES.map(m => {
                   const active = mode === m.value
                   return (
-                    <button
-                      key={m.value}
-                      onClick={() => c.setForm({ ...c.form, enrollment_mode: m.value })}
-                      style={{
-                        flex: 1, padding: '0.625rem 1.25rem', borderRadius: '0.625rem', fontSize: '0.875rem', fontWeight: '600',
-                        border: `2px solid ${active ? primaryColor : '#e5e7eb'}`,
-                        background: active ? primaryColor + '10' : 'white',
-                        color: active ? primaryColor : '#6b7280',
-                        cursor: 'pointer', transition: 'all 0.15s', textAlign: 'left',
-                      }}
-                    >
+                    <button key={m.value} onClick={() => c.setForm({ ...c.form, enrollment_mode: m.value })}
+                      className="flex-1 px-5 py-2.5 rounded-xl text-sm font-semibold border-2 cursor-pointer transition-all text-left"
+                      style={{ borderColor: active ? primaryColor : '#e5e7eb', background: active ? primaryColor + '10' : 'white', color: active ? primaryColor : '#6b7280' }}>
                       <div>{m.label}</div>
-                      <div style={{ fontSize: '0.72rem', fontWeight: '400', opacity: 0.75, marginTop: '0.15rem' }}>{m.description}</div>
+                      <div className="text-xs font-normal opacity-75 mt-0.5">{m.description}</div>
                     </button>
                   )
                 })}
               </div>
-              <p style={{ margin: '0.75rem 0 0', fontSize: '0.78rem', color: '#9ca3af' }}>
-                Changes to enrollment mode are saved when you click <strong>Save Changes</strong> above.
-              </p>
+              <p className="text-xs text-gray-400 mt-3 mb-0">Changes to enrollment mode are saved when you click <strong>Save Changes</strong> above.</p>
             </div>
 
             {/* Cohort assignment panel */}
             {showCohort && (
-              <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', padding: '1.5rem' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1rem' }}>
-                  Cohort Assignment
-                </div>
-                {c.cohortEnrolling && (
-                  <p style={{ fontSize: '0.8rem', color: '#6366f1', marginBottom: '0.75rem' }}>⏳ Assigning cohort and enrolling students…</p>
-                )}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-
-                  {/* Left — available cohorts */}
+              <div className="bg-white rounded-2xl shadow-sm p-6">
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Cohort Assignment</div>
+                {c.cohortEnrolling && <p className="text-xs text-indigo-500 mb-3">⏳ Assigning cohort and enrolling students…</p>}
+                <div className="grid grid-cols-2 gap-5">
+                  {/* Available cohorts */}
                   <div>
-                    <div style={{ fontSize: '0.72rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
-                      Available Cohorts ({c.availableCohorts.length})
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Filter cohorts…"
-                      value={c.cohortSearch}
-                      onChange={e => c.setCohortSearch(e.target.value)}
-                      style={{ ...inputStyle, marginBottom: '0.5rem', fontSize: '0.8rem', padding: '0.375rem 0.625rem' }}
-                    />
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', maxHeight: '200px', overflowY: 'auto', padding: '0.25rem 0' }}>
+                    <div className="text-[0.7rem] font-semibold text-gray-500 uppercase tracking-wide mb-2">Available Cohorts ({c.availableCohorts.length})</div>
+                    <input type="text" placeholder="Filter cohorts…" value={c.cohortSearch} onChange={e => c.setCohortSearch(e.target.value)}
+                      className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none text-xs mb-2" />
+                    <div className="flex flex-wrap gap-1.5 max-h-52 overflow-y-auto py-1">
                       {c.availableCohorts.length === 0 ? (
-                        <p style={{ fontSize: '0.8rem', color: '#d1d5db', fontStyle: 'italic', margin: 0 }}>
-                          {c.cohortSearch ? 'No matches.' : 'All cohorts assigned.'}
-                        </p>
+                        <p className="text-xs text-gray-300 italic m-0">{c.cohortSearch ? 'No matches.' : 'All cohorts assigned.'}</p>
                       ) : c.availableCohorts.map(coh => (
-                        <button
-                          key={coh.id}
-                          onClick={() => c.handleAddCohort(coh.id)}
-                          disabled={c.cohortEnrolling}
+                        <button key={coh.id} onClick={() => c.handleAddCohort(coh.id)} disabled={c.cohortEnrolling}
                           title="Assign cohort and enroll all members"
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: '0.375rem',
-                            padding: '0.3rem 0.625rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: '500',
-                            border: '1.5px solid #6366f1', background: 'white', color: '#6366f1',
-                            cursor: c.cohortEnrolling ? 'not-allowed' : 'pointer',
-                            opacity: c.cohortEnrolling ? 0.5 : 1,
-                            transition: 'all 0.12s',
-                          }}
-                          onMouseEnter={ev => { if (!c.cohortEnrolling) { ev.currentTarget.style.background = '#6366f1'; ev.currentTarget.style.color = 'white' }}}
-                          onMouseLeave={ev => { ev.currentTarget.style.background = 'white'; ev.currentTarget.style.color = '#6366f1' }}
-                        >
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-500 hover:text-white"
+                          style={{ borderColor: '#6366f1', background: 'white', color: '#6366f1', cursor: c.cohortEnrolling ? 'not-allowed' : 'pointer' }}>
                           👥 {coh.name}
-                          {coh.division && <span style={{ fontSize: '0.68rem', opacity: 0.65 }}>{coh.division}</span>}
+                          {coh.division && <span className="text-[0.65rem] opacity-65">{coh.division}</span>}
                         </button>
                       ))}
                     </div>
                   </div>
-
-                  {/* Right — assigned cohorts */}
+                  {/* Assigned cohorts */}
                   <div>
-                    <div style={{ fontSize: '0.72rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
-                      Assigned ({c.classCohorts.length})
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '260px', overflowY: 'auto', padding: '0.25rem 0' }}>
+                    <div className="text-[0.7rem] font-semibold text-gray-500 uppercase tracking-wide mb-2">Assigned ({c.classCohorts.length})</div>
+                    <div className="flex flex-col gap-2 max-h-64 overflow-y-auto py-1">
                       {c.classCohorts.length === 0 ? (
-                        <p style={{ fontSize: '0.8rem', color: '#d1d5db', fontStyle: 'italic', margin: 0 }}>No cohorts assigned yet.</p>
+                        <p className="text-xs text-gray-300 italic m-0">No cohorts assigned yet.</p>
                       ) : c.classCohorts.map(cc => (
-                        <div key={cc.id} style={{
-                          display: 'flex', alignItems: 'center', gap: '0.5rem',
-                          padding: '0.5rem 0.75rem', borderRadius: '0.625rem', fontSize: '0.85rem',
-                          background: '#f0fdf4', border: '1.5px solid #86efac',
-                        }}>
-                          <span style={{ flex: 1, fontWeight: '600', color: '#1f2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            👥 {cc.cohorts?.name}
-                          </span>
-                          {cc.cohorts?.division && (
-                            <span style={{ fontSize: '0.7rem', color: '#6b7280', whiteSpace: 'nowrap' }}>{cc.cohorts.division}</span>
-                          )}
-                          <button
-                            onClick={() => c.handleRemoveCohort(cc.id, cc.cohort_id)}
-                            title="Remove cohort and unenroll its students"
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#d1d5db', fontSize: '1rem', padding: '0 0.125rem', lineHeight: 1 }}
-                            onMouseEnter={ev => ev.currentTarget.style.color = '#ef4444'}
-                            onMouseLeave={ev => ev.currentTarget.style.color = '#d1d5db'}
-                          >✕</button>
+                        <div key={cc.id} className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm bg-green-50 border-2 border-green-200">
+                          <span className="flex-1 font-semibold text-gray-800 truncate">👥 {cc.cohorts?.name}</span>
+                          {cc.cohorts?.division && <span className="text-xs text-gray-500 whitespace-nowrap">{cc.cohorts.division}</span>}
+                          <button onClick={() => c.handleRemoveCohort(cc.id, cc.cohort_id)} title="Remove cohort and unenroll its students"
+                            className="bg-transparent border-0 cursor-pointer text-gray-300 text-base leading-none px-0.5 hover:text-red-500 transition-colors">✕</button>
                         </div>
                       ))}
                     </div>
@@ -367,101 +233,62 @@ export default function Classes({ user, school, openClassId, onClearOpenClass })
               </div>
             )}
 
-            {/* Individual student enrollment panel */}
+            {/* Individual enrollment panel */}
             {showIndividual && (
-              <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', padding: '1.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.875rem' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Individual Class Enrollment
-                  </div>
-                  <span style={{
-                    fontSize: '0.8rem', fontWeight: '700', borderRadius: '9999px', padding: '0.25rem 0.75rem',
-                    background: atCap ? '#fef2f2' : '#f0fdf4',
-                    color:      atCap ? '#b91c1c' : '#15803d',
-                  }}>
+              <div className="bg-white rounded-2xl shadow-sm p-6">
+                <div className="flex items-center justify-between mb-3.5">
+                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Individual Class Enrollment</div>
+                  <span className="text-xs font-bold rounded-full px-3 py-1" style={{ background: atCap ? '#fef2f2' : '#f0fdf4', color: atCap ? '#b91c1c' : '#15803d' }}>
                     {cap ? `${count} / ${cap}` : `${count} enrolled`}{atCap ? ' · Full' : ''}
                   </span>
                 </div>
 
                 {cap && (
-                  <div style={{ height: '6px', background: '#f3f4f6', borderRadius: '9999px', marginBottom: '1rem', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: atCap ? '#ef4444' : primaryColor, borderRadius: '9999px', transition: 'width 0.3s' }} />
+                  <div className="h-1.5 bg-gray-100 rounded-full mb-4 overflow-hidden">
+                    <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: atCap ? '#ef4444' : primaryColor }} />
                   </div>
                 )}
 
                 {atCap && (
-                  <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '0.5rem', padding: '0.5rem 0.875rem', marginBottom: '1rem', color: '#b91c1c', fontSize: '0.8rem', fontWeight: '500' }}>
+                  <div className="bg-red-50 border border-red-200 rounded-lg px-3.5 py-2.5 mb-4 text-red-700 text-xs font-medium">
                     🔒 Class is at capacity — increase Class Size (cap) on the Class Info tab to enroll more.
                   </div>
                 )}
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-                  {/* Left — available */}
+                <div className="grid grid-cols-2 gap-5">
+                  {/* Available students */}
                   <div>
-                    <div style={{ fontSize: '0.72rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
-                      Available ({c.availableStudents.length})
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Filter by name or grade…"
-                      value={c.enrollSearch}
-                      onChange={e => c.setEnrollSearch(e.target.value)}
-                      style={{ ...inputStyle, marginBottom: '0.5rem', fontSize: '0.8rem', padding: '0.375rem 0.625rem' }}
-                    />
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', maxHeight: '240px', overflowY: 'auto', padding: '0.25rem 0' }}>
+                    <div className="text-[0.7rem] font-semibold text-gray-500 uppercase tracking-wide mb-2">Available ({c.availableStudents.length})</div>
+                    <input type="text" placeholder="Filter by name or grade…" value={c.enrollSearch} onChange={e => c.setEnrollSearch(e.target.value)}
+                      className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 outline-none text-xs mb-2" />
+                    <div className="flex flex-wrap gap-1.5 max-h-60 overflow-y-auto py-1">
                       {c.availableStudents.length === 0 ? (
-                        <p style={{ fontSize: '0.8rem', color: '#d1d5db', fontStyle: 'italic', margin: 0 }}>
-                          {c.enrollSearch ? 'No matches.' : 'All students enrolled.'}
-                        </p>
+                        <p className="text-xs text-gray-300 italic m-0">{c.enrollSearch ? 'No matches.' : 'All students enrolled.'}</p>
                       ) : c.availableStudents.map(s => (
-                        <button
-                          key={s.id}
-                          onClick={() => !atCap && c.handleEnroll(s.id)}
-                          disabled={atCap || c.enrollSaving}
+                        <button key={s.id} onClick={() => !atCap && c.handleEnroll(s.id)} disabled={atCap || c.enrollSaving}
                           title={atCap ? 'Class is at capacity' : `Enroll ${s.first_name} ${s.last_name}`}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: '0.375rem',
-                            padding: '0.3rem 0.625rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: '500',
-                            border: `1.5px solid ${primaryColor}`, background: 'white', color: primaryColor,
-                            cursor: atCap ? 'not-allowed' : 'pointer', opacity: atCap ? 0.45 : 1,
-                            transition: 'all 0.12s',
-                          }}
+                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border-2 transition-all"
+                          style={{ borderColor: primaryColor, background: 'white', color: primaryColor, cursor: atCap ? 'not-allowed' : 'pointer', opacity: atCap ? 0.45 : 1 }}
                           onMouseEnter={ev => { if (!atCap) { ev.currentTarget.style.background = primaryColor; ev.currentTarget.style.color = 'white' }}}
-                          onMouseLeave={ev => { ev.currentTarget.style.background = 'white'; ev.currentTarget.style.color = primaryColor }}
-                        >
+                          onMouseLeave={ev => { ev.currentTarget.style.background = 'white'; ev.currentTarget.style.color = primaryColor }}>
                           {s.first_name} {s.last_name}
-                          <span style={{ fontSize: '0.68rem', color: 'inherit', opacity: 0.65 }}>{s.grade}</span>
+                          <span className="text-[0.65rem] opacity-65">{s.grade}</span>
                         </button>
                       ))}
                     </div>
                   </div>
-
-                  {/* Right — enrolled */}
+                  {/* Enrolled students */}
                   <div>
-                    <div style={{ fontSize: '0.72rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
-                      Enrolled ({count})
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', maxHeight: '280px', overflowY: 'auto', padding: '0.25rem 0' }}>
+                    <div className="text-[0.7rem] font-semibold text-gray-500 uppercase tracking-wide mb-2">Enrolled ({count})</div>
+                    <div className="flex flex-wrap gap-1.5 max-h-72 overflow-y-auto py-1">
                       {c.enrollments.length === 0 ? (
-                        <p style={{ fontSize: '0.8rem', color: '#d1d5db', fontStyle: 'italic', margin: 0 }}>No students enrolled yet.</p>
+                        <p className="text-xs text-gray-300 italic m-0">No students enrolled yet.</p>
                       ) : c.enrollments.map(e => (
-                        <div
-                          key={e.id}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: '0.375rem',
-                            padding: '0.3rem 0.5rem 0.3rem 0.625rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: '500',
-                            background: '#f0fdf4', border: '1.5px solid #86efac', color: '#15803d',
-                          }}
-                        >
+                        <div key={e.id} className="flex items-center gap-1.5 pl-2.5 pr-2 py-1 rounded-full text-xs font-medium bg-green-50 border-2 border-green-200 text-green-700">
                           {e.students?.first_name} {e.students?.last_name}
-                          <span style={{ fontSize: '0.68rem', opacity: 0.65 }}>{e.students?.grade}</span>
-                          <button
-                            onClick={() => c.handleUnenroll(e.id)}
-                            title="Remove student"
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#86efac', fontSize: '0.75rem', lineHeight: 1, padding: '0 0 0 0.125rem', display: 'flex', alignItems: 'center' }}
-                            onMouseEnter={ev => ev.currentTarget.style.color = '#ef4444'}
-                            onMouseLeave={ev => ev.currentTarget.style.color = '#86efac'}
-                          >✕</button>
+                          <span className="text-[0.65rem] opacity-65">{e.students?.grade}</span>
+                          <button onClick={() => c.handleUnenroll(e.id)} title="Remove student"
+                            className="bg-transparent border-0 cursor-pointer text-green-300 text-xs leading-none flex items-center hover:text-red-500 transition-colors">✕</button>
                         </div>
                       ))}
                     </div>
@@ -469,33 +296,31 @@ export default function Classes({ user, school, openClassId, onClearOpenClass })
                 </div>
               </div>
             )}
-
           </div>
         )}
-
       </div>
     )
   }
 
-  // ── Card grid view ────────────────────────────────────────────────────────
+  // ── Card grid view ─────────────────────────────────────────────────────────
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="p-8 max-w-6xl mx-auto">
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
+      <div className="flex justify-between items-start mb-6">
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Classes</h2>
-          <p style={{ color: '#6b7280', marginTop: '0.25rem' }}>Manage your school's classes, subjects, and teacher assignments</p>
+          <h2 className="text-2xl font-bold text-gray-800 m-0">Classes</h2>
+          <p className="text-gray-500 mt-1">Manage your school's classes, subjects, and teacher assignments</p>
         </div>
-        <button onClick={c.startAdd} style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.9rem' }}>
+        <button onClick={c.startAdd} className="text-white border-0 rounded-lg px-5 py-2.5 font-semibold cursor-pointer text-sm hover:opacity-90 transition-opacity" style={{ background: primaryColor }}>
           + Add Class
         </button>
       </div>
 
-      {c.success && <p style={{ color: '#15803d', fontSize: '0.875rem', marginBottom: '1rem', fontWeight: '500' }}>✓ {c.success}</p>}
+      {c.success && <p className="text-green-700 text-sm mb-4 font-medium">✓ {c.success}</p>}
 
       {/* Stat cards */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+      <div className="flex gap-4 mb-6 flex-wrap">
         <StatCard label="Total Classes" value={c.stats.total}    icon="📚" />
         <StatCard label="Active"        value={c.stats.active}   color="#10b981" />
         <StatCard label="Inactive"      value={c.stats.inactive} color="#9ca3af" />
@@ -505,113 +330,78 @@ export default function Classes({ user, school, openClassId, onClearOpenClass })
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <input
-          type="text"
-          placeholder="Search by name, teacher, or subject…"
-          value={c.search}
-          onChange={e => c.setSearch(e.target.value)}
-          style={{ flex: 1, minWidth: '220px', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', outline: 'none', fontSize: '0.875rem' }}
-        />
+      <div className="flex gap-4 mb-6 flex-wrap">
+        <input type="text" placeholder="Search by name, teacher, or subject…" value={c.search} onChange={e => c.setSearch(e.target.value)}
+          className="flex-1 min-w-56 border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm" />
         {divisions.length > 0 && (
-          <select value={c.filterDiv} onChange={e => c.setFilterDiv(e.target.value)} style={{ border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', outline: 'none', fontSize: '0.875rem', background: 'white', minWidth: '160px' }}>
+          <select value={c.filterDiv} onChange={e => c.setFilterDiv(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm bg-white min-w-40">
             <option value="">All Divisions</option>
             {divisions.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
           </select>
         )}
-        <select value={c.filterStatus} onChange={e => c.setFilterStatus(e.target.value)} style={{ border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', outline: 'none', fontSize: '0.875rem', background: 'white', minWidth: '130px' }}>
+        <select value={c.filterStatus} onChange={e => c.setFilterStatus(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm bg-white">
           <option value="">All Statuses</option>
           {CLASS_STATUS.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
         {(c.search || c.filterDiv || c.filterStatus) && (
-          <button
-            onClick={() => { c.setSearch(''); c.setFilterDiv(''); c.setFilterStatus('') }}
-            style={{ background: 'transparent', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', color: '#6b7280', fontSize: '0.9rem' }}
-          >Clear</button>
+          <button onClick={() => { c.setSearch(''); c.setFilterDiv(''); c.setFilterStatus('') }}
+            className="bg-transparent border border-gray-300 rounded-lg px-4 py-2 cursor-pointer text-gray-500 text-sm hover:bg-gray-50">Clear</button>
         )}
       </div>
 
       {/* Class cards */}
       {c.loading ? (
-        <p style={{ color: '#9ca3af' }}>Loading classes…</p>
+        <p className="text-gray-400">Loading classes…</p>
       ) : c.filtered.length === 0 ? (
-        <div style={{ background: 'white', borderRadius: '1rem', padding: '3rem', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📚</div>
-          <p style={{ color: '#6b7280', fontSize: '1.1rem' }}>
+        <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
+          <div className="text-5xl mb-4">📚</div>
+          <p className="text-gray-500 text-lg">
             {c.classes.length === 0 ? 'No classes yet. Add your first class to get started.' : 'No classes match your filters.'}
           </p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
           {c.filtered.map(cls => {
             const divColor = divColorMap[cls.division] || null
             const isActive = cls.status === 'Active'
-
             return (
-              <div
-                key={cls.id}
-                onClick={() => { c.openClass(cls); c.startEdit(cls) }}
-                style={{
-                  background: 'white', borderRadius: '1rem',
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-                  overflow: 'hidden', transition: 'box-shadow 0.15s', cursor: 'pointer',
-                }}
-                onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)'}
-                onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.08)'}
-              >
-                <div style={{ height: '4px', background: divColor || primaryColor }} />
-
-                <div style={{ padding: '1.25rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.625rem' }}>
-                    <div style={{ fontWeight: '700', color: '#1f2937', fontSize: '1rem', flex: 1, paddingRight: '0.5rem' }}>{cls.name}</div>
-                    <span style={{
-                      fontSize: '0.7rem', fontWeight: '700', borderRadius: '9999px', padding: '0.2rem 0.625rem', whiteSpace: 'nowrap',
-                      background: isActive ? '#f0fdf4' : '#f3f4f6',
-                      color:      isActive ? '#15803d' : '#9ca3af',
-                    }}>{cls.status}</span>
+              <div key={cls.id} onClick={() => { c.openClass(cls); c.startEdit(cls) }}
+                className="bg-white rounded-2xl shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-shadow">
+                <div className="h-1" style={{ background: divColor || primaryColor }} />
+                <div className="p-5">
+                  <div className="flex justify-between items-start mb-2.5">
+                    <div className="font-bold text-gray-800 flex-1 pr-2">{cls.name}</div>
+                    <span className="text-xs font-bold rounded-full px-2.5 py-0.5 whitespace-nowrap" style={{ background: isActive ? '#f0fdf4' : '#f3f4f6', color: isActive ? '#15803d' : '#9ca3af' }}>
+                      {cls.status}
+                    </span>
                   </div>
-
-                  <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap', marginBottom: '0.625rem' }}>
+                  <div className="flex gap-1.5 flex-wrap mb-2.5">
                     {cls.subject && (
-                      <span style={{ fontSize: '0.72rem', fontWeight: '600', color: primaryColor, background: primaryColor + '15', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>
-                        {cls.subject}
-                      </span>
+                      <span className="text-xs font-semibold rounded-full px-2 py-0.5" style={{ color: primaryColor, background: primaryColor + '15' }}>{cls.subject}</span>
                     )}
                     {cls.division && divColor && (
-                      <span style={{ fontSize: '0.72rem', fontWeight: '600', color: divColor, background: divColor + '15', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>
-                        {cls.division}
-                      </span>
+                      <span className="text-xs font-semibold rounded-full px-2 py-0.5" style={{ color: divColor, background: divColor + '15' }}>{cls.division}</span>
                     )}
                     {cls.enrollment_mode && cls.enrollment_mode !== 'open' && (
-                      <span style={{ fontSize: '0.72rem', fontWeight: '600', color: '#6366f1', background: '#eef2ff', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>
+                      <span className="text-xs font-semibold text-indigo-500 bg-indigo-50 rounded-full px-2 py-0.5">
                         {cls.enrollment_mode === 'cohort' ? '👥 Cohort' : '👥 Mixed'}
                       </span>
                     )}
                   </div>
-
-                  <div style={{ fontSize: '0.82rem', color: '#6b7280', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                  <div className="text-xs text-gray-500 flex flex-col gap-0.5">
                     {cls.teacher_name && <span>👩‍🏫 {cls.teacher_name}</span>}
                     {cls.room_name    && <span>🚪 {cls.room_name}</span>}
                     {cls.class_size   && <span>👥 {cls.class_size} max</span>}
                   </div>
-
-                  {/* Capacity conflict badge */}
                   {(() => {
                     const room = cls.room_id ? c.rooms.find(r => r.id === cls.room_id) : null
                     if (room && room.capacity && cls.class_size && cls.class_size > room.capacity) {
-                      return (
-                        <div style={{ marginBottom: '0.625rem', fontSize: '0.72rem', fontWeight: '600', color: '#92400e', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '0.375rem', padding: '0.2rem 0.5rem' }}>
-                          ⚠️ Over capacity by {cls.class_size - room.capacity}
-                        </div>
-                      )
+                      return <div className="mt-2 text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-300 rounded-md px-2 py-1">⚠️ Over capacity by {cls.class_size - room.capacity}</div>
                     }
                     return null
                   })()}
-
                   {cls.description && (
-                    <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: '0.5rem 0 0', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                      {cls.description}
-                    </p>
+                    <p className="text-xs text-gray-400 mt-2 mb-0 leading-snug line-clamp-2">{cls.description}</p>
                   )}
                 </div>
               </div>
@@ -625,11 +415,11 @@ export default function Classes({ user, school, openClassId, onClearOpenClass })
 
 function StatCard({ label, value, icon, color }) {
   return (
-    <div style={{ background: 'white', borderRadius: '0.75rem', padding: '0.875rem 1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-      {icon  && <span style={{ fontSize: '1.25rem' }}>{icon}</span>}
-      {color && <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }} />}
-      <span style={{ fontWeight: '700', color: '#1f2937' }}>{value}</span>
-      <span style={{ color: '#6b7280', fontSize: '0.85rem' }}>{label}</span>
+    <div className="bg-white rounded-xl px-5 py-3 shadow-sm flex items-center gap-3">
+      {icon  && <span className="text-xl">{icon}</span>}
+      {color && <span className="w-2.5 h-2.5 rounded-full shrink-0 inline-block" style={{ background: color }} />}
+      <span className="font-bold text-gray-800">{value}</span>
+      <span className="text-gray-500 text-sm">{label}</span>
     </div>
   )
 }
