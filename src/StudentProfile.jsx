@@ -69,7 +69,7 @@ export default function StudentProfile({ student, school, h }) {
                         <div className="w-4 h-4 rounded flex items-center justify-center shrink-0 border-2 transition-colors" style={{ borderColor: h.repeatGrade ? primaryColor : '#d1d5db', background: h.repeatGrade ? primaryColor : 'white' }}>
                           {h.repeatGrade && <span className="text-white text-[0.6rem] font-bold">✓</span>}
                         </div>
-                        <span className="text-sm" style={{ color: h.repeatGrade ? primaryColor : '#6b7280', fontWeight: h.repeatGrade ? '600' : '400' }}>Student is repeating this grade</span>
+                        <span className={`text-sm ${h.repeatGrade ? 'font-semibold' : 'font-normal text-gray-500'}`} style={{ color: h.repeatGrade ? primaryColor : undefined }}>Student is repeating this grade</span>
                       </div>
                     )}
                     {h.editForm.grade && h.editForm.grade !== student.grade && isSkipGrade(student.grade, h.editForm.grade) && (
@@ -77,7 +77,7 @@ export default function StudentProfile({ student, school, h }) {
                         <div className="w-4 h-4 rounded flex items-center justify-center shrink-0 border-2 transition-colors" style={{ borderColor: h.skipGrade ? '#8b5cf6' : '#d1d5db', background: h.skipGrade ? '#8b5cf6' : 'white' }}>
                           {h.skipGrade && <span className="text-white text-[0.6rem] font-bold">✓</span>}
                         </div>
-                        <span className="text-sm" style={{ color: h.skipGrade ? '#8b5cf6' : '#6b7280', fontWeight: h.skipGrade ? '600' : '400' }}>Student is skipping a grade</span>
+                        <span className={`text-sm ${h.skipGrade ? 'font-semibold text-violet-500' : 'font-normal text-gray-500'}`}>Student is skipping a grade</span>
                       </div>
                     )}
                   </>
@@ -171,7 +171,7 @@ export default function StudentProfile({ student, school, h }) {
               const color = state === 'current' ? 'white' : state === 'past' ? primaryColor : '#9ca3af'
               const weight = state === 'current' ? '700' : state === 'past' ? '600' : '400'
               return (
-                <div key={grade} className="flex-1 text-center py-3 px-2 relative" style={{ background: bg, borderRight: i < GRADES.length - 1 ? '1px solid #e5e7eb' : 'none', minWidth: 60 }}>
+                <div key={grade} className={`flex-1 text-center py-3 px-2 relative min-w-[60px] ${i < GRADES.length - 1 ? 'border-r border-gray-200' : ''}`} style={{ background: bg }}>
                   {state === 'current' && <div className="absolute top-0 left-0 right-0 h-0.5 bg-white/60 rounded-t" />}
                   <div className="text-xs leading-snug truncate" style={{ fontWeight: weight, color }}>{grade.replace(' Grade', '').replace('Grade ', '')}</div>
                   <div className="text-[0.6rem] mt-1" style={{ color: state === 'current' ? 'rgba(255,255,255,0.8)' : state === 'past' ? primaryColor + 'aa' : '#d1d5db' }}>
@@ -223,7 +223,7 @@ export default function StudentProfile({ student, school, h }) {
       {/* Health Records */}
       <div className={`${cardCls} mb-6`}>
         <div className="flex justify-between items-center mb-4">
-          <div className={secHead} style={{ marginBottom: 0 }}>Health Records</div>
+          <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Health Records</div>
           <button onClick={h.toggleHealthProfileEdit} className="text-xs font-semibold border rounded-md px-2.5 py-1 cursor-pointer hover:opacity-80" style={{ color: primaryColor, borderColor: primaryColor, background: 'none' }}>
             {h.showHealthProfileEdit ? 'Cancel' : h.healthProfile ? 'Edit Profile' : '+ Add Profile'}
           </button>
@@ -360,7 +360,7 @@ export default function StudentProfile({ student, school, h }) {
       {/* Incident Log */}
       <div className={`${cardCls} mb-6`}>
         <div className="flex justify-between items-center mb-4">
-          <div className={secHead} style={{ marginBottom: 0 }}>Incident Log</div>
+          <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Incident Log</div>
           {!h.showIncidentForm && (
             <button onClick={() => h.setShowIncidentForm(true)} className="text-xs font-semibold border rounded-md px-2.5 py-1 cursor-pointer hover:opacity-80" style={{ color: primaryColor, borderColor: primaryColor, background: 'none' }}>+ Log Incident</button>
           )}
@@ -452,7 +452,7 @@ export default function StudentProfile({ student, school, h }) {
                       <div className="flex gap-2 items-center">
                         <span className="text-xs font-semibold rounded-full px-2.5 py-0.5" style={{ color: INCIDENT_TYPE_COLORS[inc.type] || '#6b7280', background: (INCIDENT_TYPE_COLORS[inc.type] || '#6b7280') + '18' }}>{inc.type}</span>
                         <span className="text-xs text-gray-400">{inc.date}</span>
-                        <span className="text-xs font-semibold" style={{ color: inc.status === 'Open' ? '#ef4444' : '#10b981' }}>{inc.status}</span>
+                        <span className={`text-xs font-semibold ${inc.status === 'Open' ? 'text-red-500' : 'text-green-500'}`}>{inc.status}</span>
                       </div>
                       <button onClick={() => { h.setEditingIncident(inc.id); h.setIncidentEditForm({ ...inc }) }} className="text-[0.7rem] text-gray-400 bg-transparent border border-gray-200 rounded px-1.5 py-0.5 cursor-pointer hover:border-gray-400">Edit</button>
                     </div>
@@ -473,8 +473,8 @@ export default function StudentProfile({ student, school, h }) {
         <div className="flex gap-4 flex-wrap">
           <button
             onClick={() => { h.setGraduateConfirm(true); h.setDeleteConfirm(false); h.setGraduateForm({ graduation_year: new Date().getFullYear(), grade_completed: student.grade || '' }) }}
-            className="border-2 rounded-lg px-5 py-2.5 font-semibold cursor-pointer text-sm hover:opacity-90 transition-opacity"
-            style={{ background: '#fff7ed', color: primaryColor, borderColor: primaryColor }}
+            className="bg-orange-50 border-2 rounded-lg px-5 py-2.5 font-semibold cursor-pointer text-sm hover:opacity-90 transition-opacity"
+            style={{ color: primaryColor, borderColor: primaryColor }}
           >🎓 Graduate to Alumni</button>
           <button onClick={() => h.setDeleteConfirm(true)} className="bg-white text-red-500 border border-red-400 rounded-lg px-5 py-2.5 font-semibold cursor-pointer text-sm hover:bg-red-50">
             Delete Student

@@ -51,6 +51,10 @@ const STEPS = [
   { title: 'Brand & Appearance', subtitle: 'Give LunchBox your school\'s look and feel.', icon: '🎨' },
 ]
 
+const labelCls = 'block text-sm font-semibold text-gray-700 mb-1.5'
+const fieldCls = 'w-full border border-gray-300 rounded-lg px-4 py-2.5 outline-none text-[0.95rem]'
+const hintCls = 'text-[0.8rem] text-gray-400 mt-1.5'
+
 export default function SetupWizard({ user, school, onDone }) {
   const [step, setStep] = useState(1)
   const [saving, setSaving] = useState(false)
@@ -104,63 +108,61 @@ export default function SetupWizard({ user, school, onDone }) {
     setDivisions(prev => prev.map((div, i) => i === divIndex ? { ...div, name } : div))
   }
 
-  const inputStyle = { width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.625rem 1rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }
-  const labelStyle = { display: 'block', fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.375rem' }
-
   const currentStep = STEPS[step - 1]
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
-      <div style={{ background: 'white', borderRadius: '1.5rem', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', width: '100%', maxWidth: '640px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center p-6">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[640px] max-h-[90vh] flex flex-col">
 
         {/* Header */}
-        <div style={{ padding: '2rem 2rem 1.5rem', borderBottom: '1px solid #f3f4f6' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
-            <div>
-              <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
-                Quick Setup — Step {step} of {TOTAL_STEPS}
-              </div>
-              <h2 style={{ fontSize: '1.4rem', fontWeight: '800', color: '#1f2937', margin: 0 }}>
-                {currentStep.icon} {currentStep.title}
-              </h2>
-              <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: '0.375rem 0 0' }}>{currentStep.subtitle}</p>
+        <div className="px-8 pt-8 pb-6 border-b border-gray-100">
+          <div className="mb-5">
+            <div className="text-[0.8rem] font-semibold text-gray-400 uppercase tracking-wide mb-1">
+              Quick Setup — Step {step} of {TOTAL_STEPS}
             </div>
+            <h2 className="text-[1.4rem] font-extrabold text-gray-800 m-0">
+              {currentStep.icon} {currentStep.title}
+            </h2>
+            <p className="text-gray-500 text-sm mt-1.5 mb-0">{currentStep.subtitle}</p>
           </div>
 
           {/* Progress bar */}
-          <div style={{ display: 'flex', gap: '0.375rem' }}>
+          <div className="flex gap-1.5">
             {Array.from({ length: TOTAL_STEPS }, (_, i) => (
-              <div key={i} style={{ flex: 1, height: '4px', borderRadius: '9999px', background: i < step ? primaryColor : '#e5e7eb', transition: 'background 0.3s' }} />
+              <div key={i} className="flex-1 h-1 rounded-full transition-colors duration-300"
+                style={{ background: i < step ? primaryColor : '#e5e7eb' }} />
             ))}
           </div>
         </div>
 
         {/* Scrollable content */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '1.75rem 2rem' }}>
+        <div className="flex-1 overflow-y-auto px-8 py-7">
 
           {/* Step 1 — Grades */}
           {step === 1 && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>{grades.length} selected</span>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={() => setGrades([...ALL_GRADES])} style={{ background: 'transparent', border: '1px solid #d1d5db', borderRadius: '0.375rem', padding: '0.2rem 0.6rem', fontSize: '0.8rem', cursor: 'pointer', color: '#6b7280' }}>Select All</button>
-                  <button onClick={() => setGrades([])} style={{ background: 'transparent', border: '1px solid #d1d5db', borderRadius: '0.375rem', padding: '0.2rem 0.6rem', fontSize: '0.8rem', cursor: 'pointer', color: '#6b7280' }}>Clear</button>
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-sm text-gray-500">{grades.length} selected</span>
+                <div className="flex gap-2">
+                  <button onClick={() => setGrades([...ALL_GRADES])} className="bg-transparent border border-gray-300 rounded px-2.5 py-0.5 text-[0.8rem] cursor-pointer text-gray-500 hover:bg-gray-50">Select All</button>
+                  <button onClick={() => setGrades([])} className="bg-transparent border border-gray-300 rounded px-2.5 py-0.5 text-[0.8rem] cursor-pointer text-gray-500 hover:bg-gray-50">Clear</button>
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '0.5rem' }}>
+              <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}>
                 {ALL_GRADES.map(grade => {
                   const checked = grades.includes(grade)
                   return (
                     <div
                       key={grade}
                       onClick={() => toggleGrade(grade)}
-                      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', border: `2px solid ${checked ? primaryColor : '#e5e7eb'}`, background: checked ? primaryColor + '12' : 'white', cursor: 'pointer', userSelect: 'none', transition: 'all 0.1s' }}
+                      className="flex items-center gap-2 px-3 py-2 rounded-lg border-2 cursor-pointer select-none transition-all"
+                      style={{ borderColor: checked ? primaryColor : '#e5e7eb', background: checked ? primaryColor + '12' : 'white' }}
                     >
-                      <div style={{ width: '16px', height: '16px', borderRadius: '4px', border: `2px solid ${checked ? primaryColor : '#d1d5db'}`, background: checked ? primaryColor : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        {checked && <span style={{ color: 'white', fontSize: '0.7rem', fontWeight: 'bold' }}>✓</span>}
+                      <div className="w-4 h-4 rounded flex items-center justify-center shrink-0"
+                        style={{ border: `2px solid ${checked ? primaryColor : '#d1d5db'}`, background: checked ? primaryColor : 'white' }}>
+                        {checked && <span className="text-white text-[0.7rem] font-bold">✓</span>}
                       </div>
-                      <span style={{ fontSize: '0.875rem', color: checked ? primaryColor : '#374151', fontWeight: checked ? '600' : '400' }}>{grade}</span>
+                      <span className="text-sm" style={{ color: checked ? primaryColor : '#374151', fontWeight: checked ? '600' : '400' }}>{grade}</span>
                     </div>
                   )
                 })}
@@ -172,26 +174,27 @@ export default function SetupWizard({ user, school, onDone }) {
           {step === 2 && (
             <div>
               {grades.length === 0 ? (
-                <div style={{ padding: '2rem', textAlign: 'center', background: '#f9fafb', borderRadius: '0.75rem', border: '1px solid #e5e7eb' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>⚠️</div>
-                  <p style={{ color: '#6b7280', margin: 0 }}>No grades selected yet. Go back to Step 1 and select grade levels first, or skip this step and configure divisions in Settings later.</p>
+                <div className="p-8 text-center bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="text-[2rem] mb-2">⚠️</div>
+                  <p className="text-gray-500 m-0">No grades selected yet. Go back to Step 1 and select grade levels first, or skip this step and configure divisions in Settings later.</p>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+                <div className="flex flex-col gap-3.5">
                   {divisions.map((div, i) => {
                     const color = DIVISION_COLORS[i % DIVISION_COLORS.length]
                     const sorted = [...grades].sort((a, b) => ALL_GRADES.indexOf(a) - ALL_GRADES.indexOf(b))
                     return (
-                      <div key={i} style={{ border: `2px solid ${color}20`, borderRadius: '0.75rem', padding: '1rem', background: `${color}06` }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                          <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: color, flexShrink: 0 }} />
+                      <div key={i} className="rounded-xl p-4" style={{ border: `2px solid ${color}20`, background: `${color}06` }}>
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color }} />
                           <input
                             value={div.name}
                             onChange={e => updateDivisionName(i, e.target.value)}
-                            style={{ ...inputStyle, fontWeight: '600', color, border: `1px solid ${color}40`, background: 'white', flex: 1, padding: '0.4rem 0.75rem' }}
+                            className="flex-1 rounded-lg px-3 py-1.5 outline-none font-semibold text-[0.95rem] bg-white"
+                            style={{ border: `1px solid ${color}40`, color }}
                           />
                         </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+                        <div className="flex flex-wrap gap-1.5">
                           {sorted.map(grade => {
                             const inThis = div.grades.includes(grade)
                             const inOther = !inThis && divisions.some((d, j) => j !== i && d.grades.includes(grade))
@@ -200,20 +203,27 @@ export default function SetupWizard({ user, school, onDone }) {
                                 key={grade}
                                 onClick={() => !inOther && toggleGradeInDiv(i, grade)}
                                 disabled={inOther}
-                                style={{ padding: '0.2rem 0.6rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: inThis ? '600' : '400', cursor: inOther ? 'not-allowed' : 'pointer', border: `1.5px solid ${inThis ? color : '#d1d5db'}`, background: inThis ? color : inOther ? '#f3f4f6' : 'white', color: inThis ? 'white' : inOther ? '#d1d5db' : '#374151', opacity: inOther ? 0.5 : 1 }}
+                                className="px-2.5 py-0.5 rounded-full text-[0.8rem] border-[1.5px] cursor-pointer transition-all disabled:cursor-not-allowed"
+                                style={{
+                                  fontWeight: inThis ? '600' : '400',
+                                  borderColor: inThis ? color : '#d1d5db',
+                                  background: inThis ? color : inOther ? '#f3f4f6' : 'white',
+                                  color: inThis ? 'white' : inOther ? '#d1d5db' : '#374151',
+                                  opacity: inOther ? 0.5 : 1,
+                                }}
                               >
                                 {grade}
                               </button>
                             )
                           })}
                         </div>
-                        <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.5rem', marginBottom: 0 }}>
+                        <p className="text-xs text-gray-400 mt-2 mb-0">
                           {div.grades.length === 0 ? 'No grades assigned' : `${div.grades.length} grade${div.grades.length !== 1 ? 's' : ''} assigned`}
                         </p>
                       </div>
                     )
                   })}
-                  <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: 0 }}>You can add, remove, and rename divisions anytime in Settings → Academic Config.</p>
+                  <p className={hintCls}>You can add, remove, and rename divisions anytime in Settings → Academic Config.</p>
                 </div>
               )}
             </div>
@@ -222,23 +232,24 @@ export default function SetupWizard({ user, school, onDone }) {
           {/* Step 3 — Subjects */}
           {step === 3 && (
             <div>
-              <label style={labelStyle}>Subjects (one per line)</label>
+              <label className={labelCls}>Subjects (one per line)</label>
               <textarea
                 value={subjects}
                 onChange={e => setSubjects(e.target.value)}
                 rows={10}
-                style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit', lineHeight: '1.6' }}
+                className={`${fieldCls} resize-y leading-relaxed`}
+                style={{ fontFamily: 'inherit' }}
                 placeholder="One subject per line..."
               />
-              <p style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '0.5rem' }}>These appear as rows on every report card. Edit anytime in Settings → Academic Config.</p>
+              <p className={hintCls}>These appear as rows on every report card. Edit anytime in Settings → Academic Config.</p>
             </div>
           )}
 
           {/* Step 4 — Grading Config */}
           {step === 4 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <div className="flex flex-col gap-5">
               <div>
-                <label style={labelStyle}>Grading Scale</label>
+                <label className={labelCls}>Grading Scale</label>
                 {[
                   { value: 'Letter', label: 'Letter Grades', desc: 'A, B, C, D, F' },
                   { value: 'Standards', label: 'Standards-Based', desc: '4 — Exceeds, 3 — Meets, 2 — Approaching, 1 — Below' },
@@ -247,68 +258,76 @@ export default function SetupWizard({ user, school, onDone }) {
                   <div
                     key={opt.value}
                     onClick={() => setGradingScale(opt.value)}
-                    style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.875rem 1rem', borderRadius: '0.625rem', border: `2px solid ${gradingScale === opt.value ? primaryColor : '#e5e7eb'}`, background: gradingScale === opt.value ? primaryColor + '08' : 'white', cursor: 'pointer', marginBottom: '0.5rem', userSelect: 'none' }}
+                    className="flex items-start gap-3 px-4 py-3.5 rounded-xl border-2 cursor-pointer mb-2 select-none transition-all"
+                    style={{ borderColor: gradingScale === opt.value ? primaryColor : '#e5e7eb', background: gradingScale === opt.value ? primaryColor + '08' : 'white' }}
                   >
-                    <div style={{ width: '18px', height: '18px', borderRadius: '50%', border: `2px solid ${gradingScale === opt.value ? primaryColor : '#d1d5db'}`, background: gradingScale === opt.value ? primaryColor : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '1px' }}>
-                      {gradingScale === opt.value && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'white' }} />}
+                    <div className="w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5"
+                      style={{ borderColor: gradingScale === opt.value ? primaryColor : '#d1d5db', background: gradingScale === opt.value ? primaryColor : 'white' }}>
+                      {gradingScale === opt.value && <div className="w-2 h-2 rounded-full bg-white" />}
                     </div>
                     <div>
-                      <div style={{ fontWeight: '600', color: '#1f2937', fontSize: '0.9rem' }}>{opt.label}</div>
-                      <div style={{ color: '#6b7280', fontSize: '0.8rem', marginTop: '0.1rem' }}>{opt.desc}</div>
+                      <div className="font-semibold text-gray-800 text-[0.9rem]">{opt.label}</div>
+                      <div className="text-gray-500 text-[0.8rem] mt-0.5">{opt.desc}</div>
                     </div>
                   </div>
                 ))}
               </div>
               <div>
-                <label style={labelStyle}>Grading Periods</label>
-                <select value={gradingPeriod} onChange={e => setGradingPeriod(e.target.value)} style={inputStyle}>
+                <label className={labelCls}>Grading Periods</label>
+                <select value={gradingPeriod} onChange={e => setGradingPeriod(e.target.value)} className={fieldCls}>
                   {['Quarters', 'Trimesters', 'Semesters', 'Annual'].map(g => <option key={g}>{g}</option>)}
                 </select>
-                <p style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '0.35rem' }}>Drives the term options on report cards (Q1–Q4, T1–T3, S1–S2, or Annual).</p>
+                <p className={hintCls}>Drives the term options on report cards (Q1–Q4, T1–T3, S1–S2, or Annual).</p>
               </div>
             </div>
           )}
 
           {/* Step 5 — Appearance */}
           {step === 5 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div className="flex flex-col gap-6">
               <div>
-                <label style={labelStyle}>Brand Color</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} style={{ width: '48px', height: '40px', borderRadius: '0.375rem', border: '1px solid #d1d5db', padding: '0.15rem', cursor: 'pointer', background: 'white' }} />
-                  <input type="text" value={primaryColor} onChange={e => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) setPrimaryColor(e.target.value) }} style={{ ...inputStyle, width: '120px', fontFamily: 'monospace' }} />
-                  <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>Used across the nav, buttons, and highlights.</span>
+                <label className={labelCls}>Brand Color</label>
+                <div className="flex items-center gap-3">
+                  <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)}
+                    className="w-12 h-10 rounded border border-gray-300 p-0.5 cursor-pointer bg-white" />
+                  <input type="text" value={primaryColor}
+                    onChange={e => { if (/^#[0-9a-fA-F]{0,6}$/.test(e.target.value)) setPrimaryColor(e.target.value) }}
+                    className="w-[120px] border border-gray-300 rounded-lg px-3 py-2 outline-none text-[0.95rem] font-mono" />
+                  <span className="text-sm text-gray-500">Used across the nav, buttons, and highlights.</span>
                 </div>
-                <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <div className="mt-3 flex gap-2 flex-wrap">
                   {['#f97316', '#6366f1', '#0ea5e9', '#10b981', '#8b5cf6', '#ef4444', '#1f2937'].map(c => (
-                    <button key={c} onClick={() => setPrimaryColor(c)} style={{ width: '28px', height: '28px', borderRadius: '50%', background: c, border: primaryColor === c ? '3px solid #1f2937' : '2px solid transparent', cursor: 'pointer', outline: 'none' }} title={c} />
+                    <button key={c} onClick={() => setPrimaryColor(c)}
+                      className="w-7 h-7 rounded-full cursor-pointer outline-none border-2 transition-all"
+                      style={{ background: c, borderColor: primaryColor === c ? '#1f2937' : 'transparent' }}
+                      title={c} />
                   ))}
                 </div>
               </div>
               <div>
-                <label style={labelStyle}>School Motto / Tagline <span style={{ fontWeight: '400', color: '#9ca3af' }}>(optional)</span></label>
-                <input value={motto} onChange={e => setMotto(e.target.value)} placeholder="e.g. Inspiring Minds, Building Futures" style={inputStyle} />
-                <p style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '0.35rem' }}>Shown under your school name in the top nav.</p>
+                <label className={labelCls}>School Motto / Tagline <span className="font-normal text-gray-400">(optional)</span></label>
+                <input value={motto} onChange={e => setMotto(e.target.value)} placeholder="e.g. Inspiring Minds, Building Futures" className={fieldCls} />
+                <p className={hintCls}>Shown under your school name in the top nav.</p>
               </div>
               <div>
-                <label style={labelStyle}>School Logo URL <span style={{ fontWeight: '400', color: '#9ca3af' }}>(optional)</span></label>
-                <input value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="https://yourschool.com/logo.png" style={inputStyle} />
-                <p style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '0.35rem' }}>Direct link to your logo image. Shown in the top nav.</p>
-                {logoUrl && <img src={logoUrl} alt="Logo preview" onError={e => e.target.style.display = 'none'} style={{ marginTop: '0.75rem', maxHeight: '56px', borderRadius: '0.375rem', border: '1px solid #e5e7eb', padding: '0.25rem' }} />}
+                <label className={labelCls}>School Logo URL <span className="font-normal text-gray-400">(optional)</span></label>
+                <input value={logoUrl} onChange={e => setLogoUrl(e.target.value)} placeholder="https://yourschool.com/logo.png" className={fieldCls} />
+                <p className={hintCls}>Direct link to your logo image. Shown in the top nav.</p>
+                {logoUrl && <img src={logoUrl} alt="Logo preview" onError={e => e.target.style.display = 'none'} className="mt-3 max-h-14 rounded border border-gray-200 p-1" />}
               </div>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '1.25rem 2rem', borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
-          <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+        <div className="px-8 py-5 border-t border-gray-100 flex justify-between items-center gap-4">
+          <div className="flex gap-3 items-center">
             {step > 1 && (
-              <button onClick={() => setStep(s => s - 1)} style={{ background: 'transparent', border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', color: '#6b7280', fontSize: '0.875rem', fontWeight: '500' }}>
+              <button onClick={() => setStep(s => s - 1)} className="bg-transparent border border-gray-200 rounded-lg px-4 py-2 cursor-pointer text-gray-500 text-sm font-medium hover:bg-gray-50">
                 ← Back
               </button>
             )}
-            <button onClick={skip} style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '0.875rem', padding: '0.5rem 0.25rem' }}>
+            <button onClick={skip} className="bg-transparent border-0 cursor-pointer text-gray-400 text-sm px-1 py-2 hover:text-gray-600">
               {step === TOTAL_STEPS ? 'Skip & go to dashboard' : 'Skip for now'}
             </button>
           </div>
@@ -321,7 +340,8 @@ export default function SetupWizard({ user, school, onDone }) {
               else if (step === 5) saveAndNext({ primary_color: primaryColor, logo_url: logoUrl, motto })
             }}
             disabled={saving}
-            style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.5rem', fontWeight: '700', cursor: saving ? 'not-allowed' : 'pointer', fontSize: '0.95rem', opacity: saving ? 0.7 : 1 }}
+            className="text-white border-0 rounded-lg px-6 py-2.5 font-bold cursor-pointer text-[0.95rem] disabled:opacity-70 hover:opacity-90 transition-opacity"
+            style={{ background: primaryColor }}
           >
             {saving ? 'Saving...' : step === TOTAL_STEPS ? 'Finish Setup 🎉' : 'Save & Continue →'}
           </button>
