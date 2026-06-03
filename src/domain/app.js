@@ -6,27 +6,27 @@
 
 export const NAV_GROUPS = [
   { key: 'academics', label: 'Academics', items: [
-    { id: 'admissions',  label: 'Admissions',        icon: '📬' },
-    { id: 'enrollment',  label: 'School Enrollment', icon: '📋' },
-    { id: 'students',    label: 'Students',          icon: '🎒' },
-    { id: 'classes',     label: 'Classes',           icon: '📚' },
-    { id: 'cohorts',     label: 'Cohorts',           icon: '👥' },
-    { id: 'schedule',    label: 'Schedule',          icon: '📅' },
-    { id: 'attendance',  label: 'Attendance',        icon: '🗓️' },
-    { id: 'reportcards', label: 'Report Cards',      icon: '📝' },
+    { id: 'admissions',  label: 'Admissions',        icon: 'ClipboardList' },
+    { id: 'enrollment',  label: 'School Enrollment', icon: 'UserPlus' },
+    { id: 'students',    label: 'Students',          icon: 'Users' },
+    { id: 'classes',     label: 'Classes',           icon: 'BookOpen' },
+    { id: 'cohorts',     label: 'Cohorts',           icon: 'UsersRound' },
+    { id: 'schedule',    label: 'Schedule',          icon: 'CalendarDays' },
+    { id: 'attendance',  label: 'Attendance',        icon: 'ClipboardCheck' },
+    { id: 'reportcards', label: 'Report Cards',      icon: 'FileText' },
   ]},
   { key: 'people', label: 'People', items: [
-    { id: 'staff',   label: 'Staff',   icon: '👩‍🏫' },
-    { id: 'parents', label: 'Parents', icon: '👨‍👩‍👧' },
-    { id: 'alumni',  label: 'Alumni',  icon: '🎓' },
+    { id: 'staff',   label: 'Staff',   icon: 'Briefcase' },
+    { id: 'parents', label: 'Parents', icon: 'Heart' },
+    { id: 'alumni',  label: 'Alumni',  icon: 'Award' },
   ]},
   { key: 'operations', label: 'Operations', items: [
-    { id: 'fundraising', label: 'Fundraising', icon: '💰' },
-    { id: 'facilities',  label: 'Facility Requests', icon: '🔧' },
+    { id: 'fundraising', label: 'Fundraising',       icon: 'HeartHandshake' },
+    { id: 'facilities',  label: 'Facility Requests', icon: 'Wrench' },
   ]},
   { key: 'communicate', label: 'Communicate', items: [
-    { id: 'messages', label: 'Messages',          icon: '✉️' },
-    { id: 'reports',  label: 'Report Dashboards', icon: '📊' },
+    { id: 'messages', label: 'Messages',          icon: 'MessageSquare' },
+    { id: 'reports',  label: 'Report Dashboards', icon: 'BarChart3' },
   ]},
 ]
 

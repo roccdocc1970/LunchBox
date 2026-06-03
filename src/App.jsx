@@ -1,4 +1,15 @@
 import { useState, useEffect } from 'react'
+import {
+  LayoutDashboard, ClipboardList, UserPlus, Users, BookOpen, UsersRound,
+  CalendarDays, ClipboardCheck, FileText, Briefcase, Heart, Award,
+  HeartHandshake, Wrench, MessageSquare, BarChart3, ChevronDown, Settings as SettingsIcon, LogOut,
+} from 'lucide-react'
+
+const NAV_ICONS = {
+  LayoutDashboard, ClipboardList, UserPlus, Users, BookOpen, UsersRound,
+  CalendarDays, ClipboardCheck, FileText, Briefcase, Heart, Award,
+  HeartHandshake, Wrench, MessageSquare, BarChart3,
+}
 import { supabase } from './supabase'
 import { useAuth }      from './hooks/useAuth'
 import { useSchool }    from './hooks/useSchool'
@@ -98,43 +109,43 @@ function App() {
         )}
 
         {/* Top Nav */}
-        <div className="px-8 py-4 flex items-center justify-between" style={{ background: primaryColor }}>
+        <div className="px-6 py-3 flex items-center justify-between bg-white border-b border-gray-200 shadow-sm">
           <div className="flex items-center gap-3">
             {sc.school?.logo_url
               ? <img src={sc.school.logo_url} alt="School logo" className="h-8 rounded object-contain" onError={e => e.target.style.display = 'none'} />
-              : <span className="text-3xl">🍱</span>
+              : <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold shrink-0" style={{ background: primaryColor }}>L</div>
             }
             <div>
-              <div className="text-white font-bold text-xl leading-tight">{sc.school?.name || 'LunchBox'}</div>
-              {sc.school?.motto && <div className="text-white/75 text-xs">{sc.school.motto}</div>}
+              <div className="font-bold text-gray-900 text-base leading-tight">{sc.school?.name || 'LunchBox'}</div>
+              {sc.school?.motto && <div className="text-gray-400 text-xs">{sc.school.motto}</div>}
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-white text-sm">{session.user.email}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400 text-sm hidden md:block">{session.user.email}</span>
             <div className="relative">
               <button
                 onClick={() => setShowSettingsMenu(m => !m)}
-                className="bg-white/20 text-white border-0 rounded-lg px-2.5 py-1.5 cursor-pointer text-base leading-none hover:bg-white/30"
+                className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 border-0 text-gray-600 rounded-lg px-3 py-1.5 cursor-pointer text-sm transition-colors"
                 title="Settings"
-              >⚙️</button>
+              ><SettingsIcon size={14} /><span className="hidden md:inline">Settings</span></button>
               {showSettingsMenu && (
                 <>
                   <div onClick={() => setShowSettingsMenu(false)} className="fixed inset-0 z-40" />
-                  <div className="absolute right-0 top-[calc(100%+0.5rem)] bg-white rounded-xl shadow-2xl min-w-44 z-50 overflow-hidden">
+                  <div className="absolute right-0 top-[calc(100%+0.5rem)] bg-white rounded-xl shadow-2xl min-w-48 z-50 overflow-hidden border border-gray-100">
                     <button onClick={() => { setActivePage('settings'); setShowSettingsMenu(false) }}
                       className="w-full text-left px-4 py-3 bg-transparent border-0 cursor-pointer text-sm text-gray-700 flex items-center gap-2.5 hover:bg-gray-50">
-                      ⚙️ School Settings
+                      <SettingsIcon size={14} /> School Settings
                     </button>
                     <button onClick={() => { sc.setShowWizard(true); setShowSettingsMenu(false) }}
                       className="w-full text-left px-4 py-3 bg-transparent border-0 cursor-pointer text-sm text-gray-700 flex items-center gap-2.5 hover:bg-gray-50">
-                      🪄 Setup Wizard
+                      ✦ Setup Wizard
                     </button>
                   </div>
                 </>
               )}
             </div>
-            <button onClick={auth.handleLogout} className="bg-white border-0 rounded-lg px-4 py-1.5 font-semibold cursor-pointer hover:opacity-90 transition-opacity" style={{ color: primaryColor }}>
-              Sign Out
+            <button onClick={auth.handleLogout} className="flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 border-0 text-gray-600 rounded-lg px-3 py-1.5 text-sm cursor-pointer transition-colors">
+              <LogOut size={14} /><span className="hidden md:inline">Sign Out</span>
             </button>
           </div>
         </div>
@@ -142,58 +153,53 @@ function App() {
         <div className="flex flex-1">
 
           {/* Sidebar */}
-          <div className="w-[220px] bg-white border-r border-gray-200 py-4 flex flex-col">
+          <div className="w-[240px] bg-white border-r border-gray-100 py-5 flex flex-col shrink-0">
             {/* Dashboard button */}
-            <button
-              onClick={() => setActivePage('dashboard')}
-              className="w-full text-left px-5 py-2.5 border-0 border-l-[3px] cursor-pointer text-sm flex items-center gap-2.5 mb-2 transition-colors"
-              style={{
-                background:   activePage === 'dashboard' ? primaryColor + '18' : 'transparent',
-                borderColor:  activePage === 'dashboard' ? primaryColor : 'transparent',
-                color:        activePage === 'dashboard' ? primaryColor : '#374151',
-                fontWeight:   activePage === 'dashboard' ? '600' : '400',
-              }}
-            ><span>🏠</span><span>Dashboard</span></button>
+            <div className="px-3 mb-1">
+              <button
+                onClick={() => setActivePage('dashboard')}
+                className={`w-full text-left px-3 py-2 rounded-lg border-0 cursor-pointer text-sm flex items-center gap-2.5 transition-all ${activePage === 'dashboard' ? 'text-white font-semibold shadow-sm' : 'text-gray-500 font-normal hover:bg-gray-50 hover:text-gray-900'}`}
+                style={activePage === 'dashboard' ? { background: primaryColor } : {}}
+              >
+                <LayoutDashboard size={15} className="shrink-0" />
+                <span>Dashboard</span>
+              </button>
+            </div>
 
             {NAV_GROUPS.map(group => (
-              <div key={group.key}>
+              <div key={group.key} className="mt-4">
                 <button
                   onClick={() => toggleGroup(group.key)}
-                  className="w-full text-left px-5 py-1.5 bg-transparent border-0 cursor-pointer flex items-center justify-between"
+                  className="w-full text-left px-6 py-1 bg-transparent border-0 cursor-pointer flex items-center justify-between mb-1"
                 >
-                  <span className="text-[0.7rem] font-bold text-gray-400 uppercase tracking-widest">{group.label}</span>
-                  <span className="text-[0.65rem] text-gray-400 transition-transform" style={{ transform: collapsedGroups[group.key] ? 'rotate(-90deg)' : 'rotate(0deg)' }}>▼</span>
+                  <span className="text-[0.65rem] font-bold text-gray-400 uppercase tracking-widest">{group.label}</span>
+                  <ChevronDown size={11} className={`text-gray-400 transition-transform ${collapsedGroups[group.key] ? '-rotate-90' : ''}`} />
                 </button>
-                {!collapsedGroups[group.key] && group.items.map(item => {
-                  const isActive = activePage === item.id
-                  const count    = counts[item.id]
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setActivePage(item.id)}
-                      className="w-full text-left pl-7 pr-4 py-2 border-0 border-l-[3px] cursor-pointer text-sm flex items-center gap-2 transition-colors"
-                      style={{
-                        background:  isActive ? primaryColor + '18' : 'transparent',
-                        borderColor: isActive ? primaryColor : 'transparent',
-                        color:       isActive ? primaryColor : '#374151',
-                        fontWeight:  isActive ? '600' : '400',
-                      }}
-                    >
-                      <span className="text-base shrink-0">{item.icon}</span>
-                      <span className="flex-1">{item.label}</span>
-                      {count > 0 && (
-                        <span className="text-[0.68rem] rounded-full px-1.5 py-0.5 min-w-5 text-center leading-none shrink-0"
-                          style={{
-                            color:      isActive ? primaryColor : '#9ca3af',
-                            background: isActive ? primaryColor + '18' : '#f3f4f6',
-                          }}>
-                          {count > 999 ? '999+' : count}
-                        </span>
-                      )}
-                    </button>
-                  )
-                })}
-                <div className="h-2" />
+                {!collapsedGroups[group.key] && (
+                  <div className="px-3 flex flex-col gap-0.5">
+                    {group.items.map(item => {
+                      const isActive = activePage === item.id
+                      const count    = counts[item.id]
+                      const Icon     = NAV_ICONS[item.icon]
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => setActivePage(item.id)}
+                          className={`w-full text-left px-3 py-2 rounded-lg border-0 cursor-pointer text-sm flex items-center gap-2.5 transition-all ${isActive ? 'text-white font-semibold shadow-sm' : 'text-gray-500 font-normal hover:bg-gray-50 hover:text-gray-900'}`}
+                          style={isActive ? { background: primaryColor } : {}}
+                        >
+                          {Icon && <Icon size={15} className="shrink-0" />}
+                          <span className="flex-1">{item.label}</span>
+                          {count > 0 && (
+                            <span className={`text-[0.65rem] rounded-full px-1.5 py-0.5 min-w-5 text-center leading-none shrink-0 font-semibold ${isActive ? 'bg-white/25 text-white' : 'bg-gray-100 text-gray-400'}`}>
+                              {count > 999 ? '999+' : count}
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             ))}
           </div>
