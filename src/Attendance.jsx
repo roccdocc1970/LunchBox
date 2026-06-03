@@ -39,8 +39,12 @@ export default function Attendance({ user, school, schoolId: schoolIdProp = null
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-5 py-2 rounded-lg border-0 cursor-pointer text-sm transition-all ${activeTab === tab.id ? 'font-semibold text-white' : 'font-normal text-gray-500'}`}
-            style={{ background: activeTab === tab.id ? primaryColor : 'transparent' }}
+            className="px-5 py-2 rounded-lg border-0 cursor-pointer text-sm transition-all"
+            style={{
+              fontWeight: activeTab === tab.id ? '600' : '400',
+              background: activeTab === tab.id ? primaryColor : 'transparent',
+              color: activeTab === tab.id ? 'white' : '#6b7280',
+            }}
           >{tab.label}</button>
         ))}
       </div>
@@ -91,7 +95,7 @@ export default function Attendance({ user, school, schoolId: schoolIdProp = null
           {selectedGrade && !loadingStudents && students.length > 0 && (
             <>
               {/* Summary cards */}
-              <div className="grid gap-3 mb-4 grid-cols-[repeat(auto-fit,minmax(130px,1fr))]">
+              <div className="grid gap-3 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))' }}>
                 {[
                   { label: 'Present', count: summary.present, color: '#10b981' },
                   { label: 'Absent',  count: summary.absent,  color: '#ef4444' },
@@ -119,7 +123,7 @@ export default function Attendance({ user, school, schoolId: schoolIdProp = null
                     {students.map((s, i) => {
                       const rec = attendance[s.id] || { status: 'Present', notes: '' }
                       return (
-                        <tr key={s.id} className={`border-b border-gray-50 ${i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}`}>
+                        <tr key={s.id} className="border-b border-gray-50" style={{ background: i % 2 === 0 ? 'white' : '#fafafa' }}>
                           <td className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">
                             {s.first_name} {s.last_name}
                             {selectedGrade === '__all__' && s.grade && (
