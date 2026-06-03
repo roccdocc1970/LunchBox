@@ -22,45 +22,49 @@ export default function Attendance({ user, school, schoolId: schoolIdProp = null
     clearHistoryFilters,
   } = useAttendance(schoolId, school, gradeFilter)
 
-  const filterInputStyle = { border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.9rem', outline: 'none', cursor: 'pointer' }
-  const filterLabelStyle = { display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#6b7280', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }
+  const filterCls = 'border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none cursor-pointer bg-white'
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Attendance</h2>
-        <p style={{ color: '#6b7280', marginTop: '0.25rem', marginBottom: 0 }}>Daily attendance tracking</p>
+    <div className="p-8 max-w-6xl mx-auto">
+
+      {/* Header */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-800 m-0">Attendance</h2>
+        <p className="text-gray-500 mt-1 mb-0">Daily attendance tracking</p>
       </div>
 
       {/* Tab switcher */}
-      <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1.75rem', background: '#f3f4f6', borderRadius: '0.75rem', padding: '0.25rem', width: 'fit-content' }}>
+      <div className="flex gap-1 mb-7 bg-gray-100 rounded-xl p-1 w-fit">
         {[{ id: 'take', label: 'Take Attendance' }, { id: 'history', label: 'History' }].map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
-            padding: '0.5rem 1.25rem', borderRadius: '0.625rem', border: 'none', cursor: 'pointer',
-            fontSize: '0.9rem', fontWeight: activeTab === tab.id ? '600' : '400',
-            background: activeTab === tab.id ? primaryColor : 'transparent',
-            color: activeTab === tab.id ? 'white' : '#6b7280',
-            boxShadow: activeTab === tab.id ? `0 1px 3px ${primaryColor}40` : 'none',
-            transition: 'all 0.15s',
-          }}>{tab.label}</button>
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className="px-5 py-2 rounded-lg border-0 cursor-pointer text-sm transition-all"
+            style={{
+              fontWeight: activeTab === tab.id ? '600' : '400',
+              background: activeTab === tab.id ? primaryColor : 'transparent',
+              color: activeTab === tab.id ? 'white' : '#6b7280',
+            }}
+          >{tab.label}</button>
         ))}
       </div>
 
       {/* ── Take Attendance ── */}
       {activeTab === 'take' && (
         <>
-          <div style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem 1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          {/* Filter bar */}
+          <div className="bg-white rounded-2xl px-6 py-5 shadow-sm mb-6 flex gap-4 items-end flex-wrap">
             <div>
-              <label style={filterLabelStyle}>Date</label>
-              <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} style={filterInputStyle} />
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Date</label>
+              <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className={filterCls} />
             </div>
             <div>
-              <label style={filterLabelStyle}>Grade</label>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Grade</label>
               <select
                 value={selectedGrade}
                 onChange={e => setSelectedGrade(e.target.value)}
                 disabled={!!gradeFilter}
-                style={{ ...filterInputStyle, cursor: gradeFilter ? 'default' : 'pointer', minWidth: '160px' }}
+                className={`${filterCls} min-w-40 ${gradeFilter ? 'cursor-default' : ''}`}
               >
                 <option value="">Select a grade...</option>
                 {!gradeFilter && <option value="__all__">All Grades</option>}
@@ -69,81 +73,85 @@ export default function Attendance({ user, school, schoolId: schoolIdProp = null
             </div>
           </div>
 
+          {/* No grade selected */}
           {!selectedGrade && (
-            <div style={{ background: 'white', borderRadius: '1rem', padding: '3rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', textAlign: 'center', color: '#9ca3af' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📅</div>
-              <p style={{ margin: 0, fontSize: '1rem' }}>Select a grade to take attendance</p>
+            <div className="bg-white rounded-2xl p-12 shadow-sm text-center text-gray-400">
+              <div className="text-4xl mb-3">📅</div>
+              <p className="m-0 text-base">Select a grade to take attendance</p>
             </div>
           )}
 
           {selectedGrade && loadingStudents && (
-            <div style={{ padding: '2rem', color: '#6b7280' }}>Loading students...</div>
+            <div className="p-8 text-gray-500">Loading students...</div>
           )}
 
           {selectedGrade && !loadingStudents && students.length === 0 && (
-            <div style={{ background: 'white', borderRadius: '1rem', padding: '3rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', textAlign: 'center', color: '#9ca3af' }}>
-              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎒</div>
-              <p style={{ margin: 0 }}>No enrolled students{selectedGrade === '__all__' ? '' : ` in ${selectedGrade}`}</p>
+            <div className="bg-white rounded-2xl p-12 shadow-sm text-center text-gray-400">
+              <div className="text-3xl mb-2">🎒</div>
+              <p className="m-0">No enrolled students{selectedGrade === '__all__' ? '' : ` in ${selectedGrade}`}</p>
             </div>
           )}
 
           {selectedGrade && !loadingStudents && students.length > 0 && (
             <>
               {/* Summary cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div className="grid gap-3 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))' }}>
                 {[
                   { label: 'Present', count: summary.present, color: '#10b981' },
                   { label: 'Absent',  count: summary.absent,  color: '#ef4444' },
                   { label: 'Tardy',   count: summary.tardy,   color: '#f59e0b' },
                   { label: 'Excused', count: summary.excused, color: '#6b7280' },
                 ].map(s => (
-                  <div key={s.label} style={{ background: 'white', borderRadius: '0.75rem', padding: '1rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', borderTop: `3px solid ${s.color}` }}>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#1f2937' }}>{s.count}</div>
-                    <div style={{ color: '#6b7280', fontSize: '0.8rem' }}>{s.label}</div>
+                  <div key={s.label} className="bg-white rounded-xl p-4 shadow-sm border-t-4" style={{ borderTopColor: s.color }}>
+                    <div className="text-3xl font-bold text-gray-800">{s.count}</div>
+                    <div className="text-gray-500 text-xs mt-0.5">{s.label}</div>
                   </div>
                 ))}
               </div>
 
               {/* Student table */}
-              <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden', marginBottom: '1rem' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-4">
+                <table className="w-full border-collapse">
                   <thead>
-                    <tr style={{ borderBottom: '2px solid #f3f4f6', background: '#f9fafb' }}>
-                      <th style={{ textAlign: 'left', padding: '0.75rem 1rem', color: '#6b7280', fontWeight: '600', fontSize: '0.8rem' }}>Student</th>
-                      <th style={{ textAlign: 'left', padding: '0.75rem 1rem', color: '#6b7280', fontWeight: '600', fontSize: '0.8rem' }}>Status</th>
-                      <th style={{ textAlign: 'left', padding: '0.75rem 1rem', color: '#6b7280', fontWeight: '600', fontSize: '0.8rem' }}>Notes</th>
+                    <tr className="border-b-2 border-gray-100 bg-gray-50">
+                      <th className="text-left px-4 py-3 text-gray-500 font-semibold text-xs">Student</th>
+                      <th className="text-left px-4 py-3 text-gray-500 font-semibold text-xs">Status</th>
+                      <th className="text-left px-4 py-3 text-gray-500 font-semibold text-xs">Notes</th>
                     </tr>
                   </thead>
                   <tbody>
                     {students.map((s, i) => {
                       const rec = attendance[s.id] || { status: 'Present', notes: '' }
                       return (
-                        <tr key={s.id} style={{ borderBottom: '1px solid #f9fafb', background: i % 2 === 0 ? 'white' : '#fafafa' }}>
-                          <td style={{ padding: '0.75rem 1rem', fontWeight: '500', color: '#1f2937', whiteSpace: 'nowrap' }}>
+                        <tr key={s.id} className="border-b border-gray-50" style={{ background: i % 2 === 0 ? 'white' : '#fafafa' }}>
+                          <td className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">
                             {s.first_name} {s.last_name}
                             {selectedGrade === '__all__' && s.grade && (
-                              <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: '#9ca3af', fontWeight: '400' }}>{s.grade}</span>
+                              <span className="ml-2 text-xs text-gray-400 font-normal">{s.grade}</span>
                             )}
                           </td>
-                          <td style={{ padding: '0.75rem 1rem' }}>
-                            <div style={{ display: 'flex', gap: '0.375rem', flexWrap: 'wrap' }}>
+                          <td className="px-4 py-3">
+                            <div className="flex gap-1.5 flex-wrap">
                               {STATUSES.map(status => (
-                                <button key={status} onClick={() => setStudentStatus(s.id, status)} style={{
-                                  padding: '0.3rem 0.75rem', borderRadius: '9999px', border: 'none', cursor: 'pointer',
-                                  fontSize: '0.8rem', fontWeight: '600', transition: 'all 0.1s',
-                                  background: rec.status === status ? ATTENDANCE_STATUS_COLORS[status] : ATTENDANCE_STATUS_COLORS[status] + '18',
-                                  color: rec.status === status ? 'white' : ATTENDANCE_STATUS_COLORS[status],
-                                }}>{status}</button>
+                                <button
+                                  key={status}
+                                  onClick={() => setStudentStatus(s.id, status)}
+                                  className="px-3 py-1 rounded-full border-0 cursor-pointer text-xs font-semibold transition-all"
+                                  style={{
+                                    background: rec.status === status ? ATTENDANCE_STATUS_COLORS[status] : ATTENDANCE_STATUS_COLORS[status] + '18',
+                                    color: rec.status === status ? 'white' : ATTENDANCE_STATUS_COLORS[status],
+                                  }}
+                                >{status}</button>
                               ))}
                             </div>
                           </td>
-                          <td style={{ padding: '0.75rem 1rem' }}>
+                          <td className="px-4 py-3">
                             <input
                               type="text"
                               value={rec.notes || ''}
                               onChange={e => setStudentNotes(s.id, e.target.value)}
                               placeholder="Optional note"
-                              style={{ border: '1px solid #e5e7eb', borderRadius: '0.375rem', padding: '0.375rem 0.625rem', fontSize: '0.85rem', outline: 'none', width: '200px', boxSizing: 'border-box' }}
+                              className="border border-gray-200 rounded-md px-2.5 py-1.5 text-sm outline-none w-48"
                             />
                           </td>
                         </tr>
@@ -153,14 +161,18 @@ export default function Attendance({ user, school, schoolId: schoolIdProp = null
                 </table>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <button onClick={save} disabled={saving} style={{
-                  background: primaryColor, color: 'white', border: 'none', borderRadius: '0.625rem',
-                  padding: '0.625rem 1.5rem', fontWeight: '600', cursor: saving ? 'not-allowed' : 'pointer',
-                  fontSize: '0.95rem', opacity: saving ? 0.7 : 1,
-                }}>{saving ? 'Saving...' : 'Save Attendance'}</button>
+              {/* Save row */}
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={save}
+                  disabled={saving}
+                  className="text-white border-0 rounded-xl px-6 py-2.5 font-semibold disabled:opacity-70 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
+                  style={{ background: primaryColor }}
+                >
+                  {saving ? 'Saving...' : 'Save Attendance'}
+                </button>
                 {saveMessage && (
-                  <span style={{ fontSize: '0.9rem', color: saveMessage.startsWith('Error') ? '#ef4444' : '#10b981', fontWeight: '500' }}>
+                  <span className={`text-sm font-medium ${saveMessage.startsWith('Error') ? 'text-red-500' : 'text-green-600'}`}>
                     {saveMessage}
                   </span>
                 )}
@@ -173,71 +185,72 @@ export default function Attendance({ user, school, schoolId: schoolIdProp = null
       {/* ── History ── */}
       {activeTab === 'history' && (
         <>
-          <div style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem 1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: '1.5rem', display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          {/* Filter bar */}
+          <div className="bg-white rounded-2xl px-6 py-5 shadow-sm mb-6 flex gap-4 items-end flex-wrap">
             <div>
-              <label style={filterLabelStyle}>Date</label>
-              <input type="date" value={historyDate} onChange={e => setHistoryDate(e.target.value)} style={filterInputStyle} />
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Date</label>
+              <input type="date" value={historyDate} onChange={e => setHistoryDate(e.target.value)} className={filterCls} />
             </div>
             <div>
-              <label style={filterLabelStyle}>Grade</label>
-              <select value={historyGrade} onChange={e => setHistoryGrade(e.target.value)} style={{ ...filterInputStyle, minWidth: '160px' }}>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Grade</label>
+              <select value={historyGrade} onChange={e => setHistoryGrade(e.target.value)} className={`${filterCls} min-w-40`}>
                 <option value="">All Grades</option>
                 {availableGrades.map(g => <option key={g} value={g}>{g}</option>)}
               </select>
             </div>
             <div>
-              <label style={filterLabelStyle}>Status</label>
-              <select value={historyStatus} onChange={e => setHistoryStatus(e.target.value)} style={filterInputStyle}>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Status</label>
+              <select value={historyStatus} onChange={e => setHistoryStatus(e.target.value)} className={filterCls}>
                 <option value="">All Statuses</option>
                 {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
             {(historyDate || historyGrade || historyStatus) && (
-              <button onClick={clearHistoryFilters} style={{ background: 'none', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.875rem', cursor: 'pointer', color: '#6b7280' }}>
+              <button onClick={clearHistoryFilters} className="border border-gray-300 rounded-lg px-3 py-2 text-sm cursor-pointer text-gray-500 bg-transparent hover:bg-gray-50">
                 Clear
               </button>
             )}
           </div>
 
           {loadingHistory ? (
-            <div style={{ padding: '2rem', color: '#6b7280' }}>Loading...</div>
+            <div className="p-8 text-gray-500">Loading...</div>
           ) : history.length === 0 ? (
-            <div style={{ background: 'white', borderRadius: '1rem', padding: '3rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', textAlign: 'center', color: '#9ca3af' }}>
-              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📋</div>
-              <p style={{ margin: 0 }}>No attendance records found</p>
+            <div className="bg-white rounded-2xl p-12 shadow-sm text-center text-gray-400">
+              <div className="text-3xl mb-2">📋</div>
+              <p className="m-0">No attendance records found</p>
             </div>
           ) : (
-            <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-sm">
                   <thead>
-                    <tr style={{ borderBottom: '2px solid #f3f4f6', background: '#f9fafb' }}>
+                    <tr className="border-b-2 border-gray-100 bg-gray-50">
                       {['Date', 'Student', 'Grade', 'Status', 'Notes'].map(h => (
-                        <th key={h} style={{ textAlign: 'left', padding: '0.75rem 1rem', color: '#6b7280', fontWeight: '600', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{h}</th>
+                        <th key={h} className="text-left px-4 py-3 text-gray-500 font-semibold text-xs whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-50">
                     {history.map(r => (
-                      <tr key={r.id} style={{ borderBottom: '1px solid #f9fafb' }}
-                        onMouseEnter={e => e.currentTarget.style.background = '#fafafa'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'white'}
-                      >
-                        <td style={{ padding: '0.625rem 1rem', color: '#374151', whiteSpace: 'nowrap' }}>{r.date}</td>
-                        <td style={{ padding: '0.625rem 1rem', fontWeight: '500', color: '#1f2937', whiteSpace: 'nowrap' }}>{r.student_name}</td>
-                        <td style={{ padding: '0.625rem 1rem', color: '#6b7280' }}>{r.student_grade}</td>
-                        <td style={{ padding: '0.625rem 1rem' }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: '600', color: ATTENDANCE_STATUS_COLORS[r.status], background: ATTENDANCE_STATUS_COLORS[r.status] + '18', borderRadius: '9999px', padding: '0.15rem 0.6rem' }}>
+                      <tr key={r.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-2.5 text-gray-700 whitespace-nowrap">{r.date}</td>
+                        <td className="px-4 py-2.5 font-medium text-gray-800 whitespace-nowrap">{r.student_name}</td>
+                        <td className="px-4 py-2.5 text-gray-500">{r.student_grade}</td>
+                        <td className="px-4 py-2.5">
+                          <span
+                            className="text-xs font-semibold rounded-full px-2.5 py-0.5"
+                            style={{ color: ATTENDANCE_STATUS_COLORS[r.status], background: ATTENDANCE_STATUS_COLORS[r.status] + '18' }}
+                          >
                             {r.status}
                           </span>
                         </td>
-                        <td style={{ padding: '0.625rem 1rem', color: '#6b7280' }}>{r.notes || '—'}</td>
+                        <td className="px-4 py-2.5 text-gray-500">{r.notes || '—'}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid #f3f4f6', fontSize: '0.8rem', color: '#9ca3af' }}>
+              <div className="px-4 py-3 border-t border-gray-100 text-xs text-gray-400">
                 {history.length} record{history.length !== 1 ? 's' : ''}
               </div>
             </div>
