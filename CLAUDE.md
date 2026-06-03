@@ -30,7 +30,7 @@ LunchBox is a **K-12 School Operations SaaS Platform** — enrollment, communica
 | Layer | Technology | Notes |
 |---|---|---|
 | Frontend | React + Vite | `npm create vite@latest` |
-| Styling | Tailwind CSS + inline styles | `@tailwindcss/vite` plugin |
+| Styling | Tailwind CSS | `@tailwindcss/vite` plugin — utility classes for all static styles; inline `style={{}}` only for runtime-dynamic values (brand color, division colors, status colors) |
 | Database | Supabase (PostgreSQL) | Free tier |
 | Auth | Supabase Auth | Email/password |
 | Hosting | Vercel | Auto-deploys from GitHub on push |
@@ -567,6 +567,79 @@ All staff-accessible tables have two policy layers:
 - **Staff:** `school_id = get_staff_school_id()` — SECURITY DEFINER function that looks up school_id from staff table
 
 Tables with staff policies: `schools` (read), `students` (read), `parents` (read), `incidents` (read/insert/update), `report_cards` (read/insert/update), `staff` (read own + update auth_user_id), `work_orders` (read/insert/update), `student_health` (read), `student_health_entries` (read)
+
+---
+
+## Styling Standards
+
+**All new code must use Tailwind utility classes for static styles. Inline `style={{}}` is reserved exclusively for runtime-dynamic values.**
+
+### The Rule
+```jsx
+// ✅ Correct — Tailwind for static styles, inline only for dynamic
+<button
+  className="text-white rounded-lg px-5 py-2 font-semibold text-sm cursor-pointer hover:opacity-90 transition-opacity"
+  style={{ background: primaryColor }}
+>
+  Save
+</button>
+
+// ❌ Wrong — inline styles for static values
+<button style={{ background: primaryColor, color: 'white', borderRadius: '0.5rem', padding: '0.5rem 1.25rem', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer' }}>
+  Save
+</button>
+```
+
+### What stays inline (runtime-dynamic only)
+- `school.primary_color` — brand color, varies per school
+- Division colors — computed from `DIVISION_COLORS[index]`
+- Status/type colors — looked up from color maps (e.g. `ROOM_TYPE_COLORS[room.type]`)
+- Any color, size, or value computed from data at render time
+
+### What moves to Tailwind (everything else)
+- All spacing: padding, margin, gap → `p-4`, `px-5`, `py-2`, `gap-3`, `mb-4`, etc.
+- All typography: font size, weight, color → `text-sm`, `font-semibold`, `text-gray-800`
+- All borders: radius, color, width → `rounded-lg`, `border`, `border-gray-200`
+- All layout: flex, grid, display → `flex`, `items-center`, `grid`, `grid-cols-2`
+- All backgrounds (static): `bg-white`, `bg-gray-50`, `bg-red-50`
+- All shadows: `shadow-sm`, `shadow-md`
+- Hover/focus states: `hover:bg-gray-50`, `focus:outline-none`
+- Transitions: `transition-all`, `transition-colors`
+
+### Existing code
+Existing modules use inline styles and are **not** being mass-migrated. Migrate a module to Tailwind only when doing a significant rewrite of that module. Do not mix Tailwind and inline styles in the same element — pick one per element.
+
+### Common Tailwind equivalents for this codebase
+| Inline style | Tailwind class |
+|---|---|
+| `fontSize: '0.875rem'` | `text-sm` |
+| `fontSize: '0.75rem'` | `text-xs` |
+| `fontSize: '1rem'` | `text-base` |
+| `fontSize: '1.125rem'` | `text-lg` |
+| `fontWeight: '600'` | `font-semibold` |
+| `fontWeight: '700'` | `font-bold` |
+| `color: '#1f2937'` | `text-gray-800` |
+| `color: '#6b7280'` | `text-gray-500` |
+| `color: '#9ca3af'` | `text-gray-400` |
+| `color: '#374151'` | `text-gray-700` |
+| `background: 'white'` | `bg-white` |
+| `background: '#f9fafb'` | `bg-gray-50` |
+| `background: '#f3f4f6'` | `bg-gray-100` |
+| `borderRadius: '0.375rem'` | `rounded-md` |
+| `borderRadius: '0.5rem'` | `rounded-lg` |
+| `borderRadius: '0.75rem'` | `rounded-xl` |
+| `borderRadius: '1rem'` | `rounded-2xl` |
+| `borderRadius: '9999px'` | `rounded-full` |
+| `padding: '0.5rem 1rem'` | `px-4 py-2` |
+| `padding: '0.625rem 1.25rem'` | `px-5 py-2.5` |
+| `boxShadow: '0 1px 4px rgba(0,0,0,0.08)'` | `shadow-sm` |
+| `display: 'flex', alignItems: 'center'` | `flex items-center` |
+| `justifyContent: 'space-between'` | `justify-between` |
+| `gap: '0.5rem'` | `gap-2` |
+| `gap: '0.75rem'` | `gap-3` |
+| `gap: '1rem'` | `gap-4` |
+| `cursor: 'pointer'` | `cursor-pointer` |
+| `border: 'none'` | `border-0` |
 
 ---
 
