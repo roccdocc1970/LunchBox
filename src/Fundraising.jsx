@@ -5,8 +5,8 @@ import {
   fmt, getCampaignTotal, getCampaignPct, getEventRevenue, getEventNet,
 } from './domain/fundraising'
 
-const labelStyle = { display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#6b7280', marginBottom: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }
-const inputStyle = { width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.9rem', outline: 'none', boxSizing: 'border-box' }
+const fieldCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none'
+const labelCls = 'block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1'
 
 export default function Fundraising({ user, school }) {
   const primaryColor = school?.primary_color || '#f97316'
@@ -31,27 +31,30 @@ export default function Fundraising({ user, school }) {
     getAlumnusGiven,
   } = useFundraising(user.id)
 
-  if (loading) return <div style={{ padding: '2rem', color: '#6b7280' }}>Loading fundraising data…</div>
+  if (loading) return <div className="p-8 text-gray-500">Loading fundraising data…</div>
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="p-8 max-w-6xl mx-auto">
 
       {/* Header */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Fundraising</h2>
-        <p style={{ color: '#6b7280', marginTop: '0.25rem', marginBottom: 0 }}>Campaigns, donations, events, and donor relationships</p>
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-800 m-0">Fundraising</h2>
+        <p className="text-gray-500 mt-1 mb-0">Campaigns, donations, events, and donor relationships</p>
       </div>
 
       {/* Tab bar */}
-      <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1.75rem', background: '#f3f4f6', borderRadius: '0.75rem', padding: '0.25rem', width: 'fit-content' }}>
+      <div className="flex gap-1 mb-7 bg-gray-100 rounded-xl p-1 w-fit">
         {TABS.map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
-            padding: '0.5rem 1.25rem', borderRadius: '0.625rem', border: 'none', cursor: 'pointer', fontSize: '0.875rem',
-            fontWeight: activeTab === tab.id ? '600' : '400',
-            background: activeTab === tab.id ? primaryColor : 'transparent',
-            color: activeTab === tab.id ? 'white' : '#6b7280',
-            boxShadow: activeTab === tab.id ? `0 1px 3px ${primaryColor}40` : 'none',
-          }}>{tab.label}</button>
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className="px-5 py-2 rounded-lg border-0 cursor-pointer text-sm transition-all"
+            style={{
+              fontWeight: activeTab === tab.id ? '600' : '400',
+              background: activeTab === tab.id ? primaryColor : 'transparent',
+              color: activeTab === tab.id ? 'white' : '#6b7280',
+            }}
+          >{tab.label}</button>
         ))}
       </div>
 
@@ -59,68 +62,43 @@ export default function Fundraising({ user, school }) {
       {activeTab === 'campaigns' && (
         <>
           {/* Stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
             {[
-              { label: 'Total Raised',      value: fmt(stats.totalRaised),     icon: '💰', color: '#10b981' },
-              { label: 'Active Campaigns',  value: stats.activeCampaigns,      icon: '🎯', color: primaryColor },
-              { label: 'Total Donors',      value: stats.uniqueDonors,         icon: '👥', color: '#8b5cf6' },
-              { label: 'Events',            value: stats.eventCount,           icon: '🎉', color: '#f59e0b' },
+              { label: 'Total Raised',     value: fmt(stats.totalRaised),  icon: '💰', color: '#10b981' },
+              { label: 'Active Campaigns', value: stats.activeCampaigns,   icon: '🎯', color: primaryColor },
+              { label: 'Total Donors',     value: stats.uniqueDonors,      icon: '👥', color: '#8b5cf6' },
+              { label: 'Events',           value: stats.eventCount,        icon: '🎉', color: '#f59e0b' },
             ].map(s => (
-              <div key={s.label} style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', borderTop: `3px solid ${s.color}` }}>
-                <div style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>{s.icon}</div>
-                <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#1f2937', lineHeight: 1 }}>{s.value}</div>
-                <div style={{ color: '#6b7280', fontSize: '0.8rem', marginTop: '0.25rem' }}>{s.label}</div>
+              <div key={s.label} className="bg-white rounded-2xl p-5 shadow-sm border-t-4" style={{ borderTopColor: s.color }}>
+                <div className="text-2xl mb-1">{s.icon}</div>
+                <div className="text-3xl font-bold text-gray-800 leading-none">{s.value}</div>
+                <div className="text-gray-500 text-xs mt-1">{s.label}</div>
               </div>
             ))}
           </div>
 
-          {/* New Campaign Button */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-            <button onClick={openNewCampaign}
-              style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1.25rem', fontWeight: '600', cursor: 'pointer' }}>
+          <div className="flex justify-end mb-4">
+            <button onClick={openNewCampaign} className="text-white border-0 rounded-lg px-5 py-2 font-semibold cursor-pointer hover:opacity-90 transition-opacity" style={{ background: primaryColor }}>
               {showCampaignForm && !editingCampaign ? 'Cancel' : '+ New Campaign'}
             </button>
           </div>
 
           {showCampaignForm && (
-            <div style={{ background: 'white', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: '1.5rem' }}>
-              <h3 style={{ margin: '0 0 1.25rem', fontSize: '1rem', fontWeight: '700', color: '#1f2937' }}>{editingCampaign ? 'Edit Campaign' : 'New Campaign'}</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-                <div style={{ gridColumn: 'span 2' }}>
-                  <label style={labelStyle}>Campaign Name *</label>
-                  <input value={campaignForm.name} onChange={e => setCampaignForm({ ...campaignForm, name: e.target.value })} placeholder="e.g. Annual Fund 2026" style={inputStyle} />
+            <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
+              <h3 className="m-0 mb-5 text-base font-bold text-gray-800">{editingCampaign ? 'Edit Campaign' : 'New Campaign'}</h3>
+              <div className="grid gap-4 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                <div className="col-span-2">
+                  <label className={labelCls}>Campaign Name *</label>
+                  <input value={campaignForm.name} onChange={e => setCampaignForm({ ...campaignForm, name: e.target.value })} placeholder="e.g. Annual Fund 2026" className={fieldCls} />
                 </div>
-                <div>
-                  <label style={labelStyle}>Type</label>
-                  <select value={campaignForm.type} onChange={e => setCampaignForm({ ...campaignForm, type: e.target.value })} style={inputStyle}>
-                    {CAMPAIGN_TYPES.map(t => <option key={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={labelStyle}>Status</label>
-                  <select value={campaignForm.status} onChange={e => setCampaignForm({ ...campaignForm, status: e.target.value })} style={inputStyle}>
-                    {CAMPAIGN_STATUSES.map(s => <option key={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={labelStyle}>Goal ($)</label>
-                  <input type="number" value={campaignForm.goal} onChange={e => setCampaignForm({ ...campaignForm, goal: e.target.value })} placeholder="10000" style={inputStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Start Date</label>
-                  <input type="date" value={campaignForm.start_date} onChange={e => setCampaignForm({ ...campaignForm, start_date: e.target.value })} style={inputStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>End Date</label>
-                  <input type="date" value={campaignForm.end_date} onChange={e => setCampaignForm({ ...campaignForm, end_date: e.target.value })} style={inputStyle} />
-                </div>
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={labelStyle}>Description</label>
-                  <textarea value={campaignForm.description} onChange={e => setCampaignForm({ ...campaignForm, description: e.target.value })} rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
-                </div>
+                <div><label className={labelCls}>Type</label><select value={campaignForm.type} onChange={e => setCampaignForm({ ...campaignForm, type: e.target.value })} className={fieldCls}>{CAMPAIGN_TYPES.map(t => <option key={t}>{t}</option>)}</select></div>
+                <div><label className={labelCls}>Status</label><select value={campaignForm.status} onChange={e => setCampaignForm({ ...campaignForm, status: e.target.value })} className={fieldCls}>{CAMPAIGN_STATUSES.map(s => <option key={s}>{s}</option>)}</select></div>
+                <div><label className={labelCls}>Goal ($)</label><input type="number" value={campaignForm.goal} onChange={e => setCampaignForm({ ...campaignForm, goal: e.target.value })} placeholder="10000" className={fieldCls} /></div>
+                <div><label className={labelCls}>Start Date</label><input type="date" value={campaignForm.start_date} onChange={e => setCampaignForm({ ...campaignForm, start_date: e.target.value })} className={fieldCls} /></div>
+                <div><label className={labelCls}>End Date</label><input type="date" value={campaignForm.end_date} onChange={e => setCampaignForm({ ...campaignForm, end_date: e.target.value })} className={fieldCls} /></div>
+                <div className="col-span-full"><label className={labelCls}>Description</label><textarea value={campaignForm.description} onChange={e => setCampaignForm({ ...campaignForm, description: e.target.value })} rows={2} className={`${fieldCls} resize-y`} /></div>
               </div>
-              <button onClick={saveCampaign} disabled={savingCampaign || !campaignForm.name}
-                style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.5rem', fontWeight: '600', cursor: 'pointer' }}>
+              <button onClick={saveCampaign} disabled={savingCampaign || !campaignForm.name} className="text-white border-0 rounded-lg px-6 py-2.5 font-semibold cursor-pointer disabled:opacity-70 hover:opacity-90 transition-opacity" style={{ background: primaryColor }}>
                 {savingCampaign ? 'Saving…' : editingCampaign ? 'Save Changes' : 'Create Campaign'}
               </button>
             </div>
@@ -128,41 +106,40 @@ export default function Fundraising({ user, school }) {
 
           {/* Campaign Cards */}
           {campaigns.length === 0 ? (
-            <p style={{ color: '#9ca3af' }}>No campaigns yet. Create your first one above.</p>
+            <p className="text-gray-400">No campaigns yet. Create your first one above.</p>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
               {campaigns.map(c => {
                 const raised = getCampaignTotal(donations, c.id)
                 const pct    = getCampaignPct(raised, c.goal)
                 const color  = CAMPAIGN_TYPE_COLORS[c.type] || '#6b7280'
                 return (
                   <div key={c.id} onClick={() => setSelectedCampaign(c)}
-                    style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', borderTop: `3px solid ${color}`, cursor: 'pointer' }}
-                    onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)'}
-                    onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.08)'}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                    className="bg-white rounded-2xl p-5 shadow-sm border-t-4 cursor-pointer hover:shadow-md transition-shadow"
+                    style={{ borderTopColor: color }}>
+                    <div className="flex justify-between items-start mb-3">
                       <div>
-                        <div style={{ fontWeight: '700', color: '#1f2937', fontSize: '1rem' }}>{c.name}</div>
-                        <div style={{ fontSize: '0.8rem', color, fontWeight: '600', marginTop: '0.15rem' }}>{c.type}</div>
+                        <div className="font-bold text-gray-800">{c.name}</div>
+                        <div className="text-xs font-semibold mt-0.5" style={{ color }}>{c.type}</div>
                       </div>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '600', color: CAMPAIGN_STATUS_COLORS[c.status], background: (CAMPAIGN_STATUS_COLORS[c.status] || '#6b7280') + '18', borderRadius: '9999px', padding: '0.2rem 0.6rem', whiteSpace: 'nowrap' }}>{c.status}</span>
+                      <span className="text-xs font-semibold rounded-full px-2.5 py-0.5 whitespace-nowrap" style={{ color: CAMPAIGN_STATUS_COLORS[c.status], background: (CAMPAIGN_STATUS_COLORS[c.status] || '#6b7280') + '18' }}>{c.status}</span>
                     </div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>{fmt(raised)}</div>
+                    <div className="text-3xl font-bold text-gray-800 mb-2">{fmt(raised)}</div>
                     {pct !== null ? (
                       <>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: '#6b7280', marginBottom: '0.375rem' }}>
+                        <div className="flex justify-between text-xs text-gray-500 mb-1.5">
                           <span>{pct}% of {fmt(c.goal)} goal</span>
                           <span>{fmt(c.goal - raised)} remaining</span>
                         </div>
-                        <div style={{ background: '#f3f4f6', borderRadius: '9999px', height: '8px', overflow: 'hidden' }}>
-                          <div style={{ width: `${pct}%`, height: '100%', background: pct >= 100 ? '#10b981' : color, borderRadius: '9999px', transition: 'width 0.4s' }} />
+                        <div className="bg-gray-100 rounded-full h-2 overflow-hidden">
+                          <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: pct >= 100 ? '#10b981' : color }} />
                         </div>
                       </>
                     ) : (
-                      <div style={{ fontSize: '0.78rem', color: '#9ca3af' }}>No goal set</div>
+                      <div className="text-xs text-gray-400">No goal set</div>
                     )}
                     {(c.start_date || c.end_date) && (
-                      <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.625rem' }}>
+                      <div className="text-xs text-gray-400 mt-2.5">
                         {c.start_date && c.end_date ? `${c.start_date} → ${c.end_date}` : c.start_date || c.end_date}
                       </div>
                     )}
@@ -172,18 +149,18 @@ export default function Fundraising({ user, school }) {
             </div>
           )}
 
-          {/* Campaign Detail Drawer */}
+          {/* Campaign Drawer */}
           {selectedCampaign && (
             <div onClick={e => { if (e.target === e.currentTarget) setSelectedCampaign(null) }}
-              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 50, display: 'flex', justifyContent: 'flex-end' }}>
-              <div style={{ width: '460px', background: 'white', height: '100%', overflowY: 'auto', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)' }}>
-                <div style={{ background: CAMPAIGN_TYPE_COLORS[selectedCampaign.type] || primaryColor, padding: '1.5rem', color: 'white' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              className="fixed inset-0 bg-black/40 z-50 flex justify-end">
+              <div className="w-[460px] bg-white h-full overflow-y-auto shadow-2xl">
+                <div className="p-6 text-white" style={{ background: CAMPAIGN_TYPE_COLORS[selectedCampaign.type] || primaryColor }}>
+                  <div className="flex justify-between items-start">
                     <div>
-                      <div style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{selectedCampaign.name}</div>
-                      <div style={{ fontSize: '0.85rem', opacity: 0.85, marginTop: '0.15rem' }}>{selectedCampaign.type}</div>
+                      <div className="text-lg font-bold">{selectedCampaign.name}</div>
+                      <div className="text-sm opacity-85 mt-0.5">{selectedCampaign.type}</div>
                     </div>
-                    <button onClick={() => setSelectedCampaign(null)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: '0.5rem', padding: '0.25rem 0.75rem', cursor: 'pointer' }}>✕</button>
+                    <button onClick={() => setSelectedCampaign(null)} className="bg-white/20 border-0 text-white rounded-lg px-3 py-1 cursor-pointer hover:bg-white/30">✕</button>
                   </div>
                   {(() => {
                     const raised = getCampaignTotal(donations, selectedCampaign.id)
@@ -191,28 +168,17 @@ export default function Fundraising({ user, school }) {
                     const count  = donations.filter(d => d.campaign_id === selectedCampaign.id).length
                     return (
                       <>
-                        <div style={{ marginTop: '1rem', display: 'flex', gap: '1.5rem', marginBottom: pct !== null ? '1rem' : 0 }}>
-                          <div>
-                            <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{fmt(raised)}</div>
-                            <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>raised{selectedCampaign.goal ? ` of ${fmt(selectedCampaign.goal)} goal` : ''}</div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{count}</div>
-                            <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>donations</div>
-                          </div>
-                          {pct !== null && (
-                            <div>
-                              <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{pct}%</div>
-                              <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>of goal</div>
-                            </div>
-                          )}
+                        <div className={`mt-4 flex gap-6 ${pct !== null ? 'mb-4' : ''}`}>
+                          <div><div className="text-3xl font-bold">{fmt(raised)}</div><div className="text-xs opacity-80">raised{selectedCampaign.goal ? ` of ${fmt(selectedCampaign.goal)} goal` : ''}</div></div>
+                          <div><div className="text-3xl font-bold">{count}</div><div className="text-xs opacity-80">donations</div></div>
+                          {pct !== null && <div><div className="text-3xl font-bold">{pct}%</div><div className="text-xs opacity-80">of goal</div></div>}
                         </div>
                         {pct !== null && (
                           <div>
-                            <div style={{ background: 'rgba(255,255,255,0.25)', borderRadius: '9999px', height: '10px', overflow: 'hidden' }}>
-                              <div style={{ width: `${pct}%`, height: '100%', background: pct >= 100 ? '#34d399' : 'white', borderRadius: '9999px', transition: 'width 0.4s' }} />
+                            <div className="bg-white/25 rounded-full h-2.5 overflow-hidden">
+                              <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: pct >= 100 ? '#34d399' : 'white' }} />
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', opacity: 0.75, marginTop: '0.3rem' }}>
+                            <div className="flex justify-between text-xs opacity-75 mt-1">
                               <span>{fmt(raised)} raised</span>
                               <span>{fmt(Math.max(0, selectedCampaign.goal - raised))} to go</span>
                             </div>
@@ -223,14 +189,11 @@ export default function Fundraising({ user, school }) {
                   })()}
                 </div>
 
-                <div style={{ padding: '1.5rem' }}>
-                  {selectedCampaign.description && <p style={{ color: '#6b7280', fontSize: '0.875rem', marginTop: 0 }}>{selectedCampaign.description}</p>}
-
-                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
-                    <button onClick={() => openEditCampaign(selectedCampaign)}
-                      style={{ flex: 1, background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem' }}>Edit</button>
-                    <button onClick={() => { if (window.confirm('Delete this campaign?')) removeCampaign(selectedCampaign.id) }}
-                      style={{ background: 'white', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem' }}>Delete</button>
+                <div className="p-6">
+                  {selectedCampaign.description && <p className="text-gray-500 text-sm mt-0">{selectedCampaign.description}</p>}
+                  <div className="flex gap-2 mb-5">
+                    <button onClick={() => openEditCampaign(selectedCampaign)} className="flex-1 text-white border-0 rounded-lg py-2 font-semibold cursor-pointer text-sm hover:opacity-90 transition-opacity" style={{ background: primaryColor }}>Edit</button>
+                    <button onClick={() => { if (window.confirm('Delete this campaign?')) removeCampaign(selectedCampaign.id) }} className="bg-white text-red-500 border border-red-400 rounded-lg px-4 py-2 font-semibold cursor-pointer text-sm hover:bg-red-50">Delete</button>
                   </div>
 
                   {(() => {
@@ -242,61 +205,50 @@ export default function Fundraising({ user, school }) {
                     return (
                       <>
                         {hasMultiple && (
-                          <div style={{ background: '#f9fafb', borderRadius: '0.75rem', padding: '0.75rem 1rem', marginBottom: '1.25rem', display: 'flex', gap: '1.5rem' }}>
+                          <div className="bg-gray-50 rounded-xl px-4 py-3 mb-5 flex gap-6">
                             {[['Donations', fmt(donationTotal), '#10b981'], ['Events', fmt(eventTotal), '#f59e0b'], ['Total', fmt(donationTotal + eventTotal), '#1f2937']].map(([l, v, c]) => (
                               <div key={l}>
-                                <div style={{ fontSize: '0.7rem', color: '#9ca3af', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{l}</div>
-                                <div style={{ fontWeight: '700', color: c, fontSize: '1rem' }}>{v}</div>
+                                <div className="text-xs text-gray-400 font-semibold uppercase tracking-wider">{l}</div>
+                                <div className="font-bold text-base" style={{ color: c }}>{v}</div>
                               </div>
                             ))}
                           </div>
                         )}
-
-                        <h4 style={{ fontSize: '0.875rem', fontWeight: '700', color: '#1f2937', margin: '0 0 0.75rem' }}>Donations</h4>
-                        {campDonations.length === 0 ? (
-                          <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No donations yet for this campaign.</p>
-                        ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                        <h4 className="text-sm font-bold text-gray-800 m-0 mb-3">Donations</h4>
+                        {campDonations.length === 0 ? <p className="text-gray-400 text-sm">No donations yet for this campaign.</p> : (
+                          <div className="flex flex-col gap-2 mb-5">
                             {campDonations.map(d => (
-                              <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.625rem 0.75rem', background: '#f9fafb', borderRadius: '0.5rem' }}>
+                              <div key={d.id} className="flex justify-between items-center px-3 py-2.5 bg-gray-50 rounded-lg">
                                 <div>
-                                  <div style={{ fontWeight: '600', fontSize: '0.875rem', color: '#1f2937' }}>{d.anonymous ? 'Anonymous' : d.donor_name}</div>
-                                  <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{d.date} · {d.payment_method}</div>
+                                  <div className="font-semibold text-sm text-gray-800">{d.anonymous ? 'Anonymous' : d.donor_name}</div>
+                                  <div className="text-xs text-gray-400">{d.date} · {d.payment_method}</div>
                                 </div>
-                                <div style={{ textAlign: 'right' }}>
-                                  <div style={{ fontWeight: '700', color: '#10b981' }}>{fmt(d.amount)}</div>
-                                  <span style={{ fontSize: '0.7rem', color: DONOR_TYPE_COLORS[d.donor_type] }}>{d.donor_type}</span>
+                                <div className="text-right">
+                                  <div className="font-bold text-green-600">{fmt(d.amount)}</div>
+                                  <span className="text-xs" style={{ color: DONOR_TYPE_COLORS[d.donor_type] }}>{d.donor_type}</span>
                                 </div>
                               </div>
                             ))}
                           </div>
                         )}
-
-                        <h4 style={{ fontSize: '0.875rem', fontWeight: '700', color: '#1f2937', margin: '0 0 0.75rem' }}>Linked Events</h4>
-                        {campEvents.length === 0 ? (
-                          <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No events linked to this campaign.</p>
-                        ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <h4 className="text-sm font-bold text-gray-800 m-0 mb-3">Linked Events</h4>
+                        {campEvents.length === 0 ? <p className="text-gray-400 text-sm">No events linked to this campaign.</p> : (
+                          <div className="flex flex-col gap-2">
                             {campEvents.map(ev => {
-                              const gross = getEventRevenue(ev)
-                              const net   = getEventNet(ev)
+                              const net = getEventNet(ev)
                               return (
-                                <div key={ev.id} style={{ padding: '0.625rem 0.75rem', background: '#fffbeb', borderRadius: '0.5rem', border: '1px solid #fde68a' }}>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                <div key={ev.id} className="px-3 py-2.5 bg-amber-50 rounded-lg border border-amber-200">
+                                  <div className="flex justify-between items-start">
                                     <div>
-                                      <div style={{ fontWeight: '600', fontSize: '0.875rem', color: '#1f2937' }}>{ev.name}</div>
-                                      <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{ev.type}{ev.date ? ` · ${ev.date}` : ''}</div>
+                                      <div className="font-semibold text-sm text-gray-800">{ev.name}</div>
+                                      <div className="text-xs text-gray-400">{ev.type}{ev.date ? ` · ${ev.date}` : ''}</div>
                                     </div>
-                                    <div style={{ textAlign: 'right' }}>
-                                      <div style={{ fontWeight: '700', color: '#f59e0b' }}>{fmt(net)} net</div>
-                                      {ev.expenses > 0 && <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>{fmt(gross)} gross − {fmt(ev.expenses)} exp</div>}
+                                    <div className="text-right">
+                                      <div className="font-bold text-amber-600">{fmt(net)} net</div>
+                                      {ev.expenses > 0 && <div className="text-xs text-gray-400">{fmt(getEventRevenue(ev))} gross − {fmt(ev.expenses)} exp</div>}
                                     </div>
                                   </div>
-                                  {ev.tickets_sold > 0 && (
-                                    <div style={{ fontSize: '0.75rem', color: '#92400e', marginTop: '0.25rem' }}>
-                                      {ev.tickets_sold} tickets @ {fmt(ev.ticket_price || 0)}{ev.sponsorship_revenue > 0 ? ` + ${fmt(ev.sponsorship_revenue)} sponsorship` : ''}
-                                    </div>
-                                  )}
+                                  {ev.tickets_sold > 0 && <div className="text-xs text-amber-800 mt-1">{ev.tickets_sold} tickets @ {fmt(ev.ticket_price || 0)}{ev.sponsorship_revenue > 0 ? ` + ${fmt(ev.sponsorship_revenue)} sponsorship` : ''}</div>}
                                 </div>
                               )
                             })}
@@ -315,54 +267,40 @@ export default function Fundraising({ user, school }) {
       {/* ── Donations Tab ── */}
       {activeTab === 'donations' && (
         <>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
+            <div className="flex gap-2">
               {['all', ...DONOR_TYPES].map(f => (
-                <button key={f} onClick={() => setDonationFilter(f)} style={{ padding: '0.375rem 0.875rem', borderRadius: '0.5rem', border: '1px solid', fontSize: '0.85rem', cursor: 'pointer', fontWeight: donationFilter === f ? '600' : '400', background: donationFilter === f ? primaryColor : 'white', color: donationFilter === f ? 'white' : '#6b7280', borderColor: donationFilter === f ? primaryColor : '#d1d5db' }}>
+                <button key={f} onClick={() => setDonationFilter(f)}
+                  className="px-3.5 py-1.5 rounded-lg border text-sm cursor-pointer transition-all"
+                  style={{ fontWeight: donationFilter === f ? '600' : '400', background: donationFilter === f ? primaryColor : 'white', color: donationFilter === f ? 'white' : '#6b7280', borderColor: donationFilter === f ? primaryColor : '#d1d5db' }}>
                   {f === 'all' ? 'All' : f}
                 </button>
               ))}
             </div>
-            <button onClick={openDonationForm}
-              style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1.25rem', fontWeight: '600', cursor: 'pointer' }}>
+            <button onClick={openDonationForm} className="text-white border-0 rounded-lg px-5 py-2 font-semibold cursor-pointer hover:opacity-90 transition-opacity" style={{ background: primaryColor }}>
               {showDonationForm ? 'Cancel' : '+ Log Donation'}
             </button>
           </div>
 
           {showDonationForm && (
-            <div style={{ background: 'white', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: '1.5rem' }}>
-              <h3 style={{ margin: '0 0 1.25rem', fontSize: '1rem', fontWeight: '700', color: '#1f2937' }}>Log Donation</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-                <div>
-                  <label style={labelStyle}>Campaign</label>
-                  <select value={donationForm.campaign_id} onChange={e => setDonationForm({ ...donationForm, campaign_id: e.target.value })} style={inputStyle}>
-                    <option value="">No campaign</option>
-                    {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={labelStyle}>Donor Type *</label>
-                  <select value={donationForm.donor_type} onChange={e => handleDonorTypeChange(e.target.value)} style={inputStyle}>
-                    {DONOR_TYPES.map(t => <option key={t}>{t}</option>)}
-                  </select>
-                </div>
+            <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
+              <h3 className="m-0 mb-5 text-base font-bold text-gray-800">Log Donation</h3>
+              <div className="grid gap-4 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                <div><label className={labelCls}>Campaign</label><select value={donationForm.campaign_id} onChange={e => setDonationForm({ ...donationForm, campaign_id: e.target.value })} className={fieldCls}><option value="">No campaign</option>{campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+                <div><label className={labelCls}>Donor Type *</label><select value={donationForm.donor_type} onChange={e => handleDonorTypeChange(e.target.value)} className={fieldCls}>{DONOR_TYPES.map(t => <option key={t}>{t}</option>)}</select></div>
 
                 {donationForm.donor_type !== 'External' ? (
-                  <div style={{ position: 'relative' }}>
-                    <label style={labelStyle}>Search {donationForm.donor_type} *</label>
-                    <input value={donorSearch}
-                      onChange={e => handleDonorSearch(e.target.value, donationForm.donor_type)}
+                  <div className="relative">
+                    <label className={labelCls}>Search {donationForm.donor_type} *</label>
+                    <input value={donorSearch} onChange={e => handleDonorSearch(e.target.value, donationForm.donor_type)}
                       placeholder={donationForm.donor_id ? donationForm.donor_name : `Search ${donationForm.donor_type.toLowerCase()}s…`}
-                      style={{ ...inputStyle, borderColor: donationForm.donor_id ? '#10b981' : '#d1d5db' }} />
+                      className={fieldCls} style={{ borderColor: donationForm.donor_id ? '#10b981' : '#d1d5db' }} />
                     {donorResults.length > 0 && (
-                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #d1d5db', borderRadius: '0.5rem', zIndex: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                      <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg z-20 shadow-md">
                         {donorResults.map(r => (
-                          <div key={r.id} onClick={() => selectDonor(r)}
-                            style={{ padding: '0.5rem 0.75rem', cursor: 'pointer', fontSize: '0.875rem', borderBottom: '1px solid #f3f4f6' }}
-                            onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'white'}>
-                            <span style={{ fontWeight: '500' }}>{r.name}</span>
-                            {r.sub && <span style={{ color: '#9ca3af', marginLeft: '0.5rem', fontSize: '0.8rem' }}>{r.sub}</span>}
+                          <div key={r.id} onClick={() => selectDonor(r)} className="px-3 py-2.5 cursor-pointer text-sm border-b border-gray-100 hover:bg-gray-50 last:border-b-0">
+                            <span className="font-medium">{r.name}</span>
+                            {r.sub && <span className="text-gray-400 ml-2 text-xs">{r.sub}</span>}
                           </div>
                         ))}
                       </div>
@@ -370,87 +308,64 @@ export default function Fundraising({ user, school }) {
                   </div>
                 ) : (
                   <>
-                    <div>
-                      <label style={labelStyle}>Donor Name *</label>
-                      <input value={donationForm.donor_name} onChange={e => setDonationForm({ ...donationForm, donor_name: e.target.value })} placeholder="Full name or organization" style={inputStyle} />
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Email</label>
-                      <input value={donationForm.donor_email} onChange={e => setDonationForm({ ...donationForm, donor_email: e.target.value })} placeholder="donor@email.com" style={inputStyle} />
-                    </div>
+                    <div><label className={labelCls}>Donor Name *</label><input value={donationForm.donor_name} onChange={e => setDonationForm({ ...donationForm, donor_name: e.target.value })} placeholder="Full name or organization" className={fieldCls} /></div>
+                    <div><label className={labelCls}>Email</label><input value={donationForm.donor_email} onChange={e => setDonationForm({ ...donationForm, donor_email: e.target.value })} placeholder="donor@email.com" className={fieldCls} /></div>
                   </>
                 )}
 
-                <div>
-                  <label style={labelStyle}>Amount ($) *</label>
-                  <input type="number" value={donationForm.amount} onChange={e => setDonationForm({ ...donationForm, amount: e.target.value })} placeholder="500" style={inputStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Date</label>
-                  <input type="date" value={donationForm.date} onChange={e => setDonationForm({ ...donationForm, date: e.target.value })} style={inputStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Payment Method</label>
-                  <select value={donationForm.payment_method} onChange={e => setDonationForm({ ...donationForm, payment_method: e.target.value })} style={inputStyle}>
-                    {PAYMENT_METHODS.map(m => <option key={m}>{m}</option>)}
-                  </select>
-                </div>
-                <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+                <div><label className={labelCls}>Amount ($) *</label><input type="number" value={donationForm.amount} onChange={e => setDonationForm({ ...donationForm, amount: e.target.value })} placeholder="500" className={fieldCls} /></div>
+                <div><label className={labelCls}>Date</label><input type="date" value={donationForm.date} onChange={e => setDonationForm({ ...donationForm, date: e.target.value })} className={fieldCls} /></div>
+                <div><label className={labelCls}>Payment Method</label><select value={donationForm.payment_method} onChange={e => setDonationForm({ ...donationForm, payment_method: e.target.value })} className={fieldCls}>{PAYMENT_METHODS.map(m => <option key={m}>{m}</option>)}</select></div>
+
+                <div className="col-span-full flex gap-6 flex-wrap">
                   {[['anonymous', 'Anonymous gift'], ['receipt_sent', 'Receipt sent'], ['restricted', 'Restricted gift']].map(([field, label]) => (
-                    <label key={field} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: '#374151', cursor: 'pointer' }}>
+                    <label key={field} className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
                       <input type="checkbox" checked={donationForm[field]} onChange={e => setDonationForm({ ...donationForm, [field]: e.target.checked })} />
                       {label}
                     </label>
                   ))}
                 </div>
                 {donationForm.restricted && (
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <label style={labelStyle}>Restriction Note</label>
-                    <input value={donationForm.restriction_note} onChange={e => setDonationForm({ ...donationForm, restriction_note: e.target.value })} placeholder="e.g. For library renovation only" style={inputStyle} />
-                  </div>
+                  <div className="col-span-full"><label className={labelCls}>Restriction Note</label><input value={donationForm.restriction_note} onChange={e => setDonationForm({ ...donationForm, restriction_note: e.target.value })} placeholder="e.g. For library renovation only" className={fieldCls} /></div>
                 )}
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={labelStyle}>Notes</label>
-                  <textarea value={donationForm.notes} onChange={e => setDonationForm({ ...donationForm, notes: e.target.value })} rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
-                </div>
+                <div className="col-span-full"><label className={labelCls}>Notes</label><textarea value={donationForm.notes} onChange={e => setDonationForm({ ...donationForm, notes: e.target.value })} rows={2} className={`${fieldCls} resize-y`} /></div>
               </div>
-              <button onClick={saveDonation} disabled={savingDonation}
-                style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.5rem', fontWeight: '600', cursor: 'pointer', opacity: savingDonation ? 0.7 : 1 }}>
+              <button onClick={saveDonation} disabled={savingDonation} className="text-white border-0 rounded-lg px-6 py-2.5 font-semibold cursor-pointer disabled:opacity-70 hover:opacity-90 transition-opacity" style={{ background: primaryColor }}>
                 {savingDonation ? 'Saving…' : 'Log Donation'}
               </button>
-              {donationError && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.5rem', marginBottom: 0 }}>{donationError}</p>}
+              {donationError && <p className="text-red-500 text-sm mt-2 mb-0">{donationError}</p>}
             </div>
           )}
 
           {filteredDonations.length === 0 ? (
-            <p style={{ color: '#9ca3af' }}>No donations yet.</p>
+            <p className="text-gray-400">No donations yet.</p>
           ) : (
-            <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <table className="w-full border-collapse text-sm">
                 <thead>
-                  <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
+                  <tr className="border-b-2 border-gray-100">
                     {['Donor', 'Type', 'Campaign', 'Amount', 'Date', 'Method', 'Receipt'].map(h => (
-                      <th key={h} style={{ textAlign: 'left', padding: '0.625rem 1rem', color: '#6b7280', fontWeight: '600', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{h}</th>
+                      <th key={h} className="text-left px-4 py-3 text-gray-500 font-semibold text-xs whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-gray-50">
                   {filteredDonations.map(d => {
                     const campaign = campaigns.find(c => c.id === d.campaign_id)
                     return (
-                      <tr key={d.id} style={{ borderBottom: '1px solid #f9fafb' }}
-                        onMouseEnter={e => e.currentTarget.style.background = '#fafafa'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'white'}>
-                        <td style={{ padding: '0.625rem 1rem', fontWeight: '500', color: '#1f2937', whiteSpace: 'nowrap' }}>{d.anonymous ? 'Anonymous' : d.donor_name}</td>
-                        <td style={{ padding: '0.625rem 1rem' }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: '600', color: DONOR_TYPE_COLORS[d.donor_type], background: (DONOR_TYPE_COLORS[d.donor_type] || '#6b7280') + '18', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>{d.donor_type}</span>
+                      <tr key={d.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-2.5 font-medium text-gray-800 whitespace-nowrap">{d.anonymous ? 'Anonymous' : d.donor_name}</td>
+                        <td className="px-4 py-2.5">
+                          <span className="text-xs font-semibold rounded-full px-2 py-0.5" style={{ color: DONOR_TYPE_COLORS[d.donor_type], background: (DONOR_TYPE_COLORS[d.donor_type] || '#6b7280') + '18' }}>{d.donor_type}</span>
                         </td>
-                        <td style={{ padding: '0.625rem 1rem', color: '#6b7280', fontSize: '0.8rem' }}>{campaign?.name || '—'}</td>
-                        <td style={{ padding: '0.625rem 1rem', fontWeight: '700', color: '#10b981', whiteSpace: 'nowrap' }}>{fmt(d.amount)}</td>
-                        <td style={{ padding: '0.625rem 1rem', color: '#6b7280', whiteSpace: 'nowrap' }}>{d.date}</td>
-                        <td style={{ padding: '0.625rem 1rem', color: '#6b7280' }}>{d.payment_method}</td>
-                        <td style={{ padding: '0.625rem 1rem' }}>
-                          <button onClick={() => handleToggleReceipt(d.id, d.receipt_sent)} style={{ fontSize: '0.75rem', fontWeight: '600', color: d.receipt_sent ? '#10b981' : '#9ca3af', background: 'none', border: `1px solid ${d.receipt_sent ? '#10b981' : '#d1d5db'}`, borderRadius: '0.375rem', padding: '0.15rem 0.5rem', cursor: 'pointer' }}>
+                        <td className="px-4 py-2.5 text-gray-500 text-xs">{campaign?.name || '—'}</td>
+                        <td className="px-4 py-2.5 font-bold text-green-600 whitespace-nowrap">{fmt(d.amount)}</td>
+                        <td className="px-4 py-2.5 text-gray-500 whitespace-nowrap">{d.date}</td>
+                        <td className="px-4 py-2.5 text-gray-500">{d.payment_method}</td>
+                        <td className="px-4 py-2.5">
+                          <button onClick={() => handleToggleReceipt(d.id, d.receipt_sent)}
+                            className="text-xs font-semibold border rounded-md px-2 py-0.5 cursor-pointer transition-colors"
+                            style={{ color: d.receipt_sent ? '#10b981' : '#9ca3af', borderColor: d.receipt_sent ? '#10b981' : '#d1d5db', background: 'none' }}>
                             {d.receipt_sent ? '✓ Sent' : 'Mark Sent'}
                           </button>
                         </td>
@@ -467,111 +382,71 @@ export default function Fundraising({ user, school }) {
       {/* ── Events Tab ── */}
       {activeTab === 'events' && (
         <>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
-            <button onClick={() => setShowEventForm(f => !f)}
-              style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1.25rem', fontWeight: '600', cursor: 'pointer' }}>
+          <div className="flex justify-end mb-4">
+            <button onClick={() => setShowEventForm(f => !f)} className="text-white border-0 rounded-lg px-5 py-2 font-semibold cursor-pointer hover:opacity-90 transition-opacity" style={{ background: primaryColor }}>
               {showEventForm ? 'Cancel' : '+ New Event'}
             </button>
           </div>
 
           {showEventForm && (
-            <div style={{ background: 'white', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: '1.5rem' }}>
-              <h3 style={{ margin: '0 0 1.25rem', fontSize: '1rem', fontWeight: '700', color: '#1f2937' }}>New Fundraising Event</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
-                <div style={{ gridColumn: 'span 2' }}>
-                  <label style={labelStyle}>Event Name *</label>
-                  <input value={eventForm.name} onChange={e => setEventForm({ ...eventForm, name: e.target.value })} placeholder="e.g. Spring Gala 2026" style={inputStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Type</label>
-                  <select value={eventForm.type} onChange={e => setEventForm({ ...eventForm, type: e.target.value })} style={inputStyle}>
-                    {EVENT_TYPES.map(t => <option key={t}>{t}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={labelStyle}>Linked Campaign</label>
-                  <select value={eventForm.campaign_id} onChange={e => setEventForm({ ...eventForm, campaign_id: e.target.value })} style={inputStyle}>
-                    <option value="">None</option>
-                    {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={labelStyle}>Date</label>
-                  <input type="date" value={eventForm.date} onChange={e => setEventForm({ ...eventForm, date: e.target.value })} style={inputStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Venue</label>
-                  <input value={eventForm.venue} onChange={e => setEventForm({ ...eventForm, venue: e.target.value })} placeholder="Location" style={inputStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Revenue Goal ($)</label>
-                  <input type="number" value={eventForm.goal} onChange={e => setEventForm({ ...eventForm, goal: e.target.value })} placeholder="5000" style={inputStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Ticket Price ($)</label>
-                  <input type="number" value={eventForm.ticket_price} onChange={e => setEventForm({ ...eventForm, ticket_price: e.target.value })} placeholder="100" style={inputStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Tickets Sold</label>
-                  <input type="number" value={eventForm.tickets_sold} onChange={e => setEventForm({ ...eventForm, tickets_sold: parseInt(e.target.value) || 0 })} style={inputStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Sponsorship Revenue ($)</label>
-                  <input type="number" value={eventForm.sponsorship_revenue} onChange={e => setEventForm({ ...eventForm, sponsorship_revenue: parseFloat(e.target.value) || 0 })} style={inputStyle} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Expenses ($)</label>
-                  <input type="number" value={eventForm.expenses} onChange={e => setEventForm({ ...eventForm, expenses: parseFloat(e.target.value) || 0 })} style={inputStyle} />
-                </div>
-                <div style={{ gridColumn: '1 / -1' }}>
-                  <label style={labelStyle}>Notes</label>
-                  <textarea value={eventForm.notes} onChange={e => setEventForm({ ...eventForm, notes: e.target.value })} rows={2} style={{ ...inputStyle, resize: 'vertical' }} />
-                </div>
+            <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
+              <h3 className="m-0 mb-5 text-base font-bold text-gray-800">New Fundraising Event</h3>
+              <div className="grid gap-4 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                <div className="col-span-2"><label className={labelCls}>Event Name *</label><input value={eventForm.name} onChange={e => setEventForm({ ...eventForm, name: e.target.value })} placeholder="e.g. Spring Gala 2026" className={fieldCls} /></div>
+                <div><label className={labelCls}>Type</label><select value={eventForm.type} onChange={e => setEventForm({ ...eventForm, type: e.target.value })} className={fieldCls}>{EVENT_TYPES.map(t => <option key={t}>{t}</option>)}</select></div>
+                <div><label className={labelCls}>Linked Campaign</label><select value={eventForm.campaign_id} onChange={e => setEventForm({ ...eventForm, campaign_id: e.target.value })} className={fieldCls}><option value="">None</option>{campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+                <div><label className={labelCls}>Date</label><input type="date" value={eventForm.date} onChange={e => setEventForm({ ...eventForm, date: e.target.value })} className={fieldCls} /></div>
+                <div><label className={labelCls}>Venue</label><input value={eventForm.venue} onChange={e => setEventForm({ ...eventForm, venue: e.target.value })} placeholder="Location" className={fieldCls} /></div>
+                <div><label className={labelCls}>Revenue Goal ($)</label><input type="number" value={eventForm.goal} onChange={e => setEventForm({ ...eventForm, goal: e.target.value })} placeholder="5000" className={fieldCls} /></div>
+                <div><label className={labelCls}>Ticket Price ($)</label><input type="number" value={eventForm.ticket_price} onChange={e => setEventForm({ ...eventForm, ticket_price: e.target.value })} placeholder="100" className={fieldCls} /></div>
+                <div><label className={labelCls}>Tickets Sold</label><input type="number" value={eventForm.tickets_sold} onChange={e => setEventForm({ ...eventForm, tickets_sold: parseInt(e.target.value) || 0 })} className={fieldCls} /></div>
+                <div><label className={labelCls}>Sponsorship Revenue ($)</label><input type="number" value={eventForm.sponsorship_revenue} onChange={e => setEventForm({ ...eventForm, sponsorship_revenue: parseFloat(e.target.value) || 0 })} className={fieldCls} /></div>
+                <div><label className={labelCls}>Expenses ($)</label><input type="number" value={eventForm.expenses} onChange={e => setEventForm({ ...eventForm, expenses: parseFloat(e.target.value) || 0 })} className={fieldCls} /></div>
+                <div className="col-span-full"><label className={labelCls}>Notes</label><textarea value={eventForm.notes} onChange={e => setEventForm({ ...eventForm, notes: e.target.value })} rows={2} className={`${fieldCls} resize-y`} /></div>
               </div>
-              <button onClick={saveEvent} disabled={savingEvent || !eventForm.name}
-                style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.5rem', fontWeight: '600', cursor: 'pointer' }}>
+              <button onClick={saveEvent} disabled={savingEvent || !eventForm.name} className="text-white border-0 rounded-lg px-6 py-2.5 font-semibold cursor-pointer disabled:opacity-70 hover:opacity-90 transition-opacity" style={{ background: primaryColor }}>
                 {savingEvent ? 'Saving…' : 'Create Event'}
               </button>
             </div>
           )}
 
           {events.length === 0 ? (
-            <p style={{ color: '#9ca3af' }}>No events yet.</p>
+            <p className="text-gray-400">No events yet.</p>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+            <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
               {events.map(ev => {
                 const revenue  = getEventRevenue(ev)
                 const net      = getEventNet(ev)
                 const pct      = getCampaignPct(revenue, ev.goal)
                 const campaign = campaigns.find(c => c.id === ev.campaign_id)
                 return (
-                  <div key={ev.id} style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', borderTop: '3px solid #f59e0b' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                  <div key={ev.id} className="bg-white rounded-2xl p-5 shadow-sm border-t-4" style={{ borderTopColor: '#f59e0b' }}>
+                    <div className="flex justify-between items-start mb-3">
                       <div>
-                        <div style={{ fontWeight: '700', color: '#1f2937' }}>{ev.name}</div>
-                        <div style={{ fontSize: '0.8rem', color: '#f59e0b', fontWeight: '600' }}>{ev.type}</div>
+                        <div className="font-bold text-gray-800">{ev.name}</div>
+                        <div className="text-xs text-amber-500 font-semibold">{ev.type}</div>
                       </div>
-                      {ev.date && <div style={{ fontSize: '0.78rem', color: '#9ca3af' }}>{ev.date}</div>}
+                      {ev.date && <div className="text-xs text-gray-400">{ev.date}</div>}
                     </div>
-                    {ev.venue    && <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.5rem' }}>📍 {ev.venue}</div>}
-                    {campaign    && <div style={{ fontSize: '0.78rem', color: '#6b7280', marginBottom: '0.75rem' }}>🎯 {campaign.name}</div>}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                      {[['Gross', fmt(revenue)], ['Expenses', fmt(ev.expenses || 0)], ['Net', fmt(net)]].map(([l, v]) => (
-                        <div key={l} style={{ background: '#f9fafb', borderRadius: '0.5rem', padding: '0.5rem', textAlign: 'center' }}>
-                          <div style={{ fontSize: '0.9rem', fontWeight: '700', color: l === 'Net' ? (net >= 0 ? '#10b981' : '#ef4444') : '#1f2937' }}>{v}</div>
-                          <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>{l}</div>
+                    {ev.venue   && <div className="text-xs text-gray-500 mb-1">📍 {ev.venue}</div>}
+                    {campaign   && <div className="text-xs text-gray-500 mb-3">🎯 {campaign.name}</div>}
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      {[['Gross', revenue, false], ['Expenses', ev.expenses || 0, false], ['Net', net, true]].map(([l, v, isNet]) => (
+                        <div key={l} className="bg-gray-50 rounded-lg p-2 text-center">
+                          <div className="text-sm font-bold" style={{ color: isNet ? (net >= 0 ? '#10b981' : '#ef4444') : '#1f2937' }}>{fmt(v)}</div>
+                          <div className="text-xs text-gray-400">{l}</div>
                         </div>
                       ))}
                     </div>
                     {pct !== null && (
                       <>
-                        <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>{pct}% of {fmt(ev.goal)} goal</div>
-                        <div style={{ background: '#f3f4f6', borderRadius: '9999px', height: '6px', overflow: 'hidden' }}>
-                          <div style={{ width: `${pct}%`, height: '100%', background: pct >= 100 ? '#10b981' : '#f59e0b', borderRadius: '9999px' }} />
+                        <div className="text-xs text-gray-500 mb-1">{pct}% of {fmt(ev.goal)} goal</div>
+                        <div className="bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: pct >= 100 ? '#10b981' : '#f59e0b' }} />
                         </div>
                       </>
                     )}
-                    {ev.tickets_sold > 0 && <div style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: '0.5rem' }}>{ev.tickets_sold} tickets × {fmt(ev.ticket_price || 0)}</div>}
+                    {ev.tickets_sold > 0 && <div className="text-xs text-gray-400 mt-2">{ev.tickets_sold} tickets × {fmt(ev.ticket_price || 0)}</div>}
                   </div>
                 )
               })}
@@ -583,46 +458,42 @@ export default function Fundraising({ user, school }) {
       {/* ── Donors Tab ── */}
       {activeTab === 'donors' && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
             {[
-              { label: 'Total Donors',   value: donorList.length,                                            icon: '👥', color: '#8b5cf6' },
-              { label: 'Alumni Donors',  value: donorList.filter(d => d.donor_type === 'Alumni').length,     icon: '🎓', color: '#6366f1' },
-              { label: 'LYBUNT',         value: lybunt.length,                                               icon: '⚠️', color: '#f59e0b' },
-              { label: 'Prospects',      value: alumniProspects.filter(a => a.donor_status === 'Prospect').length, icon: '🎯', color: primaryColor },
+              { label: 'Total Donors',  value: donorList.length,                                                    icon: '👥', color: '#8b5cf6' },
+              { label: 'Alumni Donors', value: donorList.filter(d => d.donor_type === 'Alumni').length,             icon: '🎓', color: '#6366f1' },
+              { label: 'LYBUNT',        value: lybunt.length,                                                       icon: '⚠️', color: '#f59e0b' },
+              { label: 'Prospects',     value: alumniProspects.filter(a => a.donor_status === 'Prospect').length,   icon: '🎯', color: primaryColor },
             ].map(s => (
-              <div key={s.label} style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', borderTop: `3px solid ${s.color}` }}>
-                <div style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>{s.icon}</div>
-                <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#1f2937', lineHeight: 1 }}>{s.value}</div>
-                <div style={{ color: '#6b7280', fontSize: '0.8rem', marginTop: '0.25rem' }}>{s.label}</div>
+              <div key={s.label} className="bg-white rounded-2xl p-5 shadow-sm border-t-4" style={{ borderTopColor: s.color }}>
+                <div className="text-2xl mb-1">{s.icon}</div>
+                <div className="text-3xl font-bold text-gray-800 leading-none">{s.value}</div>
+                <div className="text-gray-500 text-xs mt-1">{s.label}</div>
               </div>
             ))}
           </div>
 
-          {/* Top Donors */}
-          <div style={{ background: 'white', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: '1.5rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', margin: '0 0 1rem' }}>All Donors — Ranked by Total Given</h3>
-            {donorList.length === 0 ? <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No donations logged yet.</p> : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+          {/* All Donors */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
+            <h3 className="text-base font-bold text-gray-800 m-0 mb-4">All Donors — Ranked by Total Given</h3>
+            {donorList.length === 0 ? <p className="text-gray-400 text-sm">No donations logged yet.</p> : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-sm">
                   <thead>
-                    <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
+                    <tr className="border-b-2 border-gray-100">
                       {['Donor', 'Type', 'Total Given', '# Gifts', 'Last Gift'].map(h => (
-                        <th key={h} style={{ textAlign: 'left', padding: '0.5rem 0.75rem', color: '#6b7280', fontWeight: '600', fontSize: '0.78rem' }}>{h}</th>
+                        <th key={h} className="text-left px-3 py-2 text-gray-500 font-semibold text-xs">{h}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-50">
                     {donorList.map((d, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid #f9fafb' }}
-                        onMouseEnter={e => e.currentTarget.style.background = '#fafafa'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'white'}>
-                        <td style={{ padding: '0.625rem 0.75rem', fontWeight: '500', color: '#1f2937' }}>{d.donor_name}</td>
-                        <td style={{ padding: '0.625rem 0.75rem' }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: '600', color: DONOR_TYPE_COLORS[d.donor_type], background: (DONOR_TYPE_COLORS[d.donor_type] || '#6b7280') + '18', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>{d.donor_type}</span>
-                        </td>
-                        <td style={{ padding: '0.625rem 0.75rem', fontWeight: '700', color: '#10b981' }}>{fmt(d.total)}</td>
-                        <td style={{ padding: '0.625rem 0.75rem', color: '#6b7280' }}>{d.count}</td>
-                        <td style={{ padding: '0.625rem 0.75rem', color: '#6b7280' }}>{d.lastDate || '—'}</td>
+                      <tr key={i} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-3 py-2.5 font-medium text-gray-800">{d.donor_name}</td>
+                        <td className="px-3 py-2.5"><span className="text-xs font-semibold rounded-full px-2 py-0.5" style={{ color: DONOR_TYPE_COLORS[d.donor_type], background: (DONOR_TYPE_COLORS[d.donor_type] || '#6b7280') + '18' }}>{d.donor_type}</span></td>
+                        <td className="px-3 py-2.5 font-bold text-green-600">{fmt(d.total)}</td>
+                        <td className="px-3 py-2.5 text-gray-500">{d.count}</td>
+                        <td className="px-3 py-2.5 text-gray-500">{d.lastDate || '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -632,23 +503,23 @@ export default function Fundraising({ user, school }) {
           </div>
 
           {/* LYBUNT */}
-          <div style={{ background: 'white', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', margin: 0 }}>LYBUNT — Lapsed Donors</h3>
-              <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>Gave in {lastYear}, not yet in {currentYear}</span>
-              {lybunt.length > 0 && <span style={{ fontSize: '0.8rem', fontWeight: '600', color: 'white', background: '#f59e0b', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>{lybunt.length}</span>}
+          <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
+            <div className="flex items-center gap-3 mb-4">
+              <h3 className="text-base font-bold text-gray-800 m-0">LYBUNT — Lapsed Donors</h3>
+              <span className="text-xs text-gray-500">Gave in {lastYear}, not yet in {currentYear}</span>
+              {lybunt.length > 0 && <span className="text-xs font-semibold text-white bg-amber-400 rounded-full px-2 py-0.5">{lybunt.length}</span>}
             </div>
             {lybunt.length === 0 ? (
-              <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No lapsed donors — great retention! 🎉</p>
+              <p className="text-gray-400 text-sm">No lapsed donors — great retention! 🎉</p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div className="flex flex-col gap-2">
                 {lybunt.map((d, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.625rem 0.75rem', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '0.5rem' }}>
+                  <div key={i} className="flex justify-between items-center px-3 py-2.5 bg-amber-50 border border-amber-200 rounded-lg">
                     <div>
-                      <div style={{ fontWeight: '500', color: '#1f2937', fontSize: '0.875rem' }}>{d.donor_name}</div>
-                      <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{d.donor_type} · Last gift: {d.lastDate}</div>
+                      <div className="font-medium text-gray-800 text-sm">{d.donor_name}</div>
+                      <div className="text-xs text-gray-400">{d.donor_type} · Last gift: {d.lastDate}</div>
                     </div>
-                    <div style={{ fontWeight: '700', color: '#f59e0b' }}>{fmt(d.total)} lifetime</div>
+                    <div className="font-bold text-amber-600">{fmt(d.total)} lifetime</div>
                   </div>
                 ))}
               </div>
@@ -656,35 +527,31 @@ export default function Fundraising({ user, school }) {
           </div>
 
           {/* Alumni Prospects */}
-          <div style={{ background: 'white', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#1f2937', margin: '0 0 1rem' }}>Alumni Prospects & Lapsed Donors</h3>
+          <div className="bg-white rounded-2xl p-6 shadow-sm">
+            <h3 className="text-base font-bold text-gray-800 m-0 mb-4">Alumni Prospects & Lapsed Donors</h3>
             {alumniProspects.length === 0 ? (
-              <p style={{ color: '#9ca3af', fontSize: '0.875rem' }}>No alumni marked as Prospect, Active Donor, or Lapsed. Update donor status in the Alumni module.</p>
+              <p className="text-gray-400 text-sm">No alumni marked as Prospect, Active Donor, or Lapsed. Update donor status in the Alumni module.</p>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-sm">
                   <thead>
-                    <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
+                    <tr className="border-b-2 border-gray-100">
                       {['Alumni', 'Class', 'Email', 'Status', 'Total Given'].map(h => (
-                        <th key={h} style={{ textAlign: 'left', padding: '0.5rem 0.75rem', color: '#6b7280', fontWeight: '600', fontSize: '0.78rem' }}>{h}</th>
+                        <th key={h} className="text-left px-3 py-2 text-gray-500 font-semibold text-xs">{h}</th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-50">
                     {alumniProspects.map(a => {
                       const given = getAlumnusGiven(a.id)
                       const statusColors = { Prospect: '#f59e0b', 'Active Donor': '#10b981', Lapsed: '#ef4444' }
                       return (
-                        <tr key={a.id} style={{ borderBottom: '1px solid #f9fafb' }}
-                          onMouseEnter={e => e.currentTarget.style.background = '#fafafa'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'white'}>
-                          <td style={{ padding: '0.625rem 0.75rem', fontWeight: '500', color: '#1f2937' }}>{a.first_name} {a.last_name}</td>
-                          <td style={{ padding: '0.625rem 0.75rem', color: '#6b7280' }}>{a.graduation_year ? `Class of ${a.graduation_year}` : '—'}</td>
-                          <td style={{ padding: '0.625rem 0.75rem', color: '#6b7280' }}>{a.email || '—'}</td>
-                          <td style={{ padding: '0.625rem 0.75rem' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: '600', color: statusColors[a.donor_status], background: (statusColors[a.donor_status] || '#6b7280') + '18', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>{a.donor_status}</span>
-                          </td>
-                          <td style={{ padding: '0.625rem 0.75rem', fontWeight: given > 0 ? '700' : '400', color: given > 0 ? '#10b981' : '#9ca3af' }}>{given > 0 ? fmt(given) : 'No gifts yet'}</td>
+                        <tr key={a.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-3 py-2.5 font-medium text-gray-800">{a.first_name} {a.last_name}</td>
+                          <td className="px-3 py-2.5 text-gray-500">{a.graduation_year ? `Class of ${a.graduation_year}` : '—'}</td>
+                          <td className="px-3 py-2.5 text-gray-500">{a.email || '—'}</td>
+                          <td className="px-3 py-2.5"><span className="text-xs font-semibold rounded-full px-2 py-0.5" style={{ color: statusColors[a.donor_status], background: (statusColors[a.donor_status] || '#6b7280') + '18' }}>{a.donor_status}</span></td>
+                          <td className="px-3 py-2.5 font-medium" style={{ color: given > 0 ? '#10b981' : '#9ca3af', fontWeight: given > 0 ? '700' : '400' }}>{given > 0 ? fmt(given) : 'No gifts yet'}</td>
                         </tr>
                       )
                     })}
