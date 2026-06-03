@@ -197,8 +197,8 @@ All `.jsx` files are being migrated from inline `style={{}}` objects to Tailwind
 | 9 | `Onboarding.jsx` | ✅ Done |
 | 10 | `Landing.jsx` | ✅ Done |
 | 11 | `Rooms.jsx` | ✅ Done |
-| 12 | `SetupWizard.jsx` | ⬜ Todo |
-| 13 | `StudentProfile.jsx` | ⬜ Todo |
+| 12 | `SetupWizard.jsx` | ✅ Done |
+| 13 | `StudentProfile.jsx` | ✅ Done |
 | 14 | `Fundraising.jsx` | ⬜ Todo |
 | 15 | `Staff.jsx` | ⬜ Todo |
 | 16 | `Admissions.jsx` | ⬜ Todo |
