@@ -2,6 +2,9 @@ import { useReportCards } from './hooks/useReportCards'
 import { GRADE_COLORS, gradedCount } from './domain/reportCards'
 import { parseDivisions } from './domain/school'
 
+const fieldCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm'
+const labelCls = 'block text-sm font-medium text-gray-500 mb-1'
+
 export default function ReportCards({ user, school }) {
   const primaryColor = school?.primary_color || '#f97316'
 
@@ -20,30 +23,22 @@ export default function ReportCards({ user, school }) {
     terms, gradeOptions,
   } = useReportCards(user.id, school)
 
-  const inputStyle = {
-    width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem',
-    padding: '0.5rem 0.75rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem',
-  }
-  const labelStyle = {
-    display: 'block', fontSize: '0.8rem', fontWeight: '500',
-    color: '#6b7280', marginBottom: '0.25rem',
-  }
-
   const divisions = parseDivisions(school?.divisions).filter(d => d.grades?.length > 0)
   const hasFilters = search || filterTerm || filterStatus || filterDivision
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="p-8 max-w-6xl mx-auto">
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Report Cards</h2>
-          <p style={{ color: '#6b7280', marginTop: '0.25rem' }}>Create and manage student report cards by term</p>
+          <h2 className="text-2xl font-bold text-gray-800 m-0">Report Cards</h2>
+          <p className="text-gray-500 mt-1">Create and manage student report cards by term</p>
         </div>
         <button
           onClick={showForm ? closeForm : openForm}
-          style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}
+          className="text-white border-0 rounded-lg px-5 py-2.5 font-semibold cursor-pointer text-base hover:opacity-90 transition-opacity"
+          style={{ background: primaryColor }}
         >
           {showForm ? 'Cancel' : '+ New Report Card'}
         </button>
@@ -51,59 +46,64 @@ export default function ReportCards({ user, school }) {
 
       {/* Config nudge */}
       {!school?.grading_scale && (
-        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.75rem', padding: '0.875rem 1.25rem', marginBottom: '1.5rem', fontSize: '0.875rem', color: '#1d4ed8' }}>
+        <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-3.5 mb-6 text-sm text-blue-700">
           💡 Using default <strong>Letter Grade</strong> scale and standard subjects. Configure both in <strong>School Settings → Academic Config</strong>.
         </div>
       )}
 
       {/* New Report Card Form */}
       {showForm && (
-        <div style={{ background: 'white', borderRadius: '1rem', padding: '2rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: '2rem' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#1f2937', marginTop: 0, marginBottom: '1.5rem' }}>New Report Card</h3>
+        <div className="bg-white rounded-2xl p-8 shadow-sm mb-8">
+          <h3 className="text-lg font-semibold text-gray-800 mt-0 mb-6">New Report Card</h3>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+          <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
             <div>
-              <label style={labelStyle}>Student <span style={{ color: '#ef4444' }}>*</span></label>
-              <select value={form.student_id} onChange={e => handleStudentSelect(e.target.value)} style={inputStyle}>
+              <label className={labelCls}>Student <span className="text-red-500">*</span></label>
+              <select value={form.student_id} onChange={e => handleStudentSelect(e.target.value)} className={fieldCls}>
                 <option value="">Select enrolled student...</option>
                 {students.map(s => (
                   <option key={s.id} value={s.id}>{s.last_name}, {s.first_name}{s.grade ? ` — ${s.grade}` : ''}</option>
                 ))}
               </select>
               {students.length === 0 && (
-                <p style={{ fontSize: '0.8rem', color: '#f59e0b', marginTop: '0.3rem' }}>No enrolled students found. Enroll students first.</p>
+                <p className="text-xs text-amber-500 mt-1">No enrolled students found. Enroll students first.</p>
               )}
             </div>
             <div>
-              <label style={labelStyle}>Term</label>
-              <select value={form.term} onChange={e => setForm({ ...form, term: e.target.value })} style={inputStyle}>
+              <label className={labelCls}>Term</label>
+              <select value={form.term} onChange={e => setForm({ ...form, term: e.target.value })} className={fieldCls}>
                 {terms.map(t => <option key={t}>{t}</option>)}
               </select>
             </div>
             <div>
-              <label style={labelStyle}>Academic Year</label>
-              <input value={form.academic_year} onChange={e => setForm({ ...form, academic_year: e.target.value })} style={inputStyle} placeholder="e.g. 2025-2026" />
+              <label className={labelCls}>Academic Year</label>
+              <input value={form.academic_year} onChange={e => setForm({ ...form, academic_year: e.target.value })} className={fieldCls} placeholder="e.g. 2025-2026" />
             </div>
           </div>
 
           {/* Grades grid */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ fontSize: '0.875rem', fontWeight: '600', color: '#374151', marginBottom: '0.75rem' }}>
-              Subject Grades <span style={{ fontWeight: '400', color: '#9ca3af', fontSize: '0.8rem' }}>({school?.grading_scale || 'Letter'} scale)</span>
+          <div className="mb-6">
+            <div className="text-sm font-semibold text-gray-700 mb-3">
+              Subject Grades <span className="font-normal text-gray-400 text-xs">({school?.grading_scale || 'Letter'} scale)</span>
             </div>
-            <div style={{ border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '200px 160px 1fr', background: '#f9fafb', padding: '0.625rem 1rem', borderBottom: '1px solid #e5e7eb', gap: '0.75rem' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase' }}>Subject</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase' }}>Grade</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: '700', color: '#6b7280', textTransform: 'uppercase' }}>Teacher Comment</span>
+            <div className="border border-gray-200 rounded-xl overflow-hidden">
+              <div className="grid bg-gray-50 px-4 py-2.5 border-b border-gray-200 gap-3" style={{ gridTemplateColumns: '200px 160px 1fr' }}>
+                <span className="text-xs font-bold text-gray-500 uppercase">Subject</span>
+                <span className="text-xs font-bold text-gray-500 uppercase">Grade</span>
+                <span className="text-xs font-bold text-gray-500 uppercase">Teacher Comment</span>
               </div>
               {form.grades.map((g, i) => (
-                <div key={g.subject} style={{ display: 'grid', gridTemplateColumns: '200px 160px 1fr', padding: '0.5rem 1rem', borderBottom: i < form.grades.length - 1 ? '1px solid #f3f4f6' : 'none', alignItems: 'center', gap: '0.75rem' }}>
-                  <span style={{ fontSize: '0.875rem', color: '#374151', fontWeight: '500' }}>{g.subject}</span>
+                <div
+                  key={g.subject}
+                  className={`grid px-4 py-2 gap-3 items-center ${i < form.grades.length - 1 ? 'border-b border-gray-100' : ''}`}
+                  style={{ gridTemplateColumns: '200px 160px 1fr' }}
+                >
+                  <span className="text-sm text-gray-700 font-medium">{g.subject}</span>
                   <select
                     value={g.grade}
                     onChange={e => handleGradeChange(i, 'grade', e.target.value)}
-                    style={{ ...inputStyle, width: '100%', color: GRADE_COLORS[g.grade] || '#374151', fontWeight: g.grade ? '600' : '400' }}
+                    className={`${fieldCls} font-semibold`}
+                    style={{ color: GRADE_COLORS[g.grade] || '#374151' }}
                   >
                     <option value="">—</option>
                     {gradeOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -112,7 +112,7 @@ export default function ReportCards({ user, school }) {
                     value={g.comment}
                     onChange={e => handleGradeChange(i, 'comment', e.target.value)}
                     placeholder="Optional comment..."
-                    style={inputStyle}
+                    className={fieldCls}
                   />
                 </div>
               ))}
@@ -120,68 +120,71 @@ export default function ReportCards({ user, school }) {
           </div>
 
           {/* Teacher notes */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ ...labelStyle, fontSize: '0.875rem' }}>Overall Teacher Notes</label>
+          <div className="mb-6">
+            <label className={labelCls}>Overall Teacher Notes</label>
             <textarea
               value={form.teacher_notes}
               onChange={e => setForm({ ...form, teacher_notes: e.target.value })}
               rows={3}
               placeholder="General comments about the student's progress this term..."
-              style={{ ...inputStyle, resize: 'vertical' }}
+              className={`${fieldCls} resize-y`}
             />
           </div>
 
-          {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginBottom: '1rem' }}>{error}</p>}
+          {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 
-          <button onClick={submit} disabled={saving}
-            style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}>
+          <button
+            onClick={submit}
+            disabled={saving}
+            className="text-white border-0 rounded-lg px-6 py-2.5 font-semibold cursor-pointer text-sm disabled:opacity-70 hover:opacity-90 transition-opacity"
+            style={{ background: primaryColor }}
+          >
             {saving ? 'Saving...' : 'Save Report Card'}
           </button>
         </div>
       )}
 
       {/* Summary bar */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+      <div className="flex gap-4 mb-6 flex-wrap">
         {[
-          { label: 'Total', count: stats.total, color: '#6b7280' },
+          { label: 'Total',     count: stats.total,     color: '#6b7280' },
           { label: 'Published', count: stats.published, color: '#10b981' },
-          { label: 'Draft', count: stats.draft, color: '#f59e0b' },
+          { label: 'Draft',     count: stats.draft,     color: '#f59e0b' },
         ].map(s => (
-          <div key={s.label} style={{ background: 'white', borderRadius: '0.75rem', padding: '0.75rem 1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: s.color, display: 'inline-block' }} />
-            <span style={{ fontWeight: '600', color: '#1f2937' }}>{s.count}</span>
-            <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>{s.label}</span>
+          <div key={s.label} className="bg-white rounded-xl px-5 py-3 shadow-sm flex items-center gap-3">
+            <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: s.color }} />
+            <span className="font-semibold text-gray-800">{s.count}</span>
+            <span className="text-gray-500 text-sm">{s.label}</span>
           </div>
         ))}
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+      <div className="flex gap-4 mb-6 flex-wrap">
         <input
           type="text"
           placeholder="Search by student name..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          style={{ ...inputStyle, flex: 1, minWidth: '200px' }}
+          className="flex-1 min-w-48 border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm"
         />
-        <select value={filterTerm} onChange={e => setFilterTerm(e.target.value)} style={{ ...inputStyle, width: 'auto' }}>
+        <select value={filterTerm} onChange={e => setFilterTerm(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm bg-white">
           <option value="">All Terms</option>
           {terms.map(t => <option key={t}>{t}</option>)}
         </select>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...inputStyle, width: 'auto' }}>
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm bg-white">
           <option value="">All Statuses</option>
           <option value="published">Published</option>
           <option value="draft">Draft</option>
         </select>
         {divisions.length > 0 && (
-          <select value={filterDivision} onChange={e => setFilterDivision(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '160px' }}>
+          <select value={filterDivision} onChange={e => setFilterDivision(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm bg-white min-w-40">
             <option value="">All Divisions</option>
             {divisions.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
           </select>
         )}
         {hasFilters && (
-          <button onClick={clearFilters}
-            style={{ background: 'transparent', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', color: '#6b7280', fontSize: '0.9rem' }}>
+          <button onClick={clearFilters} className="bg-transparent border border-gray-300 rounded-lg px-4 py-2 cursor-pointer text-gray-500 text-sm hover:bg-gray-50">
             Clear
           </button>
         )}
@@ -189,47 +192,38 @@ export default function ReportCards({ user, school }) {
 
       {/* Table */}
       {loading ? (
-        <p style={{ color: '#6b7280' }}>Loading report cards...</p>
+        <p className="text-gray-500">Loading report cards...</p>
       ) : filtered.length === 0 ? (
-        <div style={{ background: 'white', borderRadius: '1rem', padding: '3rem', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📝</div>
-          <p style={{ color: '#6b7280', fontSize: '1.1rem' }}>
+        <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
+          <div className="text-5xl mb-4">📝</div>
+          <p className="text-gray-500 text-lg">
             {stats.total === 0 ? 'No report cards yet. Create your first one above.' : 'No report cards match your filters.'}
           </p>
         </div>
       ) : (
-        <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <table className="w-full border-collapse">
             <thead>
-              <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+              <tr className="bg-gray-50 border-b border-gray-200">
                 {['Student', 'Grade Level', 'Term', 'Year', 'Graded', 'Status'].map(h => (
-                  <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.875rem', fontWeight: '600', color: '#374151' }}>{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-sm font-semibold text-gray-700">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody>
-              {filtered.map((rc, i) => (
-                <tr key={rc.id}
+            <tbody className="divide-y divide-gray-200">
+              {filtered.map(rc => (
+                <tr
+                  key={rc.id}
                   onClick={() => setSelected(rc)}
-                  style={{ borderBottom: i < filtered.length - 1 ? '1px solid #e5e7eb' : 'none', cursor: 'pointer' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#fafafa'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  className="cursor-pointer hover:bg-gray-50 transition-colors"
                 >
-                  <td style={{ padding: '0.75rem 1rem', fontWeight: '600', color: '#1f2937' }}>{rc.student_name || '—'}</td>
-                  <td style={{ padding: '0.75rem 1rem', color: '#374151' }}>{rc.student_grade || '—'}</td>
-                  <td style={{ padding: '0.75rem 1rem', color: '#374151' }}>{rc.term}</td>
-                  <td style={{ padding: '0.75rem 1rem', color: '#374151' }}>{rc.academic_year}</td>
-                  <td style={{ padding: '0.75rem 1rem', color: '#374151' }}>
-                    {gradedCount(rc.grades)}/{(rc.grades || []).length}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <span style={{
-                      background: rc.published ? '#f0fdf4' : '#f9fafb',
-                      color: rc.published ? '#15803d' : '#6b7280',
-                      border: `1px solid ${rc.published ? '#bbf7d0' : '#e5e7eb'}`,
-                      borderRadius: '9999px', padding: '0.25rem 0.75rem',
-                      fontSize: '0.8rem', fontWeight: '600',
-                    }}>
+                  <td className="px-4 py-3 font-semibold text-gray-800">{rc.student_name || '—'}</td>
+                  <td className="px-4 py-3 text-gray-700">{rc.student_grade || '—'}</td>
+                  <td className="px-4 py-3 text-gray-700">{rc.term}</td>
+                  <td className="px-4 py-3 text-gray-700">{rc.academic_year}</td>
+                  <td className="px-4 py-3 text-gray-700">{gradedCount(rc.grades)}/{(rc.grades || []).length}</td>
+                  <td className="px-4 py-3">
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold border ${rc.published ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
                       {rc.published ? '✓ Published' : 'Draft'}
                     </span>
                   </td>
@@ -237,7 +231,7 @@ export default function ReportCards({ user, school }) {
               ))}
             </tbody>
           </table>
-          <div style={{ padding: '0.75rem 1rem', background: '#f9fafb', borderTop: '1px solid #e5e7eb', fontSize: '0.8rem', color: '#9ca3af' }}>
+          <div className="px-4 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-400">
             {filtered.length} report card{filtered.length !== 1 ? 's' : ''} — click a row to view
           </div>
         </div>
@@ -246,83 +240,84 @@ export default function ReportCards({ user, school }) {
       {/* Drawer */}
       {selected && (
         <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 50, display: 'flex', justifyContent: 'flex-end' }}
+          className="fixed inset-0 bg-black/30 z-50 flex justify-end"
           onClick={e => { if (e.target === e.currentTarget) setSelected(null) }}
         >
-          <div style={{ width: '520px', maxWidth: '100%', background: 'white', height: '100%', overflowY: 'auto', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)' }}>
+          <div className="w-[520px] max-w-full bg-white h-full overflow-y-auto shadow-2xl">
 
-            <div style={{ background: primaryColor, padding: '1.5rem', color: 'white' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            {/* Drawer header */}
+            <div className="p-6 text-white" style={{ background: primaryColor }}>
+              <div className="flex justify-between items-start">
                 <div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>{selected.student_name}</div>
-                  <div style={{ fontSize: '0.875rem', opacity: 0.85, marginTop: '0.25rem' }}>
+                  <div className="text-xl font-bold">{selected.student_name}</div>
+                  <div className="text-sm opacity-85 mt-1">
                     {selected.term} · {selected.academic_year}{selected.student_grade ? ` · ${selected.student_grade}` : ''}
                   </div>
                 </div>
-                <button onClick={() => setSelected(null)}
-                  style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: '0.5rem', padding: '0.25rem 0.75rem', cursor: 'pointer', fontSize: '1.1rem' }}>✕</button>
+                <button
+                  onClick={() => setSelected(null)}
+                  className="bg-white/20 border-0 text-white rounded-lg px-3 py-1 cursor-pointer text-lg hover:bg-white/30"
+                >✕</button>
               </div>
-              <span style={{
-                display: 'inline-block', marginTop: '0.75rem',
-                background: selected.published ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.15)',
-                borderRadius: '9999px', padding: '0.2rem 0.75rem', fontSize: '0.8rem', fontWeight: '600',
-              }}>
+              <span className={`inline-block mt-3 rounded-full px-3 py-0.5 text-xs font-semibold ${selected.published ? 'bg-white/30' : 'bg-white/15'}`}>
                 {selected.published ? '✓ Published' : 'Draft'}
               </span>
             </div>
 
-            <div style={{ padding: '1.5rem' }}>
+            <div className="p-6">
 
-              <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>Subject Grades</div>
-              <div style={{ border: '1px solid #e5e7eb', borderRadius: '0.75rem', overflow: 'hidden', marginBottom: '1.5rem' }}>
+              {/* Subject grades */}
+              <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Subject Grades</div>
+              <div className="border border-gray-200 rounded-xl overflow-hidden mb-6">
                 {(selected.grades || []).map((g, i) => (
-                  <div key={g.subject} style={{
-                    padding: '0.75rem 1rem',
-                    borderBottom: i < selected.grades.length - 1 ? '1px solid #f3f4f6' : 'none',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem',
-                  }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '0.875rem', color: '#374151', fontWeight: '500' }}>{g.subject}</div>
-                      {g.comment && <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '0.2rem', lineHeight: 1.4 }}>{g.comment}</div>}
+                  <div
+                    key={g.subject}
+                    className={`px-4 py-3 flex justify-between items-start gap-4 ${i < selected.grades.length - 1 ? 'border-b border-gray-100' : ''}`}
+                  >
+                    <div className="flex-1">
+                      <div className="text-sm text-gray-700 font-medium">{g.subject}</div>
+                      {g.comment && <div className="text-xs text-gray-500 mt-0.5 leading-snug">{g.comment}</div>}
                     </div>
-                    <span style={{
-                      fontWeight: '700', fontSize: '0.9rem',
-                      color: GRADE_COLORS[g.grade] || (g.grade ? primaryColor : '#d1d5db'),
-                      minWidth: '80px', textAlign: 'right', flexShrink: 0,
-                    }}>
+                    <span
+                      className="font-bold text-sm min-w-20 text-right shrink-0"
+                      style={{ color: GRADE_COLORS[g.grade] || (g.grade ? primaryColor : '#d1d5db') }}
+                    >
                       {g.grade || '—'}
                     </span>
                   </div>
                 ))}
               </div>
 
+              {/* Teacher notes */}
               {selected.teacher_notes && (
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Teacher Notes</div>
-                  <div style={{ background: '#f9fafb', borderRadius: '0.75rem', padding: '0.875rem 1rem', fontSize: '0.875rem', color: '#374151', lineHeight: 1.6 }}>
+                <div className="mb-6">
+                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Teacher Notes</div>
+                  <div className="bg-gray-50 rounded-xl px-4 py-3.5 text-sm text-gray-700 leading-relaxed">
                     {selected.teacher_notes}
                   </div>
                 </div>
               )}
 
-              <div style={{ fontSize: '0.8rem', color: '#9ca3af', marginBottom: '1.5rem' }}>
+              <div className="text-xs text-gray-400 mb-6">
                 Created {new Date(selected.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
               </div>
 
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
+              {/* Actions */}
+              <div className="flex gap-3">
                 <button
                   onClick={() => togglePublished(selected)}
-                  style={{
-                    flex: 1, background: selected.published ? 'white' : primaryColor,
-                    color: selected.published ? '#374151' : 'white',
-                    border: selected.published ? '1px solid #d1d5db' : 'none',
-                    borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem',
-                  }}>
+                  className="flex-1 border rounded-lg py-2.5 font-semibold cursor-pointer text-sm hover:opacity-90 transition-opacity"
+                  style={selected.published
+                    ? { background: 'white', color: '#374151', borderColor: '#d1d5db' }
+                    : { background: primaryColor, color: 'white', border: 'none' }
+                  }
+                >
                   {selected.published ? 'Revert to Draft' : '✓ Publish Report Card'}
                 </button>
                 <button
                   onClick={() => { if (window.confirm(`Delete ${selected.student_name}'s ${selected.term} report card?`)) remove(selected.id) }}
-                  style={{ background: 'white', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '0.5rem', padding: '0.625rem 1rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}>
+                  className="bg-white text-red-500 border border-red-400 rounded-lg px-4 py-2.5 font-semibold cursor-pointer text-sm hover:bg-red-50 transition-colors"
+                >
                   Delete
                 </button>
               </div>
