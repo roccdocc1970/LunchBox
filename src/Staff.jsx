@@ -1,8 +1,10 @@
 import { useStaff } from './hooks/useStaff'
-import { ROLES, ROLE_COLORS, getRoleColor, parseGradeAssignments, getOrphanedGrades, getAssignmentDivisions } from './domain/staff'
-import { getDivision } from './domain/school'
+import { ROLES, getRoleColor, parseGradeAssignments, getOrphanedGrades, getAssignmentDivisions } from './domain/staff'
+import { getDivision, parseDivisions } from './domain/school'
 import { ALL_GRADES } from './domain/enrollment'
-import { parseDivisions } from './domain/school'
+
+const fieldCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm'
+const labelCls = 'block text-sm font-medium text-gray-500 mb-1'
 
 export default function Staff({ user, school }) {
   const primaryColor = school?.primary_color || '#f97316'
@@ -25,174 +27,171 @@ export default function Staff({ user, school }) {
     clearFilters,
   } = useStaff(user.id, school)
 
-  const inputStyle = {
-    width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem',
-    padding: '0.5rem 0.75rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem',
-  }
-  const labelStyle = { display: 'block', fontSize: '0.8rem', fontWeight: '500', color: '#6b7280', marginBottom: '0.25rem' }
-  const formLabelStyle = { display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }
   const hasFilters = search || filterRole || filterStatus || filterDivision
   const divisions = parseDivisions(school?.divisions).filter(d => d.grades?.length > 0)
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="p-8 max-w-6xl mx-auto">
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Staff</h2>
-          <p style={{ color: '#6b7280', marginTop: '0.25rem' }}>Manage your school's staff directory</p>
+          <h2 className="text-2xl font-bold text-gray-800 m-0">Staff</h2>
+          <p className="text-gray-500 mt-1">Manage your school's staff directory</p>
         </div>
         <button
           onClick={toggleForm}
-          style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}
+          className="text-white border-0 rounded-lg px-5 py-2.5 font-semibold cursor-pointer text-base hover:opacity-90 transition-opacity"
+          style={{ background: primaryColor }}
         >
           {showForm ? 'Cancel' : '+ Add Staff Member'}
         </button>
       </div>
 
+      {/* Config nudge */}
       {!configuredGrades && (
-        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.75rem', padding: '0.875rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{ fontSize: '1.1rem' }}>🔒</span>
-          <span style={{ fontSize: '0.875rem', color: '#991b1b' }}><strong>Grade assignment is locked.</strong> Complete your Academic Configuration in <strong>Settings → Academic Config</strong> before assigning grades to staff.</span>
+        <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-3.5 mb-6 flex items-center gap-3">
+          <span className="text-lg">🔒</span>
+          <span className="text-sm text-red-800"><strong>Grade assignment is locked.</strong> Complete your Academic Configuration in <strong>Settings → Academic Config</strong> before assigning grades to staff.</span>
         </div>
       )}
 
       {/* Add Staff Form */}
       {showForm && (
-        <div style={{ background: 'white', borderRadius: '1rem', padding: '2rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: '2rem' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#1f2937', marginTop: 0, marginBottom: '1.5rem' }}>New Staff Member</h3>
+        <div className="bg-white rounded-2xl p-8 shadow-sm mb-8">
+          <h3 className="text-lg font-semibold text-gray-800 mt-0 mb-6">New Staff Member</h3>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
             {[
-              { label: 'First Name', name: 'first_name', type: 'text', required: true },
-              { label: 'Last Name',  name: 'last_name',  type: 'text', required: true },
+              { label: 'First Name', name: 'first_name', type: 'text',  required: true },
+              { label: 'Last Name',  name: 'last_name',  type: 'text',  required: true },
               { label: 'Email',      name: 'email',      type: 'email' },
               { label: 'Phone',      name: 'phone',      type: 'tel' },
               { label: 'Hire Date',  name: 'hire_date',  type: 'date' },
             ].map(field => (
               <div key={field.name}>
-                <label style={formLabelStyle}>{field.label} {field.required && <span style={{ color: '#ef4444' }}>*</span>}</label>
-                <input type={field.type} name={field.name} value={form[field.name]} onChange={handleChange}
-                  style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }} />
+                <label className={labelCls}>{field.label} {field.required && <span className="text-red-500">*</span>}</label>
+                <input type={field.type} name={field.name} value={form[field.name]} onChange={handleChange} className={fieldCls} />
               </div>
             ))}
             <div>
-              <label style={formLabelStyle}>Role <span style={{ color: '#ef4444' }}>*</span></label>
-              <select name="role" value={form.role} onChange={handleChange}
-                style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}>
+              <label className={labelCls}>Role <span className="text-red-500">*</span></label>
+              <select name="role" value={form.role} onChange={handleChange} className={fieldCls}>
                 <option value="">Select role</option>
                 {ROLES.map(r => <option key={r}>{r}</option>)}
               </select>
             </div>
             <div>
-              <label style={formLabelStyle}>Status</label>
-              <select name="status" value={form.status} onChange={handleChange}
-                style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}>
+              <label className={labelCls}>Status</label>
+              <select name="status" value={form.status} onChange={handleChange} className={fieldCls}>
                 <option>Active</option>
                 <option>Inactive</option>
               </select>
             </div>
           </div>
 
-          <div style={{ marginTop: '1rem' }}>
-            <label style={formLabelStyle}>Grade Assignments</label>
+          <div className="mt-4">
+            <label className={labelCls}>Grade Assignments</label>
             <GradePicker selected={form.grade_assignments} onToggle={toggleGradeInForm} locked={!configuredGrades}
               grades={grades} configuredGrades={configuredGrades} school={school} primaryColor={primaryColor} />
           </div>
 
-          <div style={{ marginTop: '1rem' }}>
-            <label style={formLabelStyle}>Notes</label>
-            <textarea name="notes" value={form.notes} onChange={handleChange} rows={2}
-              style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem', resize: 'vertical' }} />
+          <div className="mt-4">
+            <label className={labelCls}>Notes</label>
+            <textarea name="notes" value={form.notes} onChange={handleChange} rows={2} className={`${fieldCls} resize-y`} />
           </div>
 
-          {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.5rem' }}>{error}</p>}
+          {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
 
-          <button onClick={submit} disabled={saving}
-            style={{ marginTop: '1.5rem', background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}>
+          <button
+            onClick={submit}
+            disabled={saving}
+            className="mt-6 text-white border-0 rounded-lg px-6 py-2.5 font-semibold cursor-pointer text-base disabled:opacity-70 hover:opacity-90 transition-opacity"
+            style={{ background: primaryColor }}
+          >
             {saving ? 'Saving...' : 'Save Staff Member'}
           </button>
         </div>
       )}
 
       {/* Summary counts */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+      <div className="flex gap-4 mb-6 flex-wrap">
         {[
           { label: 'Total Staff', value: stats.total },
           { label: 'Active',      value: stats.active,   color: '#10b981' },
           { label: 'Inactive',    value: stats.inactive, color: '#6b7280' },
         ].map(s => (
-          <div key={s.label} style={{ background: 'white', borderRadius: '0.75rem', padding: '0.75rem 1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {s.color && <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: s.color, display: 'inline-block' }} />}
-            <span style={{ fontWeight: '600', color: '#1f2937' }}>{s.value}</span>
-            <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>{s.label}</span>
+          <div key={s.label} className="bg-white rounded-xl px-5 py-3 shadow-sm flex items-center gap-3">
+            {s.color && <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: s.color }} />}
+            <span className="font-semibold text-gray-800">{s.value}</span>
+            <span className="text-gray-500 text-sm">{s.label}</span>
           </div>
         ))}
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+      <div className="flex gap-4 mb-6 flex-wrap">
         <input type="text" placeholder="Search by name, email, or role..." value={search}
-          onChange={e => setSearch(e.target.value)} style={{ ...inputStyle, flex: '1', minWidth: '220px' }} />
-        <select value={filterRole} onChange={e => setFilterRole(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '160px' }}>
+          onChange={e => setSearch(e.target.value)} className="flex-1 min-w-56 border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm" />
+        <select value={filterRole} onChange={e => setFilterRole(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm bg-white min-w-40">
           <option value="">All Roles</option>
           {ROLES.map(r => <option key={r}>{r}</option>)}
         </select>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '140px' }}>
+        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm bg-white">
           <option value="">All Statuses</option>
           <option>Active</option>
           <option>Inactive</option>
         </select>
         {divisions.length > 0 && (
-          <select value={filterDivision} onChange={e => setFilterDivision(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '160px' }}>
+          <select value={filterDivision} onChange={e => setFilterDivision(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm bg-white min-w-40">
             <option value="">All Divisions</option>
             {divisions.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
           </select>
         )}
         {hasFilters && (
-          <button onClick={clearFilters}
-            style={{ background: 'transparent', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', color: '#6b7280', fontSize: '0.9rem' }}>
-            Clear
-          </button>
+          <button onClick={clearFilters} className="bg-transparent border border-gray-300 rounded-lg px-4 py-2 cursor-pointer text-gray-500 text-sm hover:bg-gray-50">Clear</button>
         )}
       </div>
 
       {/* Staff Grid */}
       {loading ? (
-        <p style={{ color: '#6b7280' }}>Loading staff...</p>
+        <p className="text-gray-500">Loading staff...</p>
       ) : filtered.length === 0 ? (
-        <div style={{ background: 'white', borderRadius: '1rem', padding: '3rem', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👩‍🏫</div>
-          <p style={{ color: '#6b7280', fontSize: '1.1rem' }}>
+        <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
+          <div className="text-5xl mb-4">👩‍🏫</div>
+          <p className="text-gray-500 text-lg">
             {staff.length === 0 ? 'No staff members yet. Add your first staff member above!' : 'No staff match your filters.'}
           </p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
           {filtered.map(member => (
-            <div key={member.id} onClick={() => openProfile(member)}
-              style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', cursor: 'pointer', borderTop: `3px solid ${getRoleColor(member.role)}`, transition: 'box-shadow 0.15s' }}
-              onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)'}
-              onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.08)'}
+            <div
+              key={member.id}
+              onClick={() => openProfile(member)}
+              className="bg-white rounded-2xl p-5 shadow-sm cursor-pointer border-t-4 hover:shadow-md transition-shadow"
+              style={{ borderTopColor: getRoleColor(member.role) }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: getRoleColor(member.role) + '20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', fontWeight: 'bold', color: getRoleColor(member.role), flexShrink: 0 }}>
+              <div className="flex items-center gap-3 mb-3">
+                <div
+                  className="w-11 h-11 rounded-full flex items-center justify-center text-lg font-bold shrink-0"
+                  style={{ background: getRoleColor(member.role) + '20', color: getRoleColor(member.role) }}
+                >
                   {member.first_name?.[0]}{member.last_name?.[0]}
                 </div>
                 <div>
-                  <div style={{ fontWeight: '600', color: '#1f2937', fontSize: '0.95rem' }}>{member.first_name} {member.last_name}</div>
-                  <div style={{ fontSize: '0.8rem', color: getRoleColor(member.role), fontWeight: '500' }}>{member.role}</div>
+                  <div className="font-semibold text-gray-800">{member.first_name} {member.last_name}</div>
+                  <div className="text-xs font-medium" style={{ color: getRoleColor(member.role) }}>{member.role}</div>
                 </div>
               </div>
 
               <GradeBadges member={member} compact configuredGrades={configuredGrades} school={school} primaryColor={primaryColor} />
 
-              {member.email && <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.4rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>✉️ {member.email}</div>}
-              {member.phone && <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.4rem' }}>📞 {member.phone}</div>}
+              {member.email && <div className="text-xs text-gray-500 mb-1 truncate">✉️ {member.email}</div>}
+              {member.phone && <div className="text-xs text-gray-500 mb-1">📞 {member.phone}</div>}
 
-              <div style={{ marginTop: '0.75rem' }}>
-                <span style={{ background: member.status === 'Active' ? '#f0fdf4' : '#f3f4f6', color: member.status === 'Active' ? '#15803d' : '#6b7280', borderRadius: '9999px', padding: '0.2rem 0.65rem', fontSize: '0.75rem', fontWeight: '600' }}>
+              <div className="mt-3">
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${member.status === 'Active' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                   {member.status || 'Active'}
                 </span>
               </div>
@@ -203,37 +202,40 @@ export default function Staff({ user, school }) {
 
       {/* Profile Drawer */}
       {selected && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 50, display: 'flex', justifyContent: 'flex-end' }}
-          onClick={e => { if (e.target === e.currentTarget) closeProfile() }}>
-          <div style={{ width: '420px', maxWidth: '100%', background: 'white', height: '100%', overflowY: 'auto', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)' }}>
+        <div
+          className="fixed inset-0 bg-black/30 z-50 flex justify-end"
+          onClick={e => { if (e.target === e.currentTarget) closeProfile() }}
+        >
+          <div className="w-[420px] max-w-full bg-white h-full overflow-y-auto shadow-2xl">
 
-            <div style={{ background: getRoleColor(selected.role), padding: '1.5rem', color: 'white' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 'bold' }}>
+            {/* Drawer header */}
+            <div className="p-6 text-white" style={{ background: getRoleColor(selected.role) }}>
+              <div className="flex justify-between items-start">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-xl font-bold">
                     {selected.first_name?.[0]}{selected.last_name?.[0]}
                   </div>
                   <div>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{selected.first_name} {selected.last_name}</div>
-                    <div style={{ fontSize: '0.875rem', opacity: 0.85 }}>{selected.role}</div>
+                    <div className="text-xl font-bold">{selected.first_name} {selected.last_name}</div>
+                    <div className="text-sm opacity-85">{selected.role}</div>
                   </div>
                 </div>
-                <button onClick={closeProfile} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: '0.5rem', padding: '0.25rem 0.75rem', cursor: 'pointer', fontSize: '1.1rem' }}>✕</button>
+                <button onClick={closeProfile} className="bg-white/20 border-0 text-white rounded-lg px-3 py-1 cursor-pointer text-lg hover:bg-white/30">✕</button>
               </div>
-              <span style={{ display: 'inline-block', marginTop: '0.75rem', background: 'rgba(255,255,255,0.2)', borderRadius: '9999px', padding: '0.2rem 0.75rem', fontSize: '0.8rem', fontWeight: '600' }}>
+              <span className="inline-block mt-3 bg-white/20 rounded-full px-3 py-0.5 text-xs font-semibold">
                 {selected.status || 'Active'}
               </span>
             </div>
 
-            <div style={{ padding: '1.5rem' }}>
-              {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginBottom: '1rem' }}>{error}</p>}
+            <div className="p-6">
+              {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 
               {!editing ? (
                 <>
                   <DrawerSection title="Staff Info">
-                    <DrawerField label="Role" value={selected.role || '—'} />
+                    <DrawerField label="Role"      value={selected.role      || '—'} />
                     <DrawerField label="Hire Date" value={selected.hire_date || '—'} />
-                    <DrawerField label="Status" value={selected.status || 'Active'} />
+                    <DrawerField label="Status"    value={selected.status    || 'Active'} />
                     {selected.notes && <DrawerField label="Notes" value={selected.notes} />}
                   </DrawerSection>
 
@@ -245,10 +247,10 @@ export default function Staff({ user, school }) {
                   </DrawerSection>
 
                   <DrawerSection title="Portal Access">
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: selected.auth_user_id ? '#10b981' : '#d1d5db', display: 'inline-block' }} />
-                        <span style={{ fontSize: '0.875rem', color: selected.auth_user_id ? '#10b981' : '#9ca3af', fontWeight: '500' }}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full inline-block ${selected.auth_user_id ? 'bg-green-500' : 'bg-gray-300'}`} />
+                        <span className={`text-sm font-medium ${selected.auth_user_id ? 'text-green-600' : 'text-gray-400'}`}>
                           {selected.auth_user_id ? 'Account linked' : 'No account yet'}
                         </span>
                       </div>
@@ -259,79 +261,74 @@ export default function Staff({ user, school }) {
                             navigator.clipboard.writeText(link)
                             alert(`Invite link copied!\n\nSend this to ${selected.first_name}:\n${link}\n\nThey should sign up using: ${selected.email}`)
                           }}
-                          style={{ fontSize: '0.8rem', color: primaryColor, background: 'none', border: `1px solid ${primaryColor}`, borderRadius: '0.375rem', padding: '0.25rem 0.625rem', cursor: 'pointer', fontWeight: '600' }}
+                          className="text-xs font-semibold border rounded-md px-2.5 py-1 cursor-pointer hover:opacity-80"
+                          style={{ color: primaryColor, borderColor: primaryColor, background: 'none' }}
                         >
                           Copy Invite Link
                         </button>
                       )}
                     </div>
                     {!selected.email && !selected.auth_user_id && (
-                      <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: '0.5rem 0 0' }}>Add an email address to enable portal access.</p>
+                      <p className="text-xs text-gray-400 mt-2 mb-0">Add an email address to enable portal access.</p>
                     )}
                   </DrawerSection>
 
-                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
-                    <button onClick={startEdit}
-                      style={{ flex: 1, background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}>
+                  <div className="flex gap-3 mt-6">
+                    <button onClick={startEdit} className="flex-1 text-white border-0 rounded-lg py-2.5 font-semibold cursor-pointer hover:opacity-90 transition-opacity" style={{ background: primaryColor }}>
                       Edit Profile
                     </button>
-                    <button onClick={() => setDeleteConfirm(true)}
-                      style={{ background: 'white', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '0.5rem', padding: '0.625rem 1rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}>
+                    <button onClick={() => setDeleteConfirm(true)} className="bg-white text-red-500 border border-red-400 rounded-lg px-4 py-2.5 font-semibold cursor-pointer hover:bg-red-50">
                       Remove
                     </button>
                   </div>
 
                   {deleteConfirm && (
-                    <div style={{ marginTop: '1rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.75rem', padding: '1rem' }}>
-                      <p style={{ color: '#991b1b', fontWeight: '600', margin: '0 0 0.5rem' }}>Remove {selected.first_name} {selected.last_name}?</p>
-                      <p style={{ color: '#b91c1c', fontSize: '0.875rem', margin: '0 0 1rem' }}>This cannot be undone.</p>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button onClick={remove} style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: '600', cursor: 'pointer' }}>Yes, Remove</button>
-                        <button onClick={() => setDeleteConfirm(false)} style={{ background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer' }}>Cancel</button>
+                    <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-4">
+                      <p className="text-red-800 font-semibold m-0 mb-2">Remove {selected.first_name} {selected.last_name}?</p>
+                      <p className="text-red-700 text-sm m-0 mb-4">This cannot be undone.</p>
+                      <div className="flex gap-2">
+                        <button onClick={remove} className="bg-red-500 text-white border-0 rounded-lg px-4 py-2 font-semibold cursor-pointer hover:bg-red-600">Yes, Remove</button>
+                        <button onClick={() => setDeleteConfirm(false)} className="bg-white text-gray-700 border border-gray-300 rounded-lg px-4 py-2 cursor-pointer hover:bg-gray-50">Cancel</button>
                       </div>
                     </div>
                   )}
                 </>
               ) : (
                 <>
-                  <div style={{ display: 'grid', gap: '1rem' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                      <div><label style={labelStyle}>First Name</label><input name="first_name" value={editForm.first_name || ''} onChange={handleEditChange} style={inputStyle} /></div>
-                      <div><label style={labelStyle}>Last Name</label><input name="last_name" value={editForm.last_name || ''} onChange={handleEditChange} style={inputStyle} /></div>
+                  <div className="grid gap-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div><label className={labelCls}>First Name</label><input name="first_name" value={editForm.first_name || ''} onChange={handleEditChange} className={fieldCls} /></div>
+                      <div><label className={labelCls}>Last Name</label> <input name="last_name"  value={editForm.last_name  || ''} onChange={handleEditChange} className={fieldCls} /></div>
                     </div>
                     <div>
-                      <label style={labelStyle}>Role</label>
-                      <select name="role" value={editForm.role || ''} onChange={handleEditChange} style={inputStyle}>
+                      <label className={labelCls}>Role</label>
+                      <select name="role" value={editForm.role || ''} onChange={handleEditChange} className={fieldCls}>
                         <option value="">Select role</option>
                         {ROLES.map(r => <option key={r}>{r}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label style={labelStyle}>Grade Assignments</label>
+                      <label className={labelCls}>Grade Assignments</label>
                       <GradePicker selected={editGrades} onToggle={toggleGradeInEdit} locked={!configuredGrades}
                         grades={grades} configuredGrades={configuredGrades} school={school} primaryColor={primaryColor} />
                     </div>
                     <div>
-                      <label style={labelStyle}>Status</label>
-                      <select name="status" value={editForm.status || 'Active'} onChange={handleEditChange} style={inputStyle}>
+                      <label className={labelCls}>Status</label>
+                      <select name="status" value={editForm.status || 'Active'} onChange={handleEditChange} className={fieldCls}>
                         <option>Active</option>
                         <option>Inactive</option>
                       </select>
                     </div>
-                    <div><label style={labelStyle}>Email</label><input type="email" name="email" value={editForm.email || ''} onChange={handleEditChange} style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Phone</label><input type="tel" name="phone" value={editForm.phone || ''} onChange={handleEditChange} style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Hire Date</label><input type="date" name="hire_date" value={editForm.hire_date || ''} onChange={handleEditChange} style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Notes</label><textarea name="notes" value={editForm.notes || ''} onChange={handleEditChange} rows={3} style={{ ...inputStyle, resize: 'vertical' }} /></div>
+                    <div><label className={labelCls}>Email</label>    <input type="email" name="email"     value={editForm.email     || ''} onChange={handleEditChange} className={fieldCls} /></div>
+                    <div><label className={labelCls}>Phone</label>    <input type="tel"   name="phone"     value={editForm.phone     || ''} onChange={handleEditChange} className={fieldCls} /></div>
+                    <div><label className={labelCls}>Hire Date</label><input type="date"  name="hire_date" value={editForm.hire_date  || ''} onChange={handleEditChange} className={fieldCls} /></div>
+                    <div><label className={labelCls}>Notes</label>    <textarea name="notes" value={editForm.notes || ''} onChange={handleEditChange} rows={3} className={`${fieldCls} resize-y`} /></div>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
-                    <button onClick={saveEdit} disabled={saving}
-                      style={{ flex: 1, background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}>
+                  <div className="flex gap-3 mt-6">
+                    <button onClick={saveEdit} disabled={saving} className="flex-1 text-white border-0 rounded-lg py-2.5 font-semibold cursor-pointer disabled:opacity-70 hover:opacity-90 transition-opacity" style={{ background: primaryColor }}>
                       {saving ? 'Saving...' : 'Save Changes'}
                     </button>
-                    <button onClick={() => setEditing(false)}
-                      style={{ background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.625rem 1rem', cursor: 'pointer' }}>
-                      Cancel
-                    </button>
+                    <button onClick={() => startEdit(null)} className="bg-white text-gray-700 border border-gray-300 rounded-lg px-4 py-2.5 cursor-pointer hover:bg-gray-50">Cancel</button>
                   </div>
                 </>
               )}
@@ -351,18 +348,19 @@ function GradePicker({ selected: picked, onToggle, locked, grades, configuredGra
   return (
     <div>
       {locked ? (
-        <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: 0 }}>Configure grades in Settings → Academic Config first.</p>
+        <p className="text-sm text-gray-400 m-0">Configure grades in Settings → Academic Config first.</p>
       ) : sorted.length === 0 ? (
-        <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: 0 }}>No grades configured yet.</p>
+        <p className="text-sm text-gray-400 m-0">No grades configured yet.</p>
       ) : (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+        <div className="flex flex-wrap gap-1.5">
           {sorted.map(grade => {
             const active = picked.includes(grade)
             const div = getDivision(grade, school?.divisions)
             const color = div ? div.color : primaryColor
             return (
               <button key={grade} type="button" onClick={() => onToggle(grade)}
-                style={{ padding: '0.25rem 0.625rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: active ? '600' : '400', cursor: 'pointer', border: `1.5px solid ${active ? color : '#d1d5db'}`, background: active ? color : 'white', color: active ? 'white' : '#374151', transition: 'all 0.1s' }}>
+                className="px-2.5 py-1 rounded-full text-xs cursor-pointer border-2 transition-all"
+                style={{ fontWeight: active ? '600' : '400', borderColor: active ? color : '#d1d5db', background: active ? color : 'white', color: active ? 'white' : '#374151' }}>
                 {grade}
               </button>
             )
@@ -370,21 +368,18 @@ function GradePicker({ selected: picked, onToggle, locked, grades, configuredGra
           {orphaned.map(grade => (
             <button key={grade} type="button" onClick={() => onToggle(grade)}
               title="This grade is no longer offered at your school. Click to remove."
-              style={{ padding: '0.25rem 0.625rem', borderRadius: '9999px', fontSize: '0.8rem', fontWeight: '400', cursor: 'pointer', border: '1.5px solid #fcd34d', background: '#fefce8', color: '#92400e', textDecoration: 'line-through', transition: 'all 0.1s' }}>
+              className="px-2.5 py-1 rounded-full text-xs cursor-pointer border-2 line-through transition-all"
+              style={{ borderColor: '#fcd34d', background: '#fefce8', color: '#92400e' }}>
               ⚠ {grade}
             </button>
           ))}
         </div>
       )}
       {orphaned.length > 0 && (
-        <p style={{ fontSize: '0.75rem', color: '#d97706', marginTop: '0.5rem', marginBottom: 0 }}>
-          ⚠ {orphaned.length} grade{orphaned.length !== 1 ? 's are' : ' is'} no longer offered. Click to remove.
-        </p>
+        <p className="text-xs text-amber-600 mt-2 mb-0">⚠ {orphaned.length} grade{orphaned.length !== 1 ? 's are' : ' is'} no longer offered. Click to remove.</p>
       )}
       {picked.length > 0 && orphaned.length === 0 && (
-        <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.375rem', marginBottom: 0 }}>
-          {picked.length} grade{picked.length !== 1 ? 's' : ''} assigned
-        </p>
+        <p className="text-xs text-gray-400 mt-1.5 mb-0">{picked.length} grade{picked.length !== 1 ? 's' : ''} assigned</p>
       )}
     </div>
   )
@@ -399,45 +394,45 @@ function GradeBadges({ member, compact = false, configuredGrades, school, primar
 
   if (compact) {
     return (
-      <div style={{ marginBottom: '0.5rem' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem', marginBottom: uniqueDivisions.length > 0 ? '0.25rem' : 0 }}>
+      <div className="mb-2">
+        <div className={`flex flex-wrap gap-1 ${uniqueDivisions.length > 0 ? 'mb-1' : ''}`}>
           {sorted.map(g => isOrphaned(g)
-            ? <span key={g} title="Grade no longer offered" style={{ fontSize: '0.72rem', background: '#fefce8', color: '#92400e', borderRadius: '9999px', padding: '0.15rem 0.5rem', textDecoration: 'line-through', border: '1px solid #fcd34d' }}>⚠ {g}</span>
-            : <span key={g} style={{ fontSize: '0.72rem', background: '#f3f4f6', color: '#374151', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>{g}</span>
+            ? <span key={g} title="Grade no longer offered" className="text-[0.72rem] bg-yellow-50 text-amber-800 rounded-full px-2 py-0.5 line-through border border-yellow-300">⚠ {g}</span>
+            : <span key={g} className="text-[0.72rem] bg-gray-100 text-gray-700 rounded-full px-2 py-0.5">{g}</span>
           )}
         </div>
         {uniqueDivisions.map(div => (
-          <span key={div.name} style={{ fontSize: '0.72rem', color: div.color, fontWeight: '600', background: div.color + '15', borderRadius: '9999px', padding: '0.1rem 0.5rem', marginRight: '0.25rem', display: 'inline-block' }}>{div.name}</span>
+          <span key={div.name} className="text-[0.72rem] font-semibold rounded-full px-2 py-0.5 mr-1 inline-block" style={{ color: div.color, background: div.color + '15' }}>{div.name}</span>
         ))}
       </div>
     )
   }
 
   return (
-    <div style={{ marginBottom: '1.5rem' }}>
-      <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Grade Assignments</div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: uniqueDivisions.length > 0 ? '1.25rem' : 0 }}>
+    <div className="mb-6">
+      <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Grade Assignments</div>
+      <div className={`flex flex-wrap gap-1.5 ${uniqueDivisions.length > 0 ? 'mb-5' : ''}`}>
         {sorted.map(g => {
           if (isOrphaned(g)) return (
             <span key={g} title="Grade no longer offered at this school"
-              style={{ fontSize: '0.8rem', fontWeight: '400', background: '#fefce8', color: '#92400e', border: '1px solid #fcd34d', borderRadius: '9999px', padding: '0.2rem 0.625rem', textDecoration: 'line-through' }}>
+              className="text-xs bg-yellow-50 text-amber-800 border border-yellow-300 rounded-full px-2.5 py-0.5 line-through">
               ⚠ {g}
             </span>
           )
           const div = getDivision(g, school?.divisions)
           const color = div ? div.color : primaryColor
-          return <span key={g} style={{ fontSize: '0.8rem', fontWeight: '500', background: color + '15', color, border: `1px solid ${color}30`, borderRadius: '9999px', padding: '0.2rem 0.625rem' }}>{g}</span>
+          return <span key={g} className="text-xs font-medium rounded-full px-2.5 py-0.5 border" style={{ background: color + '15', color, borderColor: color + '30' }}>{g}</span>
         })}
       </div>
       {sorted.some(isOrphaned) && (
-        <p style={{ fontSize: '0.75rem', color: '#d97706', margin: '0 0 1rem' }}>⚠ Strikethrough grades are no longer offered. Edit this profile to remove them.</p>
+        <p className="text-xs text-amber-600 m-0 mb-4">⚠ Strikethrough grades are no longer offered. Edit this profile to remove them.</p>
       )}
       {uniqueDivisions.length > 0 && (
         <>
-          <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>School Divisions</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+          <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">School Divisions</div>
+          <div className="flex flex-wrap gap-1.5">
             {uniqueDivisions.map(div => (
-              <span key={div.name} style={{ fontSize: '0.8rem', color: div.color, fontWeight: '600', background: div.color + '12', border: `1px solid ${div.color}30`, borderRadius: '9999px', padding: '0.2rem 0.75rem' }}>{div.name}</span>
+              <span key={div.name} className="text-xs font-semibold rounded-full px-3 py-0.5 border" style={{ color: div.color, background: div.color + '12', borderColor: div.color + '30' }}>{div.name}</span>
             ))}
           </div>
         </>
@@ -448,18 +443,18 @@ function GradeBadges({ member, compact = false, configuredGrades, school, primar
 
 function DrawerSection({ title, children }) {
   return (
-    <div style={{ marginBottom: '1.5rem' }}>
-      <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>{title}</div>
-      <div style={{ display: 'grid', gap: '0.5rem' }}>{children}</div>
+    <div className="mb-6">
+      <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{title}</div>
+      <div className="grid gap-0">{children}</div>
     </div>
   )
 }
 
 function DrawerField({ label, value }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #f3f4f6' }}>
-      <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>{label}</span>
-      <span style={{ fontSize: '0.875rem', color: '#1f2937', fontWeight: '500', textAlign: 'right', maxWidth: '60%' }}>{value}</span>
+    <div className="flex justify-between py-2 border-b border-gray-100">
+      <span className="text-sm text-gray-500">{label}</span>
+      <span className="text-sm text-gray-800 font-medium text-right max-w-[60%]">{value}</span>
     </div>
   )
 }
