@@ -1,6 +1,8 @@
 import { useAdmissions } from './hooks/useAdmissions'
 import { STATUSES, SOURCES, STATUS_COLORS, SOURCE_COLORS, canConvertToStudent } from './domain/admissions'
 
+const fieldCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm bg-white'
+
 export default function Admissions({ user, school, onNavigate }) {
   const primaryColor = school?.primary_color || '#f97316'
 
@@ -24,61 +26,70 @@ export default function Admissions({ user, school, onNavigate }) {
     linkCopied, copyApplicationLink,
   } = useAdmissions(user.id, school)
 
-  const inputStyle = { width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }
-  const secLabel  = { fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.875rem' }
-  const filterStyle = { border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.875rem', outline: 'none', background: 'white' }
   const hasFilters = search || filterStatus || filterSource || filterGrade
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="p-8 max-w-6xl mx-auto">
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.75rem' }}>
+      <div className="flex justify-between items-center mb-7">
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Admissions</h2>
-          <p style={{ color: '#6b7280', marginTop: '0.25rem', fontSize: '0.875rem' }}>Track prospective families from first contact to enrollment</p>
+          <h2 className="text-2xl font-bold text-gray-800 m-0">Admissions</h2>
+          <p className="text-gray-500 mt-1 text-sm">Track prospective families from first contact to enrollment</p>
         </div>
-        <div style={{ display: 'flex', gap: '0.625rem' }}>
+        <div className="flex gap-2.5">
           <button
             onClick={copyApplicationLink}
-            style={{ background: linkCopied ? '#10b981' : 'white', color: linkCopied ? 'white' : primaryColor, border: `1.5px solid ${linkCopied ? '#10b981' : primaryColor}`, borderRadius: '0.5rem', padding: '0.625rem 1rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem', transition: 'all 0.15s' }}
+            className="border-2 rounded-lg px-4 py-2.5 font-semibold cursor-pointer text-sm transition-all"
+            style={{
+              background: linkCopied ? '#10b981' : 'white',
+              color: linkCopied ? 'white' : primaryColor,
+              borderColor: linkCopied ? '#10b981' : primaryColor,
+            }}
           >
             {linkCopied ? '✓ Link Copied!' : '🔗 Copy Application Link'}
           </button>
           <button
             onClick={toggleForm}
-            style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}
+            className="text-white border-0 rounded-lg px-5 py-2.5 font-semibold cursor-pointer text-sm hover:opacity-90 transition-opacity"
+            style={{ background: primaryColor }}
           >
             {showForm ? 'Cancel' : '+ New Inquiry'}
           </button>
         </div>
       </div>
 
-      {/* Pipeline summary */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.875rem', marginBottom: '1.5rem' }}>
+      {/* Pipeline summary cards */}
+      <div className="grid grid-cols-4 gap-3.5 mb-6">
         {STATUSES.map(s => (
           <div
             key={s}
             onClick={() => toggleStatusFilter(s)}
-            style={{ background: 'white', borderRadius: '0.875rem', padding: '1rem 1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', cursor: 'pointer', borderLeft: `4px solid ${filterStatus === s ? STATUS_COLORS[s] : '#e5e7eb'}`, transition: 'border-color 0.15s' }}
+            className="bg-white rounded-2xl px-5 py-4 shadow-sm cursor-pointer transition-colors border-l-4"
+            style={{ borderLeftColor: filterStatus === s ? STATUS_COLORS[s] : '#e5e7eb' }}
           >
-            <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: STATUS_COLORS[s] }}>{pipelineCounts[s]}</div>
-            <div style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: '500', marginTop: '0.1rem' }}>{s}</div>
+            <div className="text-3xl font-bold" style={{ color: STATUS_COLORS[s] }}>{pipelineCounts[s]}</div>
+            <div className="text-xs text-gray-500 font-medium mt-0.5">{s}</div>
           </div>
         ))}
       </div>
 
       {/* Source breakdown */}
       {Object.keys(sourceCounts).length > 0 && (
-        <div style={{ background: 'white', borderRadius: '0.875rem', padding: '0.875rem 1.25rem', marginBottom: '1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.78rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sources</span>
+        <div className="bg-white rounded-2xl px-5 py-3.5 mb-6 shadow-sm flex items-center gap-3 flex-wrap">
+          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Sources</span>
           {Object.entries(sourceCounts).map(([src, n]) => (
             <span
               key={src}
               onClick={() => toggleSourceFilter(src)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding: '0.25rem 0.625rem', borderRadius: '9999px', background: SOURCE_COLORS[src] + '15', color: SOURCE_COLORS[src], fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', border: filterSource === src ? `1.5px solid ${SOURCE_COLORS[src]}` : '1.5px solid transparent' }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold cursor-pointer border-2"
+              style={{
+                background: SOURCE_COLORS[src] + '15',
+                color: SOURCE_COLORS[src],
+                borderColor: filterSource === src ? SOURCE_COLORS[src] : 'transparent',
+              }}
             >
-              {src} <span style={{ fontWeight: '800' }}>{n}</span>
+              {src} <span className="font-extrabold">{n}</span>
             </span>
           ))}
         </div>
@@ -86,136 +97,146 @@ export default function Admissions({ user, school, onNavigate }) {
 
       {/* New Inquiry Form */}
       {showForm && (
-        <div style={{ background: 'white', borderRadius: '1rem', padding: '2rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: '2rem' }}>
-          <h3 style={{ fontSize: '1.05rem', fontWeight: '700', color: '#1f2937', marginTop: 0, marginBottom: '1.5rem' }}>New Inquiry</h3>
+        <div className="bg-white rounded-2xl p-8 shadow-sm mb-8">
+          <h3 className="text-lg font-bold text-gray-800 mt-0 mb-6">New Inquiry</h3>
 
-          <div style={secLabel}>Parent / Guardian</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-            <FormField label="First Name" required><input value={form.parent_first_name} onChange={e => setForm({ ...form, parent_first_name: e.target.value })} style={inputStyle} /></FormField>
-            <FormField label="Last Name" required><input value={form.parent_last_name} onChange={e => setForm({ ...form, parent_last_name: e.target.value })} style={inputStyle} /></FormField>
-            <FormField label="Email"><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} style={inputStyle} /></FormField>
-            <FormField label="Phone"><input type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} style={inputStyle} /></FormField>
+          <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3.5">Parent / Guardian</div>
+          <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+            <FormField label="First Name" required><input value={form.parent_first_name} onChange={e => setForm({ ...form, parent_first_name: e.target.value })} className={fieldCls} /></FormField>
+            <FormField label="Last Name"  required><input value={form.parent_last_name}  onChange={e => setForm({ ...form, parent_last_name:  e.target.value })} className={fieldCls} /></FormField>
+            <FormField label="Email"><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className={fieldCls} /></FormField>
+            <FormField label="Phone"><input type="tel"   value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className={fieldCls} /></FormField>
           </div>
 
-          <hr style={{ border: 'none', borderTop: '1px solid #f3f4f6', margin: '0 0 1.5rem' }} />
+          <hr className="border-0 border-t border-gray-100 mb-6" />
 
-          <div style={secLabel}>Student</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-            <FormField label="First Name" required><input value={form.student_first_name} onChange={e => setForm({ ...form, student_first_name: e.target.value })} style={inputStyle} /></FormField>
-            <FormField label="Last Name" required><input value={form.student_last_name} onChange={e => setForm({ ...form, student_last_name: e.target.value })} style={inputStyle} /></FormField>
+          <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3.5">Student</div>
+          <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+            <FormField label="First Name" required><input value={form.student_first_name} onChange={e => setForm({ ...form, student_first_name: e.target.value })} className={fieldCls} /></FormField>
+            <FormField label="Last Name"  required><input value={form.student_last_name}  onChange={e => setForm({ ...form, student_last_name:  e.target.value })} className={fieldCls} /></FormField>
             <FormField label="Grade Applying For">
-              <select value={form.grade_applying_for} onChange={e => setForm({ ...form, grade_applying_for: e.target.value })} style={inputStyle}>
+              <select value={form.grade_applying_for} onChange={e => setForm({ ...form, grade_applying_for: e.target.value })} className={fieldCls}>
                 <option value="">Unknown</option>
                 {grades.map(g => <option key={g}>{g}</option>)}
               </select>
             </FormField>
           </div>
 
-          <hr style={{ border: 'none', borderTop: '1px solid #f3f4f6', margin: '0 0 1.5rem' }} />
+          <hr className="border-0 border-t border-gray-100 mb-6" />
 
-          <div style={secLabel}>Pipeline</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+          <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3.5">Pipeline</div>
+          <div className="grid gap-4 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
             <FormField label="Status">
-              <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} style={inputStyle}>
+              <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className={fieldCls}>
                 {STATUSES.map(s => <option key={s}>{s}</option>)}
               </select>
             </FormField>
             <FormField label="How They Found Us">
-              <select value={form.source} onChange={e => setForm({ ...form, source: e.target.value })} style={inputStyle}>
+              <select value={form.source} onChange={e => setForm({ ...form, source: e.target.value })} className={fieldCls}>
                 {SOURCES.map(s => <option key={s}>{s}</option>)}
               </select>
             </FormField>
             <FormField label="Inquiry Date">
-              <input type="date" value={form.inquiry_date} onChange={e => setForm({ ...form, inquiry_date: e.target.value })} style={inputStyle} />
+              <input type="date" value={form.inquiry_date} onChange={e => setForm({ ...form, inquiry_date: e.target.value })} className={fieldCls} />
             </FormField>
             <FormField label="Tour Date">
-              <input type="date" value={form.tour_date} onChange={e => setForm({ ...form, tour_date: e.target.value })} style={inputStyle} />
+              <input type="date" value={form.tour_date} onChange={e => setForm({ ...form, tour_date: e.target.value })} className={fieldCls} />
             </FormField>
           </div>
           <FormField label="Notes">
-            <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
+            <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={3} className={`${fieldCls} resize-y`} />
           </FormField>
 
-          {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginTop: '0.75rem' }}>{error}</p>}
+          {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
 
-          <button onClick={submit} disabled={saving} style={{ marginTop: '1.25rem', background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.5rem', fontWeight: '600', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
+          <button
+            onClick={submit}
+            disabled={saving}
+            className="mt-5 text-white border-0 rounded-lg px-6 py-2.5 font-semibold disabled:opacity-70 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
+            style={{ background: primaryColor }}
+          >
             {saving ? 'Saving…' : 'Save Inquiry'}
           </button>
         </div>
       )}
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+      <div className="flex gap-3 flex-wrap mb-5">
         <input
           placeholder="Search by student or parent name, email…"
-          value={search} onChange={e => setSearch(e.target.value)}
-          style={{ ...filterStyle, flex: '1', minWidth: '220px' }}
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="flex-1 min-w-56 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none bg-white"
         />
-        <select value={filterStatus} onChange={e => toggleStatusFilter(e.target.value)} style={filterStyle}>
+        <select value={filterStatus} onChange={e => toggleStatusFilter(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none bg-white">
           <option value="">All Statuses</option>
           {STATUSES.map(s => <option key={s}>{s}</option>)}
         </select>
-        <select value={filterSource} onChange={e => toggleSourceFilter(e.target.value)} style={filterStyle}>
+        <select value={filterSource} onChange={e => toggleSourceFilter(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none bg-white">
           <option value="">All Sources</option>
           {SOURCES.map(s => <option key={s}>{s}</option>)}
         </select>
-        <select value={filterGrade} onChange={e => setFilterGrade(e.target.value)} style={filterStyle}>
+        <select value={filterGrade} onChange={e => setFilterGrade(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none bg-white">
           <option value="">All Grades</option>
           {grades.map(g => <option key={g}>{g}</option>)}
         </select>
         {hasFilters && (
-          <button onClick={clearFilters} style={{ ...filterStyle, cursor: 'pointer', color: '#6b7280' }}>Clear</button>
+          <button onClick={clearFilters} className="border border-gray-200 rounded-lg px-3 py-2 text-sm cursor-pointer text-gray-500 bg-white hover:bg-gray-50">Clear</button>
         )}
       </div>
 
       {/* Table */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>Loading…</div>
+        <div className="text-center py-12 text-gray-400">Loading…</div>
       ) : filtered.length === 0 ? (
-        <div style={{ background: 'white', borderRadius: '1rem', padding: '3rem', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📬</div>
-          <p style={{ color: '#6b7280', fontSize: '1.05rem' }}>
+        <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
+          <div className="text-5xl mb-4">📬</div>
+          <p className="text-gray-500 text-lg">
             {inquiries.length === 0 ? 'No inquiries yet. Add your first prospective family above.' : 'No inquiries match your filters.'}
           </p>
         </div>
       ) : (
-        <div style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <table className="w-full border-collapse">
             <thead>
-              <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+              <tr className="bg-gray-50 border-b border-gray-200">
                 {['Student', 'Grade', 'Parent', 'Contact', 'Source', 'Date', 'Status'].map(h => (
-                  <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.8rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody>
-              {filtered.map((inq, i) => (
+            <tbody className="divide-y divide-gray-100">
+              {filtered.map((inq) => (
                 <tr
                   key={inq.id}
                   onClick={() => openDrawer(inq)}
-                  style={{ borderBottom: i < filtered.length - 1 ? '1px solid #f3f4f6' : 'none', cursor: 'pointer', transition: 'background 0.1s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'white'}
+                  className="cursor-pointer hover:bg-gray-50 transition-colors"
                 >
-                  <td style={{ padding: '0.875rem 1rem', fontWeight: '600', color: '#1f2937' }}>{inq.student_first_name} {inq.student_last_name}</td>
-                  <td style={{ padding: '0.875rem 1rem', color: '#374151', fontSize: '0.875rem' }}>{inq.grade_applying_for || <span style={{ color: '#d1d5db' }}>—</span>}</td>
-                  <td style={{ padding: '0.875rem 1rem', color: '#374151', fontSize: '0.875rem' }}>{inq.parent_first_name} {inq.parent_last_name}</td>
-                  <td style={{ padding: '0.875rem 1rem' }}>
-                    <div style={{ fontSize: '0.875rem', color: '#374151' }}>{inq.email || <span style={{ color: '#d1d5db' }}>—</span>}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{inq.phone || ''}</div>
+                  <td className="px-4 py-3.5 font-semibold text-gray-800">{inq.student_first_name} {inq.student_last_name}</td>
+                  <td className="px-4 py-3.5 text-gray-700 text-sm">{inq.grade_applying_for || <span className="text-gray-300">—</span>}</td>
+                  <td className="px-4 py-3.5 text-gray-700 text-sm">{inq.parent_first_name} {inq.parent_last_name}</td>
+                  <td className="px-4 py-3.5">
+                    <div className="text-sm text-gray-700">{inq.email || <span className="text-gray-300">—</span>}</div>
+                    <div className="text-xs text-gray-500">{inq.phone || ''}</div>
                   </td>
-                  <td style={{ padding: '0.875rem 1rem' }}>
-                    <span style={{ fontSize: '0.78rem', fontWeight: '600', color: SOURCE_COLORS[inq.source] || '#9ca3af', background: (SOURCE_COLORS[inq.source] || '#9ca3af') + '15', borderRadius: '9999px', padding: '0.2rem 0.6rem' }}>{inq.source}</span>
+                  <td className="px-4 py-3.5">
+                    <span
+                      className="text-xs font-semibold rounded-full px-2.5 py-0.5"
+                      style={{ color: SOURCE_COLORS[inq.source] || '#9ca3af', background: (SOURCE_COLORS[inq.source] || '#9ca3af') + '15' }}
+                    >{inq.source}</span>
                   </td>
-                  <td style={{ padding: '0.875rem 1rem', color: '#6b7280', fontSize: '0.875rem' }}>{inq.inquiry_date || '—'}</td>
-                  <td style={{ padding: '0.875rem 1rem' }}>
-                    <span style={{ fontSize: '0.78rem', fontWeight: '600', color: STATUS_COLORS[inq.status], background: STATUS_COLORS[inq.status] + '18', borderRadius: '9999px', padding: '0.2rem 0.6rem' }}>{inq.status}</span>
+                  <td className="px-4 py-3.5 text-gray-500 text-sm">{inq.inquiry_date || '—'}</td>
+                  <td className="px-4 py-3.5">
+                    <span
+                      className="text-xs font-semibold rounded-full px-2.5 py-0.5"
+                      style={{ color: STATUS_COLORS[inq.status], background: STATUS_COLORS[inq.status] + '18' }}
+                    >{inq.status}</span>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div style={{ padding: '0.625rem 1rem', background: '#f9fafb', borderTop: '1px solid #e5e7eb', fontSize: '0.78rem', color: '#9ca3af' }}>
+          <div className="px-4 py-2.5 bg-gray-50 border-t border-gray-200 text-xs text-gray-400">
             Showing {filtered.length} of {inquiries.length} inquiries — click a row to view
           </div>
         </div>
@@ -223,31 +244,36 @@ export default function Admissions({ user, school, onNavigate }) {
 
       {/* Profile Drawer */}
       {selected && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 500, display: 'flex', justifyContent: 'flex-end' }} onClick={closeDrawer}>
-          <div style={{ width: '440px', background: 'white', height: '100%', overflowY: 'auto', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/30 z-[500] flex justify-end" onClick={closeDrawer}>
+          <div className="w-[440px] bg-white h-full overflow-y-auto shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
 
-            <div style={{ background: primaryColor, padding: '1.5rem', color: 'white' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            {/* Drawer header */}
+            <div className="p-6 text-white" style={{ background: primaryColor }}>
+              <div className="flex justify-between items-start">
                 <div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{selected.student_first_name} {selected.student_last_name}</div>
-                  <div style={{ fontSize: '0.85rem', opacity: 0.85, marginTop: '0.2rem' }}>{selected.grade_applying_for ? `Applying for ${selected.grade_applying_for}` : 'Grade not specified'}</div>
+                  <div className="text-xl font-bold">{selected.student_first_name} {selected.student_last_name}</div>
+                  <div className="text-sm opacity-85 mt-0.5">{selected.grade_applying_for ? `Applying for ${selected.grade_applying_for}` : 'Grade not specified'}</div>
                 </div>
-                <button onClick={closeDrawer} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: '0.5rem', padding: '0.25rem 0.75rem', cursor: 'pointer', fontSize: '1.1rem' }}>✕</button>
+                <button onClick={closeDrawer} className="bg-white/20 border-0 text-white rounded-lg px-3 py-1 cursor-pointer text-lg hover:bg-white/30">✕</button>
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
-                <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '9999px', padding: '0.2rem 0.75rem', fontSize: '0.8rem', fontWeight: '600' }}>{selected.status}</span>
-                <span style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '9999px', padding: '0.2rem 0.75rem', fontSize: '0.8rem' }}>{selected.source}</span>
+              <div className="flex gap-2 mt-3 flex-wrap">
+                <span className="bg-white/20 rounded-full px-3 py-0.5 text-xs font-semibold">{selected.status}</span>
+                <span className="bg-white/15 rounded-full px-3 py-0.5 text-xs">{selected.source}</span>
               </div>
             </div>
 
-            <div style={{ flex: 1, padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', margin: 0 }}>{error}</p>}
+            {/* Drawer body */}
+            <div className="flex-1 px-6 py-5 flex flex-col gap-5">
+              {error && <p className="text-red-500 text-sm m-0">{error}</p>}
 
               {convertSuccess && (
-                <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '0.75rem', padding: '0.875rem 1rem' }}>
-                  <div style={{ fontWeight: '600', color: '#15803d', fontSize: '0.9rem' }}>✓ Converted to student successfully</div>
-                  <p style={{ color: '#166534', fontSize: '0.8rem', margin: '0.25rem 0 0' }}>Parent and student records created in Enrollment.</p>
-                  <button onClick={() => { closeDrawer(); onNavigate && onNavigate('enrollment') }} style={{ marginTop: '0.625rem', background: '#15803d', color: 'white', border: 'none', borderRadius: '0.375rem', padding: '0.375rem 0.875rem', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer' }}>
+                <div className="bg-green-50 border border-green-300 rounded-xl p-4">
+                  <div className="font-semibold text-green-700 text-sm">✓ Converted to student successfully</div>
+                  <p className="text-green-800 text-xs mt-1 mb-0">Parent and student records created in Enrollment.</p>
+                  <button
+                    onClick={() => { closeDrawer(); onNavigate && onNavigate('enrollment') }}
+                    className="mt-2.5 bg-green-700 text-white border-0 rounded-md px-3.5 py-1.5 text-xs font-semibold cursor-pointer hover:bg-green-800"
+                  >
                     View in Enrollment →
                   </button>
                 </div>
@@ -256,21 +282,21 @@ export default function Admissions({ user, school, onNavigate }) {
               {!editing ? (
                 <>
                   <DrawerSection title="Parent / Guardian">
-                    <DrawerField label="Name" value={`${selected.parent_first_name} ${selected.parent_last_name}`} />
+                    <DrawerField label="Name"  value={`${selected.parent_first_name} ${selected.parent_last_name}`} />
                     <DrawerField label="Email" value={selected.email} />
                     <DrawerField label="Phone" value={selected.phone} />
                   </DrawerSection>
 
                   <DrawerSection title="Inquiry Details">
-                    <DrawerField label="Status" value={selected.status} />
-                    <DrawerField label="Source" value={selected.source} />
+                    <DrawerField label="Status"       value={selected.status} />
+                    <DrawerField label="Source"       value={selected.source} />
                     <DrawerField label="Inquiry Date" value={selected.inquiry_date} />
-                    <DrawerField label="Tour Date" value={selected.tour_date} />
+                    <DrawerField label="Tour Date"    value={selected.tour_date} />
                   </DrawerSection>
 
                   {selected.notes && (
                     <DrawerSection title="Notes">
-                      <p style={{ fontSize: '0.875rem', color: '#374151', margin: 0, lineHeight: 1.6 }}>{selected.notes}</p>
+                      <p className="text-sm text-gray-700 m-0 leading-relaxed">{selected.notes}</p>
                     </DrawerSection>
                   )}
 
@@ -278,23 +304,29 @@ export default function Admissions({ user, school, onNavigate }) {
                     <>
                       <button
                         onClick={() => setConvertConfirm(true)}
-                        style={{ width: '100%', background: '#fff7ed', color: primaryColor, border: `2px solid ${primaryColor}`, borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '700', cursor: 'pointer', fontSize: '0.9rem' }}
+                        className="w-full border-2 rounded-lg py-2.5 font-bold cursor-pointer text-sm hover:opacity-90 transition-opacity"
+                        style={{ background: '#fff7ed', color: primaryColor, borderColor: primaryColor }}
                       >
                         🎒 Convert to Student
                       </button>
 
                       {convertConfirm && (
-                        <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '0.75rem', padding: '1rem' }}>
-                          <p style={{ color: '#9a3412', fontWeight: '600', margin: '0 0 0.5rem', fontSize: '0.9rem' }}>Convert {selected.student_first_name} {selected.student_last_name} to a student?</p>
-                          <p style={{ color: '#c2410c', fontSize: '0.8rem', margin: '0 0 0.875rem', lineHeight: 1.5 }}>
+                        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+                          <p className="text-orange-900 font-semibold m-0 mb-2 text-sm">Convert {selected.student_first_name} {selected.student_last_name} to a student?</p>
+                          <p className="text-orange-700 text-xs leading-relaxed m-0 mb-3.5">
                             A parent record and student application will be created in Enrollment. This inquiry will be marked as Applied.
                             {selected.email && <><br />Parent email <strong>{selected.email}</strong> will be checked for duplicates.</>}
                           </p>
-                          <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button onClick={convertToStudent} disabled={converting} style={{ background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem' }}>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={convertToStudent}
+                              disabled={converting}
+                              className="text-white border-0 rounded-lg px-4 py-2 font-semibold cursor-pointer text-sm disabled:opacity-70 hover:opacity-90 transition-opacity"
+                              style={{ background: primaryColor }}
+                            >
                               {converting ? 'Converting…' : 'Yes, Convert'}
                             </button>
-                            <button onClick={() => setConvertConfirm(false)} style={{ background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', fontSize: '0.875rem' }}>
+                            <button onClick={() => setConvertConfirm(false)} className="bg-white text-gray-700 border border-gray-300 rounded-lg px-4 py-2 cursor-pointer text-sm hover:bg-gray-50">
                               Cancel
                             </button>
                           </div>
@@ -304,56 +336,60 @@ export default function Admissions({ user, school, onNavigate }) {
                   )}
                 </>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Parent / Guardian</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                    <div><label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>First Name</label><input value={editForm.parent_first_name || ''} onChange={e => setEditForm({ ...editForm, parent_first_name: e.target.value })} style={inputStyle} /></div>
-                    <div><label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>Last Name</label><input value={editForm.parent_last_name || ''} onChange={e => setEditForm({ ...editForm, parent_last_name: e.target.value })} style={inputStyle} /></div>
+                <div className="flex flex-col gap-4">
+                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Parent / Guardian</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <EditField label="First Name"><input value={editForm.parent_first_name || ''} onChange={e => setEditForm({ ...editForm, parent_first_name: e.target.value })} className={fieldCls} /></EditField>
+                    <EditField label="Last Name"> <input value={editForm.parent_last_name  || ''} onChange={e => setEditForm({ ...editForm, parent_last_name:  e.target.value })} className={fieldCls} /></EditField>
                   </div>
-                  <div><label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>Email</label><input type="email" value={editForm.email || ''} onChange={e => setEditForm({ ...editForm, email: e.target.value })} style={inputStyle} /></div>
-                  <div><label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>Phone</label><input type="tel" value={editForm.phone || ''} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} style={inputStyle} /></div>
+                  <EditField label="Email"><input type="email" value={editForm.email || ''} onChange={e => setEditForm({ ...editForm, email: e.target.value })} className={fieldCls} /></EditField>
+                  <EditField label="Phone"><input type="tel"   value={editForm.phone || ''} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className={fieldCls} /></EditField>
 
-                  <hr style={{ border: 'none', borderTop: '1px solid #f3f4f6' }} />
-                  <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Student</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                    <div><label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>First Name</label><input value={editForm.student_first_name || ''} onChange={e => setEditForm({ ...editForm, student_first_name: e.target.value })} style={inputStyle} /></div>
-                    <div><label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>Last Name</label><input value={editForm.student_last_name || ''} onChange={e => setEditForm({ ...editForm, student_last_name: e.target.value })} style={inputStyle} /></div>
+                  <hr className="border-0 border-t border-gray-100" />
+                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Student</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <EditField label="First Name"><input value={editForm.student_first_name || ''} onChange={e => setEditForm({ ...editForm, student_first_name: e.target.value })} className={fieldCls} /></EditField>
+                    <EditField label="Last Name"> <input value={editForm.student_last_name  || ''} onChange={e => setEditForm({ ...editForm, student_last_name:  e.target.value })} className={fieldCls} /></EditField>
                   </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>Grade Applying For</label>
-                    <select value={editForm.grade_applying_for || ''} onChange={e => setEditForm({ ...editForm, grade_applying_for: e.target.value })} style={inputStyle}>
+                  <EditField label="Grade Applying For">
+                    <select value={editForm.grade_applying_for || ''} onChange={e => setEditForm({ ...editForm, grade_applying_for: e.target.value })} className={fieldCls}>
                       <option value="">Unknown</option>
                       {grades.map(g => <option key={g}>{g}</option>)}
                     </select>
-                  </div>
+                  </EditField>
 
-                  <hr style={{ border: 'none', borderTop: '1px solid #f3f4f6' }} />
-                  <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Pipeline</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>Status</label>
-                      <select value={editForm.status || 'New Inquiry'} onChange={e => setEditForm({ ...editForm, status: e.target.value })} style={inputStyle}>
+                  <hr className="border-0 border-t border-gray-100" />
+                  <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Pipeline</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <EditField label="Status">
+                      <select value={editForm.status || 'New Inquiry'} onChange={e => setEditForm({ ...editForm, status: e.target.value })} className={fieldCls}>
                         {STATUSES.map(s => <option key={s}>{s}</option>)}
                       </select>
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>Source</label>
-                      <select value={editForm.source || 'Other'} onChange={e => setEditForm({ ...editForm, source: e.target.value })} style={inputStyle}>
+                    </EditField>
+                    <EditField label="Source">
+                      <select value={editForm.source || 'Other'} onChange={e => setEditForm({ ...editForm, source: e.target.value })} className={fieldCls}>
                         {SOURCES.map(s => <option key={s}>{s}</option>)}
                       </select>
-                    </div>
-                    <div><label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>Inquiry Date</label><input type="date" value={editForm.inquiry_date || ''} onChange={e => setEditForm({ ...editForm, inquiry_date: e.target.value })} style={inputStyle} /></div>
-                    <div><label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>Tour Date</label><input type="date" value={editForm.tour_date || ''} onChange={e => setEditForm({ ...editForm, tour_date: e.target.value })} style={inputStyle} /></div>
+                    </EditField>
+                    <EditField label="Inquiry Date"><input type="date" value={editForm.inquiry_date || ''} onChange={e => setEditForm({ ...editForm, inquiry_date: e.target.value })} className={fieldCls} /></EditField>
+                    <EditField label="Tour Date">   <input type="date" value={editForm.tour_date    || ''} onChange={e => setEditForm({ ...editForm, tour_date:     e.target.value })} className={fieldCls} /></EditField>
                   </div>
-                  <div><label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>Notes</label><textarea value={editForm.notes || ''} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} rows={3} style={{ ...inputStyle, resize: 'vertical' }} /></div>
+                  <EditField label="Notes">
+                    <textarea value={editForm.notes || ''} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} rows={3} className={`${fieldCls} resize-y`} />
+                  </EditField>
 
-                  {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', margin: 0 }}>{error}</p>}
+                  {error && <p className="text-red-500 text-sm m-0">{error}</p>}
 
-                  <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <button onClick={saveEdit} disabled={saving} style={{ flex: 1, background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '700', cursor: 'pointer' }}>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={saveEdit}
+                      disabled={saving}
+                      className="flex-1 text-white border-0 rounded-lg py-2.5 font-bold cursor-pointer disabled:opacity-70 hover:opacity-90 transition-opacity"
+                      style={{ background: primaryColor }}
+                    >
                       {saving ? 'Saving…' : 'Save Changes'}
                     </button>
-                    <button onClick={() => setEditing(false)} style={{ background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.625rem 1rem', cursor: 'pointer' }}>
+                    <button onClick={() => startEdit(null)} className="bg-white text-gray-700 border border-gray-300 rounded-lg px-4 py-2.5 cursor-pointer hover:bg-gray-50">
                       Cancel
                     </button>
                   </div>
@@ -362,10 +398,11 @@ export default function Admissions({ user, school, onNavigate }) {
             </div>
 
             {!editing && (
-              <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #f3f4f6' }}>
+              <div className="px-6 py-4 border-t border-gray-100">
                 <button
                   onClick={startEdit}
-                  style={{ width: '100%', background: 'white', color: primaryColor, border: `1px solid ${primaryColor}`, borderRadius: '0.625rem', padding: '0.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem' }}
+                  className="w-full bg-white border rounded-xl py-2 font-semibold cursor-pointer text-sm hover:opacity-90 transition-opacity"
+                  style={{ color: primaryColor, borderColor: primaryColor }}
                 >
                   Edit Inquiry
                 </button>
@@ -381,9 +418,18 @@ export default function Admissions({ user, school, onNavigate }) {
 function FormField({ label, required, children }) {
   return (
     <div>
-      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
-        {label} {required && <span style={{ color: '#ef4444' }}>*</span>}
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label} {required && <span className="text-red-500">*</span>}
       </label>
+      {children}
+    </div>
+  )
+}
+
+function EditField({ label, children }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
       {children}
     </div>
   )
@@ -392,17 +438,17 @@ function FormField({ label, required, children }) {
 function DrawerSection({ title, children }) {
   return (
     <div>
-      <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.625rem' }}>{title}</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>{children}</div>
+      <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5">{title}</div>
+      <div className="flex flex-col">{children}</div>
     </div>
   )
 }
 
 function DrawerField({ label, value }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.45rem 0', borderBottom: '1px solid #f3f4f6' }}>
-      <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{label}</span>
-      <span style={{ fontSize: '0.875rem', color: value ? '#1f2937' : '#d1d5db', fontWeight: '500', textAlign: 'right', maxWidth: '65%' }}>{value || '—'}</span>
+    <div className="flex justify-between py-1.5 border-b border-gray-100">
+      <span className="text-xs text-gray-400">{label}</span>
+      <span className={`text-sm font-medium text-right max-w-[65%] ${value ? 'text-gray-800' : 'text-gray-300'}`}>{value || '—'}</span>
     </div>
   )
 }
