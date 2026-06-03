@@ -3,8 +3,7 @@ import { getDivision } from './domain/school'
 import { initials } from './domain/parents'
 import { STATUS_COLORS } from './domain/school'
 
-const inputStyle = { border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', fontSize: '0.875rem', outline: 'none', background: 'white', width: '100%', boxSizing: 'border-box' }
-const labelStyle = { display: 'block', fontSize: '0.8rem', fontWeight: '500', color: '#6b7280', marginBottom: '0.25rem' }
+const fieldCls = 'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none bg-white'
 
 export default function Parents({ user, school, onCompose }) {
   const primaryColor = school?.primary_color || '#f97316'
@@ -24,36 +23,38 @@ export default function Parents({ user, school, onCompose }) {
   } = useParents(user.id, school)
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+    <div className="p-8 max-w-6xl mx-auto">
+
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Parent Directory</h2>
-          <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: '0.25rem 0 0' }}>
+          <h2 className="text-2xl font-bold text-gray-800 m-0">Parent Directory</h2>
+          <p className="text-gray-500 text-sm mt-1 mb-0">
             {filtered.length} parent{filtered.length !== 1 ? 's' : ''}
           </p>
         </div>
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+      <div className="flex gap-3 flex-wrap mb-6">
         <input
           placeholder="Search by parent or student name, email…"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          style={{ ...inputStyle, flex: '1', minWidth: '220px' }}
+          className="flex-1 min-w-56 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none bg-white"
         />
-        <select value={filterGrade} onChange={e => setFilterGrade(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '140px' }}>
+        <select value={filterGrade} onChange={e => setFilterGrade(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none bg-white min-w-36">
           <option value="">All Grades</option>
           {gradeOptions.map(g => <option key={g}>{g}</option>)}
         </select>
         {hasDivisions && (
-          <select value={filterDivision} onChange={e => setFilterDivision(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '150px' }}>
+          <select value={filterDivision} onChange={e => setFilterDivision(e.target.value)} className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none bg-white min-w-36">
             <option value="">All Divisions</option>
             {divisionOptions.map(d => <option key={d}>{d}</option>)}
           </select>
         )}
         {(search || filterGrade || filterDivision) && (
-          <button onClick={clearFilters} style={{ ...inputStyle, cursor: 'pointer', color: '#6b7280', width: 'auto' }}>
+          <button onClick={clearFilters} className="border border-gray-200 rounded-lg px-3 py-2 text-sm cursor-pointer text-gray-500 bg-white hover:bg-gray-50">
             Clear
           </button>
         )}
@@ -61,61 +62,59 @@ export default function Parents({ user, school, onCompose }) {
 
       {/* Table */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af' }}>Loading…</div>
+        <div className="text-center py-12 text-gray-400">Loading…</div>
       ) : filtered.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '3rem', color: '#9ca3af', background: 'white', borderRadius: '1rem', border: '1px solid #e5e7eb' }}>
+        <div className="text-center py-12 text-gray-400 bg-white rounded-2xl border border-gray-200">
           {parents.length === 0
             ? 'No parents yet. Add students via Enrollment to populate the directory.'
             : 'No parents match your filters.'}
         </div>
       ) : (
-        <div style={{ background: 'white', borderRadius: '1rem', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+          <table className="w-full border-collapse">
             <thead>
-              <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+              <tr className="bg-gray-50 border-b border-gray-200">
                 {['Parent', 'Email', 'Phone', 'Student(s)', ''].map(h => (
-                  <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: '0.8rem', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-gray-100">
               {filtered.map(p => (
-                <tr
-                  key={p.id}
-                  onClick={() => openDrawer(p)}
-                  style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'white'}
-                >
-                  <td style={{ padding: '0.875rem 1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: primaryColor + '20', color: primaryColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '0.85rem', flexShrink: 0 }}>
+                <tr key={p.id} onClick={() => openDrawer(p)} className="cursor-pointer hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0"
+                        style={{ background: primaryColor + '20', color: primaryColor }}
+                      >
                         {initials(p)}
                       </div>
-                      <span style={{ fontWeight: '600', color: '#1f2937' }}>{p.first_name} {p.last_name}</span>
+                      <span className="font-semibold text-gray-800">{p.first_name} {p.last_name}</span>
                     </div>
                   </td>
-                  <td style={{ padding: '0.875rem 1rem', color: '#374151', fontSize: '0.875rem' }}>{p.email || <span style={{ color: '#d1d5db' }}>—</span>}</td>
-                  <td style={{ padding: '0.875rem 1rem', color: '#374151', fontSize: '0.875rem' }}>{p.phone || <span style={{ color: '#d1d5db' }}>—</span>}</td>
-                  <td style={{ padding: '0.875rem 1rem' }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+                  <td className="px-4 py-3.5 text-gray-700 text-sm">{p.email || <span className="text-gray-300">—</span>}</td>
+                  <td className="px-4 py-3.5 text-gray-700 text-sm">{p.phone || <span className="text-gray-300">—</span>}</td>
+                  <td className="px-4 py-3.5">
+                    <div className="flex flex-wrap gap-1.5">
                       {(p.students || []).map(s => {
                         const div = getDivision(s.grade, parsedDivisions)
                         return (
-                          <span key={s.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', background: '#f3f4f6', borderRadius: '9999px', padding: '0.2rem 0.6rem', fontSize: '0.78rem', color: '#374151', fontWeight: '500' }}>
+                          <span key={s.id} className="inline-flex items-center gap-1 bg-gray-100 rounded-full px-2.5 py-0.5 text-xs text-gray-700 font-medium">
                             {s.first_name} {s.last_name}
-                            {s.grade && <span style={{ color: div?.color || '#9ca3af', fontWeight: '600' }}>· {s.grade}</span>}
+                            {s.grade && <span className="font-semibold" style={{ color: div?.color || '#9ca3af' }}>· {s.grade}</span>}
                           </span>
                         )
                       })}
-                      {(p.students || []).length === 0 && <span style={{ color: '#d1d5db', fontSize: '0.875rem' }}>—</span>}
+                      {(p.students || []).length === 0 && <span className="text-gray-300 text-sm">—</span>}
                     </div>
                   </td>
-                  <td style={{ padding: '0.875rem 1rem' }}>
+                  <td className="px-4 py-3.5">
                     {p.email && (
                       <button
                         onClick={e => { e.stopPropagation(); onCompose && onCompose(p) }}
-                        style={{ background: 'transparent', border: `1px solid ${primaryColor}`, borderRadius: '0.375rem', padding: '0.25rem 0.625rem', fontSize: '0.78rem', color: primaryColor, cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' }}
+                        className="border rounded-md px-2.5 py-1 text-xs font-semibold cursor-pointer hover:opacity-80 transition-opacity whitespace-nowrap"
+                        style={{ borderColor: primaryColor, color: primaryColor, background: 'transparent' }}
                       >
                         ✉ Message
                       </button>
@@ -130,75 +129,81 @@ export default function Parents({ user, school, onCompose }) {
 
       {/* Profile Drawer */}
       {selected && (
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 500, display: 'flex', justifyContent: 'flex-end' }}
-          onClick={closeDrawer}
-        >
-          <div
-            style={{ width: '420px', background: 'white', height: '100%', overflowY: 'auto', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column' }}
-            onClick={e => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 bg-black/30 z-[500] flex justify-end" onClick={closeDrawer}>
+          <div className="w-[420px] bg-white h-full overflow-y-auto shadow-2xl flex flex-col" onClick={e => e.stopPropagation()}>
+
             {/* Drawer Header */}
-            <div style={{ padding: '1.5rem 1.5rem 1rem', borderBottom: '1px solid #f3f4f6' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: primaryColor + '20', color: primaryColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '800', fontSize: '1.1rem', flexShrink: 0 }}>
+            <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+              <div className="flex justify-between items-start">
+                <div className="flex items-center gap-4">
+                  <div
+                    className="w-13 h-13 rounded-full flex items-center justify-center font-extrabold text-lg shrink-0"
+                    style={{ width: 52, height: 52, background: primaryColor + '20', color: primaryColor }}
+                  >
                     {initials(selected)}
                   </div>
                   <div>
-                    <div style={{ fontWeight: '700', fontSize: '1.15rem', color: '#1f2937' }}>{selected.first_name} {selected.last_name}</div>
-                    <div style={{ color: '#6b7280', fontSize: '0.8rem', marginTop: '0.1rem' }}>
+                    <div className="font-bold text-lg text-gray-800">{selected.first_name} {selected.last_name}</div>
+                    <div className="text-gray-500 text-xs mt-0.5">
                       {(selected.students || []).length} linked student{(selected.students || []).length !== 1 ? 's' : ''}
                     </div>
                   </div>
                 </div>
-                <button onClick={closeDrawer} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#9ca3af', lineHeight: 1 }}>×</button>
+                <button onClick={closeDrawer} className="bg-transparent border-0 text-xl cursor-pointer text-gray-400 hover:text-gray-600 leading-none">×</button>
               </div>
             </div>
 
-            <div style={{ padding: '1.25rem 1.5rem', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', margin: 0 }}>{error}</p>}
+            {/* Drawer Body */}
+            <div className="px-6 py-5 flex-1 flex flex-col gap-6">
+              {error && <p className="text-red-500 text-sm m-0">{error}</p>}
 
               {!editing ? (
                 <>
                   {/* Contact details */}
                   <div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>Contact</div>
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Contact</div>
                     {[
-                      { label: 'Email', value: selected.email },
-                      { label: 'Phone', value: selected.phone },
+                      { label: 'Email',   value: selected.email },
+                      { label: 'Phone',   value: selected.phone },
                       { label: 'Address', value: selected.address },
                     ].map(row => (
-                      <div key={row.label} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-start', padding: '0.4rem 0', borderBottom: '1px solid #f3f4f6' }}>
-                        <span style={{ fontSize: '0.8rem', color: '#9ca3af', width: '56px', flexShrink: 0, paddingTop: '1px' }}>{row.label}</span>
-                        <span style={{ fontSize: '0.875rem', color: row.value ? '#1f2937' : '#d1d5db' }}>{row.value || '—'}</span>
+                      <div key={row.label} className="flex gap-3 items-start py-1.5 border-b border-gray-100">
+                        <span className="text-xs text-gray-400 w-14 shrink-0 pt-px">{row.label}</span>
+                        <span className={`text-sm ${row.value ? 'text-gray-800' : 'text-gray-300'}`}>{row.value || '—'}</span>
                       </div>
                     ))}
                     {selected.notes && (
-                      <div style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#6b7280' }}>{selected.notes}</div>
+                      <div className="mt-2 text-sm text-gray-500">{selected.notes}</div>
                     )}
                   </div>
 
                   {/* Linked Students */}
                   <div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>Linked Students</div>
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Linked Students</div>
                     {(selected.students || []).length === 0 ? (
-                      <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: 0 }}>No students linked to this parent.</p>
+                      <p className="text-sm text-gray-400 m-0">No students linked to this parent.</p>
                     ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                      <div className="flex flex-col gap-2.5">
                         {(selected.students || []).map(s => {
                           const div = getDivision(s.grade, parsedDivisions)
                           return (
-                            <div key={s.id} style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '0.625rem', padding: '0.75rem 1rem' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontWeight: '600', color: '#1f2937', fontSize: '0.9rem' }}>{s.first_name} {s.last_name}</span>
-                                <span style={{ fontSize: '0.75rem', fontWeight: '600', color: STATUS_COLORS[s.status] || '#9ca3af', background: (STATUS_COLORS[s.status] || '#9ca3af') + '18', borderRadius: '9999px', padding: '0.15rem 0.5rem' }}>
+                            <div key={s.id} className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+                              <div className="flex justify-between items-center">
+                                <span className="font-semibold text-gray-800 text-sm">{s.first_name} {s.last_name}</span>
+                                <span
+                                  className="text-xs font-semibold rounded-full px-2.5 py-0.5"
+                                  style={{ color: STATUS_COLORS[s.status] || '#9ca3af', background: (STATUS_COLORS[s.status] || '#9ca3af') + '18' }}
+                                >
                                   {s.status}
                                 </span>
                               </div>
-                              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.375rem', flexWrap: 'wrap' }}>
-                                {s.grade && <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>{s.grade}</span>}
-                                {div && <span style={{ fontSize: '0.78rem', fontWeight: '600', color: div.color, background: div.color + '15', borderRadius: '9999px', padding: '0.1rem 0.45rem' }}>{div.name}</span>}
+                              <div className="flex gap-2 mt-1.5 flex-wrap">
+                                {s.grade && <span className="text-xs text-gray-500">{s.grade}</span>}
+                                {div && (
+                                  <span className="text-xs font-semibold rounded-full px-2 py-0.5" style={{ color: div.color, background: div.color + '15' }}>
+                                    {div.name}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           )
@@ -209,38 +214,43 @@ export default function Parents({ user, school, onCompose }) {
                 </>
               ) : (
                 /* Edit form */
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="flex flex-col gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label style={labelStyle}>First Name</label>
-                      <input value={editForm.first_name} onChange={e => setEditForm({ ...editForm, first_name: e.target.value })} style={inputStyle} />
+                      <label className="block text-xs font-medium text-gray-500 mb-1">First Name</label>
+                      <input value={editForm.first_name} onChange={e => setEditForm({ ...editForm, first_name: e.target.value })} className={fieldCls} />
                     </div>
                     <div>
-                      <label style={labelStyle}>Last Name</label>
-                      <input value={editForm.last_name} onChange={e => setEditForm({ ...editForm, last_name: e.target.value })} style={inputStyle} />
+                      <label className="block text-xs font-medium text-gray-500 mb-1">Last Name</label>
+                      <input value={editForm.last_name} onChange={e => setEditForm({ ...editForm, last_name: e.target.value })} className={fieldCls} />
                     </div>
                   </div>
                   <div>
-                    <label style={labelStyle}>Email</label>
-                    <input type="email" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} style={inputStyle} />
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Email</label>
+                    <input type="email" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} className={fieldCls} />
                   </div>
                   <div>
-                    <label style={labelStyle}>Phone</label>
-                    <input type="tel" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} style={inputStyle} />
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Phone</label>
+                    <input type="tel" value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className={fieldCls} />
                   </div>
                   <div>
-                    <label style={labelStyle}>Address</label>
-                    <input value={editForm.address} onChange={e => setEditForm({ ...editForm, address: e.target.value })} style={inputStyle} />
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Address</label>
+                    <input value={editForm.address} onChange={e => setEditForm({ ...editForm, address: e.target.value })} className={fieldCls} />
                   </div>
                   <div>
-                    <label style={labelStyle}>Notes</label>
-                    <textarea value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} rows={3} style={{ ...inputStyle, resize: 'vertical' }} />
+                    <label className="block text-xs font-medium text-gray-500 mb-1">Notes</label>
+                    <textarea value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} rows={3} className={`${fieldCls} resize-y`} />
                   </div>
-                  <div style={{ display: 'flex', gap: '0.75rem' }}>
-                    <button onClick={saveEdit} disabled={saving} style={{ flex: 1, background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '700', cursor: 'pointer' }}>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={saveEdit}
+                      disabled={saving}
+                      className="flex-1 text-white border-0 rounded-lg py-2.5 font-bold cursor-pointer disabled:opacity-70 hover:opacity-90 transition-opacity"
+                      style={{ background: primaryColor }}
+                    >
                       {saving ? 'Saving…' : 'Save Changes'}
                     </button>
-                    <button onClick={() => setEditing(false)} style={{ background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.625rem 1rem', cursor: 'pointer' }}>
+                    <button onClick={() => setEditing(false)} className="bg-white text-gray-700 border border-gray-300 rounded-lg px-4 py-2.5 cursor-pointer hover:bg-gray-50">
                       Cancel
                     </button>
                   </div>
@@ -250,17 +260,19 @@ export default function Parents({ user, school, onCompose }) {
 
             {/* Drawer Footer */}
             {!editing && (
-              <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid #f3f4f6', display: 'flex', gap: '0.75rem' }}>
+              <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
                 <button
                   onClick={() => startEdit(selected)}
-                  style={{ flex: 1, background: 'white', color: primaryColor, border: `1px solid ${primaryColor}`, borderRadius: '0.625rem', padding: '0.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.875rem' }}
+                  className="flex-1 bg-white border rounded-xl py-2 font-semibold cursor-pointer text-sm hover:opacity-90 transition-opacity"
+                  style={{ color: primaryColor, borderColor: primaryColor }}
                 >
                   Edit Contact
                 </button>
                 {selected.email && (
                   <button
                     onClick={() => { onCompose && onCompose(selected); closeDrawer() }}
-                    style={{ flex: 1, background: primaryColor, color: 'white', border: 'none', borderRadius: '0.625rem', padding: '0.5rem', fontWeight: '700', cursor: 'pointer', fontSize: '0.875rem' }}
+                    className="flex-1 text-white border-0 rounded-xl py-2 font-bold cursor-pointer text-sm hover:opacity-90 transition-opacity"
+                    style={{ background: primaryColor }}
                   >
                     ✉ Send Message
                   </button>
