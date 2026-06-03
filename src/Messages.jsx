@@ -16,79 +16,80 @@ export default function Messages({ user }) {
   } = useMessages(user.id)
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="p-8 max-w-6xl mx-auto">
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div className="flex justify-between items-center mb-8">
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Messages</h2>
-          <p style={{ color: '#6b7280', marginTop: '0.25rem' }}>Send announcements and messages to parents</p>
+          <h2 className="text-2xl font-bold text-gray-800 m-0">Messages</h2>
+          <p className="text-gray-500 mt-1">Send announcements and messages to parents</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.25rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem' }}
+          className="bg-blue-500 hover:bg-blue-600 text-white border-0 rounded-lg px-5 py-2.5 font-semibold cursor-pointer text-base transition-colors"
         >
           {showForm ? 'Cancel' : '+ New Message'}
         </button>
       </div>
 
+      {/* Success banner */}
       {success && (
-        <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '0.75rem', padding: '1rem', marginBottom: '1.5rem', color: '#15803d' }}>
+        <div className="bg-green-50 border border-green-300 rounded-xl p-4 mb-6 text-green-700">
           {success}
         </div>
       )}
 
       {/* Compose Form */}
       {showForm && (
-        <div style={{ background: 'white', borderRadius: '1rem', padding: '2rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: '2rem' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: '600', color: '#1f2937', marginTop: 0, marginBottom: '1.5rem' }}>Compose Message</h3>
+        <div className="bg-white rounded-2xl p-8 shadow-sm mb-8">
+          <h3 className="text-lg font-semibold text-gray-800 mt-0 mb-6">Compose Message</h3>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="flex flex-col gap-4">
             <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Recipients
               </label>
               <select
                 value={form.recipient_type}
                 onChange={(e) => setForm({ ...form, recipient_type: e.target.value })}
-                style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none text-sm bg-white"
               >
                 <option value="all">All Parents</option>
               </select>
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
-                Subject <span style={{ color: '#ef4444' }}>*</span>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Subject <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={form.subject}
                 onChange={(e) => setForm({ ...form, subject: e.target.value })}
                 placeholder="e.g. Important School Announcement"
-                style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem' }}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none text-sm"
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', color: '#374151', marginBottom: '0.25rem' }}>
-                Message <span style={{ color: '#ef4444' }}>*</span>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Message <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={form.body}
                 onChange={(e) => setForm({ ...form, body: e.target.value })}
                 rows={6}
                 placeholder="Type your message to parents here..."
-                style={{ width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.95rem', resize: 'vertical' }}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 outline-none text-sm resize-y"
               />
             </div>
 
-            {error && <p style={{ color: '#ef4444', fontSize: '0.875rem' }}>{error}</p>}
+            {error && <p className="text-red-500 text-sm">{error}</p>}
 
             <button
               onClick={send}
               disabled={sending}
-              style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem 1.5rem', fontWeight: '600', cursor: 'pointer', fontSize: '1rem', alignSelf: 'flex-start' }}
+              className="bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white border-0 rounded-lg px-6 py-2.5 font-semibold cursor-pointer text-base self-start transition-colors"
             >
               {sending ? 'Sending...' : 'Send Message'}
             </button>
@@ -98,28 +99,28 @@ export default function Messages({ user }) {
 
       {/* Messages List */}
       {loading ? (
-        <p style={{ color: '#6b7280' }}>Loading messages...</p>
+        <p className="text-gray-500">Loading messages...</p>
       ) : messages.length === 0 ? (
-        <div style={{ background: 'white', borderRadius: '1rem', padding: '3rem', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✉️</div>
-          <p style={{ color: '#6b7280', fontSize: '1.1rem' }}>No messages yet. Send your first announcement above!</p>
+        <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
+          <div className="text-5xl mb-4">✉️</div>
+          <p className="text-gray-500 text-lg">No messages yet. Send your first announcement above!</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="flex flex-col gap-4">
           {messages.map((msg) => (
-            <div key={msg.id} style={{ background: 'white', borderRadius: '1rem', padding: '1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+            <div key={msg.id} className="bg-white rounded-2xl p-6 shadow-sm">
+              <div className="flex justify-between items-start mb-3">
                 <div>
-                  <h3 style={{ fontWeight: '700', color: '#1f2937', margin: 0, fontSize: '1rem' }}>{msg.subject}</h3>
-                  <p style={{ color: '#6b7280', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                  <h3 className="font-bold text-gray-800 m-0 text-base">{msg.subject}</h3>
+                  <p className="text-gray-500 text-sm mt-1">
                     Sent to {msg.recipient_count} parent(s) · {formatMessageDate(msg.created_at)}
                   </p>
                 </div>
-                <span style={{ background: '#f0fdf4', color: '#15803d', borderRadius: '9999px', padding: '0.25rem 0.75rem', fontSize: '0.8rem', fontWeight: '600' }}>
+                <span className="bg-green-50 text-green-700 rounded-full px-3 py-1 text-xs font-semibold">
                   {msg.status}
                 </span>
               </div>
-              <p style={{ color: '#374151', lineHeight: 1.6, margin: 0, fontSize: '0.95rem' }}>{msg.body}</p>
+              <p className="text-gray-700 leading-relaxed m-0 text-sm">{msg.body}</p>
             </div>
           ))}
         </div>
