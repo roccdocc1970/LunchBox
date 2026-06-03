@@ -5,6 +5,9 @@ import {
   calcGivingTotal,
 } from './domain/alumni'
 
+const fieldCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm'
+const labelCls = 'block text-xs font-medium text-gray-500 mb-1'
+
 export default function Alumni({ user, school }) {
   const primaryColor = school?.primary_color || '#f97316'
 
@@ -25,65 +28,63 @@ export default function Alumni({ user, school }) {
     clearFilters,
   } = useAlumni(user.id, school)
 
-  const inputStyle = { width: '100%', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 0.75rem', outline: 'none', boxSizing: 'border-box', fontSize: '0.9rem' }
-  const labelStyle = { display: 'block', fontSize: '0.8rem', fontWeight: '500', color: '#6b7280', marginBottom: '0.25rem' }
   const hasFilters = search || filterYear || filterDonor || filterRelationship
 
   return (
-    <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="p-8 max-w-6xl mx-auto">
 
       {/* Header */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Alumni</h2>
-        <p style={{ color: '#6b7280', marginTop: '0.25rem' }}>Track graduates and manage long-term relationships</p>
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-gray-800 m-0">Alumni</h2>
+        <p className="text-gray-500 mt-1">Track graduates and manage long-term relationships</p>
       </div>
 
+      {/* Config nudge */}
       {!configuredGrades && (
-        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.75rem', padding: '0.875rem 1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{ fontSize: '1.1rem' }}>🔒</span>
-          <span style={{ fontSize: '0.875rem', color: '#991b1b' }}><strong>Grade editing is locked.</strong> Complete your Academic Configuration in <strong>Settings → Academic Config</strong> before assigning grades.</span>
+        <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-3.5 mb-6 flex items-center gap-3">
+          <span className="text-lg">🔒</span>
+          <span className="text-sm text-red-800"><strong>Grade editing is locked.</strong> Complete your Academic Configuration in <strong>Settings → Academic Config</strong> before assigning grades.</span>
         </div>
       )}
 
-      {/* Summary counts */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+      {/* Stat cards */}
+      <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
         {[
-          { label: 'Total Alumni',   value: stats.total,        color: primaryColor },
-          { label: 'Active Donors',  value: stats.activeDonors, color: '#10b981' },
-          { label: 'Prospects',      value: stats.prospects,    color: '#3b82f6' },
-          { label: 'Opted In',       value: stats.optedIn,      color: '#8b5cf6' },
+          { label: 'Total Alumni',  value: stats.total,        color: primaryColor },
+          { label: 'Active Donors', value: stats.activeDonors, color: '#10b981' },
+          { label: 'Prospects',     value: stats.prospects,    color: '#3b82f6' },
+          { label: 'Opted In',      value: stats.optedIn,      color: '#8b5cf6' },
         ].map(s => (
-          <div key={s.label} style={{ background: 'white', borderRadius: '1rem', padding: '1rem 1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', borderTop: `3px solid ${s.color}` }}>
-            <div style={{ fontSize: '1.75rem', fontWeight: 'bold', color: '#1f2937' }}>{s.value}</div>
-            <div style={{ color: '#6b7280', fontSize: '0.8rem', marginTop: '0.25rem' }}>{s.label}</div>
+          <div key={s.label} className="bg-white rounded-2xl px-5 py-4 shadow-sm border-t-4" style={{ borderTopColor: s.color }}>
+            <div className="text-3xl font-bold text-gray-800">{s.value}</div>
+            <div className="text-gray-500 text-xs mt-1">{s.label}</div>
           </div>
         ))}
       </div>
 
       {/* Filters */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+      <div className="flex gap-4 mb-6 flex-wrap">
         <input
           type="text"
           placeholder="Search by name, email, employer, or college..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          style={{ ...inputStyle, flex: '1', minWidth: '240px' }}
+          className="flex-1 min-w-60 border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm"
         />
-        <select value={filterYear} onChange={e => setFilterYear(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '140px' }}>
+        <select value={filterYear} onChange={e => setFilterYear(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm bg-white min-w-36">
           <option value="">All Years</option>
           {graduationYears.map(y => <option key={y}>{y}</option>)}
         </select>
-        <select value={filterDonor} onChange={e => setFilterDonor(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '150px' }}>
+        <select value={filterDonor} onChange={e => setFilterDonor(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm bg-white min-w-36">
           <option value="">Donor Status</option>
           {DONOR_STATUSES.map(d => <option key={d}>{d}</option>)}
         </select>
-        <select value={filterRelationship} onChange={e => setFilterRelationship(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: '150px' }}>
+        <select value={filterRelationship} onChange={e => setFilterRelationship(e.target.value)} className="border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm bg-white min-w-36">
           <option value="">Relationship</option>
           {RELATIONSHIPS.map(r => <option key={r}>{r}</option>)}
         </select>
         {hasFilters && (
-          <button onClick={clearFilters}
-            style={{ background: 'transparent', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer', color: '#6b7280', fontSize: '0.9rem' }}>
+          <button onClick={clearFilters} className="bg-transparent border border-gray-300 rounded-lg px-4 py-2 cursor-pointer text-gray-500 text-sm hover:bg-gray-50">
             Clear
           </button>
         )}
@@ -91,56 +92,56 @@ export default function Alumni({ user, school }) {
 
       {/* Alumni Grid */}
       {loading ? (
-        <p style={{ color: '#6b7280' }}>Loading alumni...</p>
+        <p className="text-gray-500">Loading alumni...</p>
       ) : filtered.length === 0 ? (
-        <div style={{ background: 'white', borderRadius: '1rem', padding: '3rem', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎓</div>
-          <p style={{ color: '#6b7280', fontSize: '1.1rem' }}>
+        <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
+          <div className="text-5xl mb-4">🎓</div>
+          <p className="text-gray-500 text-lg">
             {alumni.length === 0
               ? 'No alumni yet. Graduate students from the Students module to get started.'
               : 'No alumni match your filters.'}
           </p>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+        <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
           {filtered.map(alumnus => (
             <div
               key={alumnus.id}
               onClick={() => openProfile(alumnus)}
-              style={{ background: 'white', borderRadius: '1rem', padding: '1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', cursor: 'pointer', borderTop: `3px solid ${RELATIONSHIP_COLORS[alumnus.relationship] || '#9ca3af'}`, transition: 'box-shadow 0.15s' }}
-              onMouseEnter={e => e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)'}
-              onMouseLeave={e => e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.08)'}
+              className="bg-white rounded-2xl p-5 shadow-sm cursor-pointer border-t-4 hover:shadow-md transition-shadow"
+              style={{ borderTopColor: RELATIONSHIP_COLORS[alumnus.relationship] || '#9ca3af' }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: primaryColor + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', fontWeight: 'bold', color: primaryColor, flexShrink: 0 }}>
+              <div className="flex items-center gap-3 mb-3">
+                <div
+                  className="w-11 h-11 rounded-full flex items-center justify-center text-lg font-bold shrink-0"
+                  style={{ background: primaryColor + '18', color: primaryColor }}
+                >
                   {alumnus.first_name?.[0]}{alumnus.last_name?.[0]}
                 </div>
                 <div>
-                  <div style={{ fontWeight: '600', color: '#1f2937', fontSize: '0.95rem' }}>{alumnus.first_name} {alumnus.last_name}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                  <div className="font-semibold text-gray-800">{alumnus.first_name} {alumnus.last_name}</div>
+                  <div className="text-xs text-gray-500">
                     {alumnus.graduation_year ? `Class of ${alumnus.graduation_year}` : 'Year unknown'}
                     {alumnus.grade_completed ? ` · ${alumnus.grade_completed}` : ''}
                   </div>
                 </div>
               </div>
 
-              {alumnus.employer && <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.3rem' }}>💼 {alumnus.employer}</div>}
-              {alumnus.college && <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.3rem' }}>🎓 {alumnus.college}</div>}
-              {alumnus.email && <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.3rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>✉️ {alumnus.email}</div>}
+              {alumnus.employer && <div className="text-xs text-gray-500 mb-1">💼 {alumnus.employer}</div>}
+              {alumnus.college  && <div className="text-xs text-gray-500 mb-1">🎓 {alumnus.college}</div>}
+              {alumnus.email    && <div className="text-xs text-gray-500 mb-1 truncate">✉️ {alumnus.email}</div>}
 
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
-                <span style={{ background: (DONOR_COLORS[alumnus.donor_status] || '#9ca3af') + '20', color: DONOR_COLORS[alumnus.donor_status] || '#9ca3af', borderRadius: '9999px', padding: '0.2rem 0.65rem', fontSize: '0.75rem', fontWeight: '600' }}>
+              <div className="flex gap-2 mt-3 flex-wrap">
+                <span className="rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ background: (DONOR_COLORS[alumnus.donor_status] || '#9ca3af') + '20', color: DONOR_COLORS[alumnus.donor_status] || '#9ca3af' }}>
                   {alumnus.donor_status || 'Never'}
                 </span>
                 {alumnus.relationship && alumnus.relationship !== 'None' && (
-                  <span style={{ background: (RELATIONSHIP_COLORS[alumnus.relationship] || '#9ca3af') + '20', color: RELATIONSHIP_COLORS[alumnus.relationship] || '#9ca3af', borderRadius: '9999px', padding: '0.2rem 0.65rem', fontSize: '0.75rem', fontWeight: '600' }}>
+                  <span className="rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ background: (RELATIONSHIP_COLORS[alumnus.relationship] || '#9ca3af') + '20', color: RELATIONSHIP_COLORS[alumnus.relationship] || '#9ca3af' }}>
                     {alumnus.relationship}
                   </span>
                 )}
                 {!alumnus.opt_in && (
-                  <span style={{ background: '#fef2f2', color: '#ef4444', borderRadius: '9999px', padding: '0.2rem 0.65rem', fontSize: '0.75rem', fontWeight: '600' }}>
-                    Opted Out
-                  </span>
+                  <span className="bg-red-50 text-red-500 rounded-full px-2.5 py-0.5 text-xs font-semibold">Opted Out</span>
                 )}
               </div>
             </div>
@@ -151,86 +152,79 @@ export default function Alumni({ user, school }) {
       {/* Profile Drawer */}
       {selected && (
         <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 50, display: 'flex', justifyContent: 'flex-end' }}
+          className="fixed inset-0 bg-black/30 z-50 flex justify-end"
           onClick={e => { if (e.target === e.currentTarget) closeProfile() }}
         >
-          <div style={{ width: '440px', maxWidth: '100%', background: 'white', height: '100%', overflowY: 'auto', boxShadow: '-4px 0 24px rgba(0,0,0,0.12)' }}>
+          <div className="w-[440px] max-w-full bg-white h-full overflow-y-auto shadow-2xl">
 
-            <div style={{ background: primaryColor, padding: '1.5rem', color: 'white' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', fontWeight: 'bold' }}>
+            {/* Drawer header */}
+            <div className="p-6 text-white" style={{ background: primaryColor }}>
+              <div className="flex justify-between items-start">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-xl font-bold">
                     {selected.first_name?.[0]}{selected.last_name?.[0]}
                   </div>
                   <div>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{selected.first_name} {selected.last_name}</div>
-                    <div style={{ fontSize: '0.875rem', opacity: 0.85 }}>
+                    <div className="text-xl font-bold">{selected.first_name} {selected.last_name}</div>
+                    <div className="text-sm opacity-85">
                       {selected.graduation_year ? `Class of ${selected.graduation_year}` : 'Graduation year unknown'}
                     </div>
                   </div>
                 </div>
-                <button onClick={closeProfile} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: '0.5rem', padding: '0.25rem 0.75rem', cursor: 'pointer', fontSize: '1.1rem' }}>✕</button>
+                <button onClick={closeProfile} className="bg-white/20 border-0 text-white rounded-lg px-3 py-1 cursor-pointer text-lg hover:bg-white/30">✕</button>
               </div>
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', flexWrap: 'wrap' }}>
-                <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '9999px', padding: '0.2rem 0.75rem', fontSize: '0.8rem', fontWeight: '600' }}>
-                  {selected.donor_status || 'Never'}
-                </span>
+              <div className="flex gap-2 mt-3 flex-wrap">
+                <span className="bg-white/20 rounded-full px-3 py-0.5 text-xs font-semibold">{selected.donor_status || 'Never'}</span>
                 {selected.relationship && selected.relationship !== 'None' && (
-                  <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '9999px', padding: '0.2rem 0.75rem', fontSize: '0.8rem', fontWeight: '600' }}>
-                    {selected.relationship}
-                  </span>
+                  <span className="bg-white/20 rounded-full px-3 py-0.5 text-xs font-semibold">{selected.relationship}</span>
                 )}
-                <span style={{ background: selected.opt_in ? 'rgba(255,255,255,0.2)' : 'rgba(239,68,68,0.4)', borderRadius: '9999px', padding: '0.2rem 0.75rem', fontSize: '0.8rem', fontWeight: '600' }}>
+                <span className={`rounded-full px-3 py-0.5 text-xs font-semibold ${selected.opt_in ? 'bg-white/20' : 'bg-red-400/40'}`}>
                   {selected.opt_in ? '✓ Opted In' : '✗ Opted Out'}
                 </span>
               </div>
             </div>
 
-            <div style={{ padding: '1.5rem' }}>
-              {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', marginBottom: '1rem' }}>{error}</p>}
+            <div className="p-6">
+              {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
 
               {!editing ? (
                 <>
                   <DrawerSection title="Alumni Info">
-                    <DrawerField label="Graduation Year" value={selected.graduation_year || '—'} />
-                    <DrawerField label="Grade Completed" value={selected.grade_completed || '—'} />
-                    <DrawerField label="College / University" value={selected.college || '—'} />
-                    <DrawerField label="Employer" value={selected.employer || '—'} />
+                    <DrawerField label="Graduation Year"    value={selected.graduation_year || '—'} />
+                    <DrawerField label="Grade Completed"    value={selected.grade_completed  || '—'} />
+                    <DrawerField label="College / University" value={selected.college        || '—'} />
+                    <DrawerField label="Employer"           value={selected.employer         || '—'} />
                     {selected.notes && <DrawerField label="Notes" value={selected.notes} />}
                   </DrawerSection>
 
                   <DrawerSection title="Contact">
-                    <DrawerField label="Email" value={selected.email || '—'} />
-                    <DrawerField label="Phone" value={selected.phone || '—'} />
-                    <DrawerField label="Address" value={[selected.address, selected.city, selected.state, selected.zip].filter(Boolean).join(', ') || '—'} />
-                    <DrawerField label="Preferred Contact" value={selected.preferred_contact || '—'} />
-                    <DrawerField label="Last Contacted" value={selected.last_contacted_date || '—'} />
+                    <DrawerField label="Email"           value={selected.email  || '—'} />
+                    <DrawerField label="Phone"           value={selected.phone  || '—'} />
+                    <DrawerField label="Address"         value={[selected.address, selected.city, selected.state, selected.zip].filter(Boolean).join(', ') || '—'} />
+                    <DrawerField label="Preferred"       value={selected.preferred_contact  || '—'} />
+                    <DrawerField label="Last Contacted"  value={selected.last_contacted_date || '—'} />
                   </DrawerSection>
 
                   <DrawerSection title="Engagement">
-                    <DrawerField label="Relationship" value={selected.relationship || 'None'} />
-                    <DrawerField label="Donor Status" value={selected.donor_status || 'Never'} />
-                    <DrawerField label="Opt-In" value={selected.opt_in ? 'Yes — OK to contact' : 'No — Do not contact'} />
+                    <DrawerField label="Relationship"  value={selected.relationship  || 'None'} />
+                    <DrawerField label="Donor Status"  value={selected.donor_status  || 'Never'} />
+                    <DrawerField label="Opt-In"        value={selected.opt_in ? 'Yes — OK to contact' : 'No — Do not contact'} />
                   </DrawerSection>
 
                   {givingHistory.length > 0 && (
                     <DrawerSection title="Giving History">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                        <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>{givingHistory.length} gift{givingHistory.length !== 1 ? 's' : ''}</span>
-                        <span style={{ fontSize: '0.875rem', fontWeight: '700', color: '#10b981' }}>
-                          ${calcGivingTotal(givingHistory).toLocaleString()} total
-                        </span>
+                      <div className="flex justify-between mb-3">
+                        <span className="text-xs text-gray-500">{givingHistory.length} gift{givingHistory.length !== 1 ? 's' : ''}</span>
+                        <span className="text-sm font-bold text-green-600">${calcGivingTotal(givingHistory).toLocaleString()} total</span>
                       </div>
-                      <div style={{ display: 'grid', gap: '0.5rem' }}>
+                      <div className="flex flex-col gap-2">
                         {givingHistory.map((d, i) => (
-                          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem 0.75rem', background: '#f9fafb', borderRadius: '0.5rem' }}>
+                          <div key={i} className="flex justify-between items-center px-3 py-2 bg-gray-50 rounded-lg">
                             <div>
-                              <div style={{ fontSize: '0.875rem', fontWeight: '600', color: '#1f2937' }}>
-                                {d.anonymous ? 'Anonymous' : `$${Number(d.amount || 0).toLocaleString()}`}
-                              </div>
-                              <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{d.payment_method || 'Unknown method'}</div>
+                              <div className="text-sm font-semibold text-gray-800">{d.anonymous ? 'Anonymous' : `$${Number(d.amount || 0).toLocaleString()}`}</div>
+                              <div className="text-xs text-gray-400">{d.payment_method || 'Unknown method'}</div>
                             </div>
-                            <div style={{ fontSize: '0.8rem', color: '#6b7280', textAlign: 'right' }}>{d.date}</div>
+                            <div className="text-xs text-gray-500 text-right">{d.date}</div>
                           </div>
                         ))}
                       </div>
@@ -239,21 +233,24 @@ export default function Alumni({ user, school }) {
 
                   {gradeHistory.length > 0 && (
                     <DrawerSection title="Academic Journey">
-                      <div style={{ position: 'relative', paddingLeft: '1.25rem' }}>
-                        <div style={{ position: 'absolute', left: '5px', top: 0, bottom: 0, width: '2px', background: '#e5e7eb' }} />
+                      <div className="relative pl-5">
+                        <div className="absolute left-[5px] top-0 bottom-0 w-0.5 bg-gray-200" />
                         {gradeHistory.map((entry, i) => {
                           const isFinal = i === gradeHistory.length - 1
                           return (
-                            <div key={entry.id} style={{ position: 'relative', marginBottom: i < gradeHistory.length - 1 ? '0.875rem' : 0 }}>
-                              <div style={{ position: 'absolute', left: '-1.1rem', top: '4px', width: '10px', height: '10px', borderRadius: '50%', background: isFinal ? primaryColor : '#d1d5db', border: `2px solid ${isFinal ? primaryColor : '#e5e7eb'}` }} />
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.875rem', fontWeight: isFinal ? '600' : '400', color: isFinal ? primaryColor : '#374151' }}>{entry.grade}</span>
-                                <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>{entry.academic_year}</span>
+                            <div key={entry.id} className={`relative ${i < gradeHistory.length - 1 ? 'mb-3.5' : ''}`}>
+                              <div
+                                className="absolute -left-[18px] top-1 w-2.5 h-2.5 rounded-full border-2"
+                                style={{ background: isFinal ? primaryColor : '#d1d5db', borderColor: isFinal ? primaryColor : '#e5e7eb' }}
+                              />
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm" style={{ fontWeight: isFinal ? '600' : '400', color: isFinal ? primaryColor : '#374151' }}>{entry.grade}</span>
+                                <span className="text-xs text-gray-400">{entry.academic_year}</span>
                               </div>
-                              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                {isFinal && <span style={{ fontSize: '0.75rem', color: primaryColor, fontWeight: '500' }}>graduated</span>}
-                                {entry.is_repeat && <span style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: '500' }}>repeated</span>}
-                                {entry.is_skip && <span style={{ fontSize: '0.75rem', color: '#8b5cf6', fontWeight: '500' }}>skipped</span>}
+                              <div className="flex gap-2">
+                                {isFinal       && <span className="text-xs font-medium" style={{ color: primaryColor }}>graduated</span>}
+                                {entry.is_repeat && <span className="text-xs text-amber-500 font-medium">repeated</span>}
+                                {entry.is_skip   && <span className="text-xs text-purple-500 font-medium">skipped</span>}
                               </div>
                             </div>
                           )
@@ -262,119 +259,113 @@ export default function Alumni({ user, school }) {
                     </DrawerSection>
                   )}
 
-                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
-                    <button onClick={startEdit}
-                      style={{ flex: 1, background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}>
-                      Edit Profile
-                    </button>
-                    <button onClick={() => setDeleteConfirm(true)}
-                      style={{ background: 'white', color: '#ef4444', border: '1px solid #ef4444', borderRadius: '0.5rem', padding: '0.625rem 1rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}>
-                      Remove
-                    </button>
+                  <div className="flex gap-3 mt-6">
+                    <button
+                      onClick={startEdit}
+                      className="flex-1 text-white border-0 rounded-lg py-2.5 font-semibold cursor-pointer hover:opacity-90 transition-opacity"
+                      style={{ background: primaryColor }}
+                    >Edit Profile</button>
+                    <button
+                      onClick={() => setDeleteConfirm(true)}
+                      className="bg-white text-red-500 border border-red-400 rounded-lg px-4 py-2.5 font-semibold cursor-pointer hover:bg-red-50"
+                    >Remove</button>
                   </div>
 
                   <button
                     onClick={() => { setReenrollConfirm(true); setDeleteConfirm(false) }}
-                    style={{ width: '100%', marginTop: '0.75rem', background: '#f0fdf4', color: '#15803d', border: '2px solid #16a34a', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}
-                  >
-                    🎒 Re-enroll as Student
-                  </button>
+                    className="w-full mt-3 bg-green-50 text-green-700 border-2 border-green-600 rounded-lg py-2.5 font-semibold cursor-pointer hover:bg-green-100 transition-colors"
+                  >🎒 Re-enroll as Student</button>
 
                   {reenrollConfirm && (
-                    <div style={{ marginTop: '1rem', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '0.75rem', padding: '1rem' }}>
-                      <p style={{ color: '#14532d', fontWeight: '600', margin: '0 0 0.5rem' }}>Re-enroll {selected.first_name} {selected.last_name} as a student?</p>
-                      <p style={{ color: '#15803d', fontSize: '0.875rem', margin: '0 0 1rem' }}>They will be moved back to the student roster with <strong>Applied</strong> status. Their alumni record will be removed.</p>
-                      {error && <p style={{ color: '#ef4444', fontSize: '0.875rem', margin: '0 0 0.75rem' }}>{error}</p>}
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button onClick={reenroll} disabled={reenrolling}
-                          style={{ background: '#16a34a', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: '600', cursor: 'pointer' }}>
+                    <div className="mt-4 bg-green-50 border border-green-300 rounded-xl p-4">
+                      <p className="text-green-900 font-semibold m-0 mb-2">Re-enroll {selected.first_name} {selected.last_name} as a student?</p>
+                      <p className="text-green-700 text-sm m-0 mb-4">They will be moved back to the student roster with <strong>Applied</strong> status. Their alumni record will be removed.</p>
+                      {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+                      <div className="flex gap-2">
+                        <button onClick={reenroll} disabled={reenrolling} className="bg-green-600 text-white border-0 rounded-lg px-4 py-2 font-semibold cursor-pointer disabled:opacity-70 hover:bg-green-700">
                           {reenrolling ? 'Moving...' : 'Confirm Re-enroll'}
                         </button>
-                        <button onClick={() => setReenrollConfirm(false)}
-                          style={{ background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer' }}>
-                          Cancel
-                        </button>
+                        <button onClick={() => setReenrollConfirm(false)} className="bg-white text-gray-700 border border-gray-300 rounded-lg px-4 py-2 cursor-pointer hover:bg-gray-50">Cancel</button>
                       </div>
                     </div>
                   )}
 
                   {deleteConfirm && (
-                    <div style={{ marginTop: '1rem', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.75rem', padding: '1rem' }}>
-                      <p style={{ color: '#991b1b', fontWeight: '600', margin: '0 0 0.5rem' }}>Remove {selected.first_name} {selected.last_name} from alumni?</p>
-                      <p style={{ color: '#b91c1c', fontSize: '0.875rem', margin: '0 0 1rem' }}>This cannot be undone.</p>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button onClick={remove} style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.5rem 1rem', fontWeight: '600', cursor: 'pointer' }}>Yes, Remove</button>
-                        <button onClick={() => setDeleteConfirm(false)} style={{ background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.5rem 1rem', cursor: 'pointer' }}>Cancel</button>
+                    <div className="mt-4 bg-red-50 border border-red-200 rounded-xl p-4">
+                      <p className="text-red-800 font-semibold m-0 mb-2">Remove {selected.first_name} {selected.last_name} from alumni?</p>
+                      <p className="text-red-700 text-sm m-0 mb-4">This cannot be undone.</p>
+                      <div className="flex gap-2">
+                        <button onClick={remove} className="bg-red-500 text-white border-0 rounded-lg px-4 py-2 font-semibold cursor-pointer hover:bg-red-600">Yes, Remove</button>
+                        <button onClick={() => setDeleteConfirm(false)} className="bg-white text-gray-700 border border-gray-300 rounded-lg px-4 py-2 cursor-pointer hover:bg-gray-50">Cancel</button>
                       </div>
                     </div>
                   )}
                 </>
               ) : (
                 <>
-                  <div style={{ display: 'grid', gap: '1rem' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                      <div><label style={labelStyle}>First Name</label><input name="first_name" value={editForm.first_name || ''} onChange={handleEditChange} style={inputStyle} /></div>
-                      <div><label style={labelStyle}>Last Name</label><input name="last_name" value={editForm.last_name || ''} onChange={handleEditChange} style={inputStyle} /></div>
+                  <div className="grid gap-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div><label className={labelCls}>First Name</label><input name="first_name" value={editForm.first_name || ''} onChange={handleEditChange} className={fieldCls} /></div>
+                      <div><label className={labelCls}>Last Name</label> <input name="last_name"  value={editForm.last_name  || ''} onChange={handleEditChange} className={fieldCls} /></div>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                      <div><label style={labelStyle}>Graduation Year</label><input type="number" name="graduation_year" value={editForm.graduation_year || ''} onChange={handleEditChange} placeholder="e.g. 2024" style={inputStyle} /></div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div><label className={labelCls}>Graduation Year</label><input type="number" name="graduation_year" value={editForm.graduation_year || ''} onChange={handleEditChange} placeholder="e.g. 2024" className={fieldCls} /></div>
                       <div>
-                        <label style={labelStyle}>Grade Completed</label>
+                        <label className={labelCls}>Grade Completed</label>
                         <select name="grade_completed" value={editForm.grade_completed || ''} onChange={handleEditChange}
                           disabled={!configuredGrades}
-                          style={{ ...inputStyle, background: !configuredGrades ? '#f3f4f6' : 'white', cursor: !configuredGrades ? 'not-allowed' : 'pointer', color: !configuredGrades ? '#9ca3af' : '#1f2937' }}>
+                          className={`${fieldCls} ${!configuredGrades ? 'bg-gray-100 cursor-not-allowed text-gray-400' : 'bg-white'}`}>
                           <option value="">{configuredGrades ? 'Unknown' : 'Configure grades in Settings first'}</option>
                           {grades.map(g => <option key={g}>{g}</option>)}
                         </select>
                       </div>
                     </div>
-                    <div><label style={labelStyle}>Email</label><input type="email" name="email" value={editForm.email || ''} onChange={handleEditChange} style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Phone</label><input type="tel" name="phone" value={editForm.phone || ''} onChange={handleEditChange} style={inputStyle} /></div>
-                    <div><label style={labelStyle}>Address</label><input name="address" value={editForm.address || ''} onChange={handleEditChange} style={inputStyle} /></div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '0.75rem' }}>
-                      <div><label style={labelStyle}>City</label><input name="city" value={editForm.city || ''} onChange={handleEditChange} style={inputStyle} /></div>
-                      <div><label style={labelStyle}>State</label><input name="state" value={editForm.state || ''} onChange={handleEditChange} style={inputStyle} /></div>
-                      <div><label style={labelStyle}>ZIP</label><input name="zip" value={editForm.zip || ''} onChange={handleEditChange} style={inputStyle} /></div>
+                    <div><label className={labelCls}>Email</label>  <input type="email" name="email" value={editForm.email || ''} onChange={handleEditChange} className={fieldCls} /></div>
+                    <div><label className={labelCls}>Phone</label>  <input type="tel"   name="phone" value={editForm.phone || ''} onChange={handleEditChange} className={fieldCls} /></div>
+                    <div><label className={labelCls}>Address</label><input name="address" value={editForm.address || ''} onChange={handleEditChange} className={fieldCls} /></div>
+                    <div className="grid gap-3" style={{ gridTemplateColumns: '2fr 1fr 1fr' }}>
+                      <div><label className={labelCls}>City</label> <input name="city"  value={editForm.city  || ''} onChange={handleEditChange} className={fieldCls} /></div>
+                      <div><label className={labelCls}>State</label><input name="state" value={editForm.state || ''} onChange={handleEditChange} className={fieldCls} /></div>
+                      <div><label className={labelCls}>ZIP</label>  <input name="zip"   value={editForm.zip   || ''} onChange={handleEditChange} className={fieldCls} /></div>
                     </div>
-                    <div><label style={labelStyle}>Employer</label><input name="employer" value={editForm.employer || ''} onChange={handleEditChange} style={inputStyle} /></div>
-                    <div><label style={labelStyle}>College / University</label><input name="college" value={editForm.college || ''} onChange={handleEditChange} style={inputStyle} /></div>
+                    <div><label className={labelCls}>Employer</label>          <input name="employer" value={editForm.employer || ''} onChange={handleEditChange} className={fieldCls} /></div>
+                    <div><label className={labelCls}>College / University</label><input name="college"  value={editForm.college  || ''} onChange={handleEditChange} className={fieldCls} /></div>
                     <div>
-                      <label style={labelStyle}>Relationship</label>
-                      <select name="relationship" value={editForm.relationship || 'None'} onChange={handleEditChange} style={inputStyle}>
+                      <label className={labelCls}>Relationship</label>
+                      <select name="relationship" value={editForm.relationship || 'None'} onChange={handleEditChange} className={fieldCls}>
                         {RELATIONSHIPS.map(r => <option key={r}>{r}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label style={labelStyle}>Donor Status</label>
-                      <select name="donor_status" value={editForm.donor_status || 'Never'} onChange={handleEditChange} style={inputStyle}>
+                      <label className={labelCls}>Donor Status</label>
+                      <select name="donor_status" value={editForm.donor_status || 'Never'} onChange={handleEditChange} className={fieldCls}>
                         {DONOR_STATUSES.map(d => <option key={d}>{d}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label style={labelStyle}>Preferred Contact Method</label>
-                      <select name="preferred_contact" value={editForm.preferred_contact || 'Email'} onChange={handleEditChange} style={inputStyle}>
+                      <label className={labelCls}>Preferred Contact Method</label>
+                      <select name="preferred_contact" value={editForm.preferred_contact || 'Email'} onChange={handleEditChange} className={fieldCls}>
                         {CONTACT_METHODS.map(c => <option key={c}>{c}</option>)}
                       </select>
                     </div>
-                    <div><label style={labelStyle}>Last Contacted Date</label><input type="date" name="last_contacted_date" value={editForm.last_contacted_date || ''} onChange={handleEditChange} style={inputStyle} /></div>
+                    <div><label className={labelCls}>Last Contacted Date</label><input type="date" name="last_contacted_date" value={editForm.last_contacted_date || ''} onChange={handleEditChange} className={fieldCls} /></div>
                     <div>
-                      <label style={labelStyle}>Opt-In to Communications</label>
-                      <select name="opt_in" value={editForm.opt_in} onChange={handleEditChange} style={inputStyle}>
+                      <label className={labelCls}>Opt-In to Communications</label>
+                      <select name="opt_in" value={editForm.opt_in} onChange={handleEditChange} className={fieldCls}>
                         <option value="true">Yes — OK to contact</option>
                         <option value="false">No — Do not contact</option>
                       </select>
                     </div>
-                    <div><label style={labelStyle}>Notes</label><textarea name="notes" value={editForm.notes || ''} onChange={handleEditChange} rows={3} style={{ ...inputStyle, resize: 'vertical' }} /></div>
+                    <div><label className={labelCls}>Notes</label><textarea name="notes" value={editForm.notes || ''} onChange={handleEditChange} rows={3} className={`${fieldCls} resize-y`} /></div>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem' }}>
-                    <button onClick={saveEdit} disabled={saving}
-                      style={{ flex: 1, background: primaryColor, color: 'white', border: 'none', borderRadius: '0.5rem', padding: '0.625rem', fontWeight: '600', cursor: 'pointer', fontSize: '0.95rem' }}>
-                      {saving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                    <button onClick={() => setEditing(false)}
-                      style={{ background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '0.5rem', padding: '0.625rem 1rem', cursor: 'pointer' }}>
-                      Cancel
-                    </button>
+                  <div className="flex gap-3 mt-6">
+                    <button
+                      onClick={saveEdit}
+                      disabled={saving}
+                      className="flex-1 text-white border-0 rounded-lg py-2.5 font-semibold cursor-pointer disabled:opacity-70 hover:opacity-90 transition-opacity"
+                      style={{ background: primaryColor }}
+                    >{saving ? 'Saving...' : 'Save Changes'}</button>
+                    <button onClick={() => startEdit(null)} className="bg-white text-gray-700 border border-gray-300 rounded-lg px-4 py-2.5 cursor-pointer hover:bg-gray-50">Cancel</button>
                   </div>
                 </>
               )}
@@ -388,18 +379,18 @@ export default function Alumni({ user, school }) {
 
 function DrawerSection({ title, children }) {
   return (
-    <div style={{ marginBottom: '1.5rem' }}>
-      <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.75rem' }}>{title}</div>
-      <div style={{ display: 'grid', gap: '0.5rem' }}>{children}</div>
+    <div className="mb-6">
+      <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{title}</div>
+      <div className="grid gap-0">{children}</div>
     </div>
   )
 }
 
 function DrawerField({ label, value }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #f3f4f6' }}>
-      <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>{label}</span>
-      <span style={{ fontSize: '0.875rem', color: '#1f2937', fontWeight: '500', textAlign: 'right', maxWidth: '60%' }}>{value}</span>
+    <div className="flex justify-between py-2 border-b border-gray-100">
+      <span className="text-sm text-gray-500">{label}</span>
+      <span className="text-sm text-gray-800 font-medium text-right max-w-[60%]">{value}</span>
     </div>
   )
 }
