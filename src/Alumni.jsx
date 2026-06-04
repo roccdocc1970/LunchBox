@@ -1,4 +1,4 @@
-import { Lock, GraduationCap, Briefcase, Mail, X, Check, Backpack } from 'lucide-react'
+import { Lock, GraduationCap, Briefcase, Mail, X, Check, Backpack, Award } from 'lucide-react'
 import { useAlumni } from './hooks/useAlumni'
 import {
   RELATIONSHIPS, DONOR_STATUSES, CONTACT_METHODS,
@@ -36,7 +36,7 @@ export default function Alumni({ user, school }) {
 
       {/* Header */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 m-0">Alumni</h2>
+        <h2 className="text-2xl font-bold text-gray-800 m-0 flex items-center gap-2.5"><Award size={22} style={{ color: primaryColor }} />Alumni</h2>
         <p className="text-gray-500 mt-1">Track graduates and manage long-term relationships</p>
       </div>
 
@@ -49,16 +49,17 @@ export default function Alumni({ user, school }) {
       )}
 
       {/* Stat cards */}
-      <div className="grid gap-4 mb-6 grid-cols-[repeat(auto-fit,minmax(160px,1fr))]">
+      <div className="flex gap-4 mb-6 flex-wrap">
         {[
           { label: 'Total Alumni',  value: stats.total,        color: primaryColor },
           { label: 'Active Donors', value: stats.activeDonors, color: '#10b981' },
           { label: 'Prospects',     value: stats.prospects,    color: '#3b82f6' },
           { label: 'Opted In',      value: stats.optedIn,      color: '#8b5cf6' },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl px-5 py-4 shadow-sm border-t-4" style={{ borderTopColor: s.color }}>
-            <div className="text-3xl font-bold text-gray-800">{s.value}</div>
-            <div className="text-gray-500 text-xs mt-1">{s.label}</div>
+          <div key={s.label} className="bg-white rounded-xl px-5 py-3 shadow-sm flex items-center gap-3">
+            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.color }} />
+            <span className="font-semibold text-gray-800">{s.value}</span>
+            <span className="text-gray-500 text-sm">{s.label}</span>
           </div>
         ))}
       </div>

@@ -79,6 +79,16 @@ Two tabs: Take Attendance (date + grade picker, per-student Present/Absent/Tardy
 ### Application Portal (`ApplicationPortal.jsx`)
 Public-facing admissions form at `?apply=<school_uuid>`. Pulls school branding (name, logo, color). Fields: parent name/contact, student name, grade applying for, source, notes. Honeypot field for bot rejection. Validates required fields + at least one contact method. Inserts into `inquiries` as New Inquiry via anon Supabase policy. Branded success screen. Invalid ID shows graceful not-found page. Admissions module has "🔗 Copy Application Link" button that generates the shareable URL.
 
+### UI Design System (completed 2026-06-04)
+Full visual consistency pass across all pages:
+- **Lucide icon migration** — all emoji UI icons replaced with lucide-react components across every `.jsx` file and domain file. 🍱 brand logo preserved. Icon name strings stored in domain files; component lookup maps render them. See CLAUDE.md → Icon System.
+- **Page header convention** — every landing page now shows the matching left-nav Lucide icon (in `primaryColor`) to the left of the page title. Pattern documented in CLAUDE.md.
+- **Stat card convention** — all summary cards standardized to compact pill style (`rounded-xl px-5 py-3`, colored dot, count, label). Tall `border-t-4` cards removed from all pages. Stat cards appear above search/filter bars on every page.
+- **Nav label updates** — "Parents" → "Parent Directory"; "Facilities" → "Facility Requests" (matched to page headers).
+- **Dashboard** — stat cards and Quick Action cards redesigned to single-line layout (icon + label + value). 🍱 logo restored to top-nav left. Grey icon tone standardized.
+- **Messages** — now receives `school` prop for `primaryColor` consistency; stat card and brand-colored button added.
+- **Fundraising** — New Campaign/Event button moved to top-right header; tab icons added (Target, DollarSign, PartyPopper, Users).
+
 ### Service Layer (`src/services/`)
 All Supabase business logic extracted from React components into pure JS modules. 7 service files covering all domains. Dependency-injected Supabase client — same functions used by both UI (anon client, RLS enforced) and MCP server (service-role client, RLS bypassed). No code duplication. `getAcademicYear()` defined once in `enrollment.js`, imported everywhere. Cross-service imports use explicit `.js` extensions (Node ESM requirement).
 

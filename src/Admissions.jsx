@@ -1,4 +1,4 @@
-import { Check, Link, MailOpen, X, Backpack } from 'lucide-react'
+import { Check, Link, MailOpen, X, Backpack, ClipboardList } from 'lucide-react'
 import { useAdmissions } from './hooks/useAdmissions'
 import { STATUSES, SOURCES, STATUS_COLORS, SOURCE_COLORS, canConvertToStudent } from './domain/admissions'
 
@@ -35,7 +35,7 @@ export default function Admissions({ user, school, onNavigate }) {
       {/* Header */}
       <div className="flex justify-between items-center mb-7">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800 m-0">Admissions</h2>
+          <h2 className="text-2xl font-bold text-gray-800 m-0 flex items-center gap-2.5"><ClipboardList size={22} style={{ color: primaryColor }} />Admissions</h2>
           <p className="text-gray-500 mt-1 text-sm">Track prospective families from first contact to enrollment</p>
         </div>
         <div className="flex gap-2.5">
@@ -61,16 +61,17 @@ export default function Admissions({ user, school, onNavigate }) {
       </div>
 
       {/* Pipeline summary cards */}
-      <div className="grid grid-cols-4 gap-3.5 mb-6">
+      <div className="flex gap-3.5 mb-6 flex-wrap">
         {STATUSES.map(s => (
           <div
             key={s}
             onClick={() => toggleStatusFilter(s)}
-            className="bg-white rounded-2xl px-5 py-4 shadow-sm cursor-pointer transition-colors border-l-4"
-            style={{ borderLeftColor: filterStatus === s ? STATUS_COLORS[s] : '#e5e7eb' }}
+            className="bg-white rounded-xl px-5 py-3 shadow-sm flex items-center gap-3 cursor-pointer transition-all border-2"
+            style={{ borderColor: filterStatus === s ? STATUS_COLORS[s] : 'transparent' }}
           >
-            <div className="text-3xl font-bold" style={{ color: STATUS_COLORS[s] }}>{pipelineCounts[s]}</div>
-            <div className="text-xs text-gray-500 font-medium mt-0.5">{s}</div>
+            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: STATUS_COLORS[s] }} />
+            <span className="font-semibold text-gray-800">{pipelineCounts[s]}</span>
+            <span className="text-gray-500 text-sm">{s}</span>
           </div>
         ))}
       </div>

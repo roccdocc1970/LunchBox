@@ -17,7 +17,7 @@ export const NAV_GROUPS = [
   ]},
   { key: 'people', label: 'People', items: [
     { id: 'staff',   label: 'Staff',   icon: 'Briefcase' },
-    { id: 'parents', label: 'Parents', icon: 'Heart' },
+    { id: 'parents', label: 'Parent Directory', icon: 'Heart' },
     { id: 'alumni',  label: 'Alumni',  icon: 'Award' },
   ]},
   { key: 'operations', label: 'Operations', items: [

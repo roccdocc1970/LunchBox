@@ -313,7 +313,7 @@ export default function Classes({ user, school, openClassId, onClearOpenClass })
       {/* Header */}
       <div className="flex justify-between items-start mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800 m-0">Classes</h2>
+          <h2 className="text-2xl font-bold text-gray-800 m-0 flex items-center gap-2.5"><BookOpen size={22} style={{ color: primaryColor }} />Classes</h2>
           <p className="text-gray-500 mt-1">Manage your school's classes, subjects, and teacher assignments</p>
         </div>
         <button onClick={c.startAdd} className="text-white border-0 rounded-lg px-5 py-2.5 font-semibold cursor-pointer text-sm hover:opacity-90 transition-opacity" style={{ background: primaryColor }}>
@@ -325,7 +325,7 @@ export default function Classes({ user, school, openClassId, onClearOpenClass })
 
       {/* Stat cards */}
       <div className="flex gap-4 mb-6 flex-wrap">
-        <StatCard label="Total Classes" value={c.stats.total}    Icon={BookOpen} />
+        <StatCard label="Total Classes" value={c.stats.total}    color={primaryColor} />
         <StatCard label="Active"        value={c.stats.active}   color="#10b981" />
         <StatCard label="Inactive"      value={c.stats.inactive} color="#9ca3af" />
         {Object.entries(c.stats.byDivision).map(([div, count]) => (

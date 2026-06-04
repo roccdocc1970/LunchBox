@@ -33,7 +33,7 @@ export default function ReportCards({ user, school }) {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800 m-0">Report Cards</h2>
+          <h2 className="text-2xl font-bold text-gray-800 m-0 flex items-center gap-2.5"><FileText size={22} style={{ color: primaryColor }} />Report Cards</h2>
           <p className="text-gray-500 mt-1">Create and manage student report cards by term</p>
         </div>
         <button

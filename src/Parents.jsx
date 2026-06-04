@@ -1,4 +1,4 @@
-import { Mail, X } from 'lucide-react'
+import { Mail, X, Heart } from 'lucide-react'
 import { useParents } from './hooks/useParents'
 import { getDivision } from './domain/school'
 import { initials } from './domain/parents'
@@ -29,10 +29,19 @@ export default function Parents({ user, school, onCompose }) {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800 m-0">Parent Directory</h2>
+          <h2 className="text-2xl font-bold text-gray-800 m-0 flex items-center gap-2.5"><Heart size={22} style={{ color: primaryColor }} />Parent Directory</h2>
           <p className="text-gray-500 text-sm mt-1 mb-0">
             {filtered.length} parent{filtered.length !== 1 ? 's' : ''}
           </p>
+        </div>
+      </div>
+
+      {/* Stat card */}
+      <div className="flex gap-4 mb-6">
+        <div className="bg-white rounded-xl px-5 py-3 shadow-sm flex items-center gap-3">
+          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: primaryColor }} />
+          <span className="font-semibold text-gray-800">{parents.length}</span>
+          <span className="text-gray-500 text-sm">Total Parents</span>
         </div>
       </div>
 

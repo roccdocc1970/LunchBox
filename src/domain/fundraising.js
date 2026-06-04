@@ -24,10 +24,10 @@ export const PAYMENT_METHODS = [
 export const DONOR_TYPES = ['Alumni', 'Parent', 'External']
 
 export const TABS = [
-  { id: 'campaigns', label: '🎯 Campaigns' },
-  { id: 'donations', label: '💰 Donations' },
-  { id: 'events',    label: '🎉 Events' },
-  { id: 'donors',    label: '👥 Donors' },
+  { id: 'campaigns', label: 'Campaigns', icon: 'Target' },
+  { id: 'donations', label: 'Donations', icon: 'DollarSign' },
+  { id: 'events',    label: 'Events',    icon: 'PartyPopper' },
+  { id: 'donors',    label: 'Donors',    icon: 'Users' },
 ]
 
 export const CAMPAIGN_TYPE_COLORS = {

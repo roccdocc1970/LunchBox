@@ -1,4 +1,4 @@
-import { Calendar, Backpack, ClipboardList } from 'lucide-react'
+import { Calendar, Backpack, ClipboardList, ClipboardCheck } from 'lucide-react'
 import { useAttendance } from './hooks/useAttendance'
 import { STATUSES, ATTENDANCE_STATUS_COLORS } from './domain/attendance'
 
@@ -30,7 +30,7 @@ export default function Attendance({ user, school, schoolId: schoolIdProp = null
 
       {/* Header */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 m-0">Attendance</h2>
+        <h2 className="text-2xl font-bold text-gray-800 m-0 flex items-center gap-2.5"><ClipboardCheck size={22} style={{ color: primaryColor }} />Attendance</h2>
         <p className="text-gray-500 mt-1 mb-0">Daily attendance tracking</p>
       </div>
 

@@ -1,8 +1,9 @@
-import { Mail } from 'lucide-react'
+import { Mail, MessageSquare } from 'lucide-react'
 import { useMessages } from './hooks/useMessages'
 import { formatMessageDate } from './domain/messages'
 
-export default function Messages({ user }) {
+export default function Messages({ user, school }) {
+  const primaryColor = school?.primary_color || '#f97316'
   const {
     messages,
     loading,
@@ -22,15 +23,25 @@ export default function Messages({ user }) {
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800 m-0">Messages</h2>
+          <h2 className="text-2xl font-bold text-gray-800 m-0 flex items-center gap-2.5"><MessageSquare size={22} style={{ color: primaryColor }} />Messages</h2>
           <p className="text-gray-500 mt-1">Send announcements and messages to parents</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="bg-blue-500 hover:bg-blue-600 text-white border-0 rounded-lg px-5 py-2.5 font-semibold cursor-pointer text-base transition-colors"
+          className="text-white border-0 rounded-lg px-5 py-2.5 font-semibold cursor-pointer text-base hover:opacity-90 transition-opacity"
+          style={{ background: primaryColor }}
         >
           {showForm ? 'Cancel' : '+ New Message'}
         </button>
+      </div>
+
+      {/* Stat card */}
+      <div className="flex gap-4 mb-6">
+        <div className="bg-white rounded-xl px-5 py-3 shadow-sm flex items-center gap-3">
+          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: primaryColor }} />
+          <span className="font-semibold text-gray-800">{messages.length}</span>
+          <span className="text-gray-500 text-sm">Messages Sent</span>
+        </div>
       </div>
 
       {/* Success banner */}

@@ -114,9 +114,10 @@ function App() {
         {/* Top Nav */}
         <div className="px-6 py-3 flex items-center justify-between bg-white border-b border-gray-200 shadow-sm">
           <div className="flex items-center gap-3">
+            <span className="text-[1.6rem] leading-none">🍱</span>
             {sc.school?.logo_url
               ? <img src={sc.school.logo_url} alt="School logo" className="h-8 rounded object-contain" onError={e => e.target.style.display = 'none'} />
-              : <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold shrink-0" style={{ background: primaryColor }}>L</div>
+              : null
             }
             <div>
               <div className="font-bold text-gray-900 text-base leading-tight">{sc.school?.name || 'LunchBox'}</div>
@@ -213,7 +214,7 @@ function App() {
               <div className="p-8 max-w-6xl mx-auto">
                 <div className="flex items-start justify-between mb-8">
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-800 mb-1">Welcome, {sc.school?.name || 'Your School'} 👋</h2>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-1 flex items-center gap-2.5"><LayoutDashboard size={22} style={{ color: primaryColor }} />Welcome, {sc.school?.name || 'Your School'}</h2>
                     <p className="text-gray-500 m-0">Your school operations dashboard</p>
                   </div>
                   {setupDismissed && (() => {
@@ -249,9 +250,11 @@ function App() {
                     const Icon = DASHBOARD_STAT_ICONS[stat.icon]
                     return (
                     <div key={stat.label} className="bg-white rounded-2xl p-6 shadow-sm">
-                      <div className="mb-2">{Icon && <Icon size={28} style={{ color: stat.color }} />}</div>
-                      <div className="text-3xl font-bold text-gray-800">{stat.value}</div>
-                      <div className="text-gray-500 text-sm mt-1">{stat.label}</div>
+                      <div className="flex items-center gap-3">
+                        {Icon && <Icon size={22} className="text-gray-300 shrink-0" />}
+                        <div className="text-gray-500 text-sm">{stat.label}</div>
+                        <div className="text-3xl font-bold text-gray-800 ml-auto">{stat.value}</div>
+                      </div>
                     </div>
                   )})}
                 </div>
@@ -262,10 +265,11 @@ function App() {
                     const color = action.colorKey === 'primary' ? primaryColor : action.color
                     return (
                       <button key={action.label} onClick={() => setActivePage(action.page)}
-                        className="bg-white border-2 rounded-2xl p-5 cursor-pointer text-left shadow-sm hover:shadow-md transition-shadow"
-                        style={{ borderColor: color }}>
-                        <div className="mb-2">{NAV_ICONS[action.icon] && (() => { const Icon = NAV_ICONS[action.icon]; return <Icon size={28} style={{ color }} /> })()}</div>
-                        <div className="font-semibold" style={{ color }}>{action.label}</div>
+                        className="bg-white rounded-2xl p-6 cursor-pointer text-left shadow-sm hover:shadow-md transition-shadow border-0">
+                        <div className="flex items-center gap-3">
+                          {NAV_ICONS[action.icon] && (() => { const Icon = NAV_ICONS[action.icon]; return <Icon size={22} className="text-gray-300 shrink-0" /> })()}
+                          <div className="font-semibold text-gray-800">{action.label}</div>
+                        </div>
                       </button>
                     )
                   })}
@@ -276,7 +280,7 @@ function App() {
             {activePage === 'attendance'  && <Attendance  user={session.user} school={sc.school} />}
             {activePage === 'admissions'  && <Admissions  user={session.user} school={sc.school} onNavigate={setActivePage} />}
             {activePage === 'enrollment'  && <Enrollment  user={session.user} school={sc.school} />}
-            {activePage === 'messages'    && <Messages    user={session.user} />}
+            {activePage === 'messages'    && <Messages    user={session.user} school={sc.school} />}
             {activePage === 'students'    && <Students    user={session.user} school={sc.school} />}
             {activePage === 'staff'       && <Staff       user={session.user} school={sc.school} />}
             {activePage === 'alumni'      && <Alumni      user={session.user} school={sc.school} />}

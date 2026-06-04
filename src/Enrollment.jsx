@@ -1,4 +1,4 @@
-import { Lock, Search, X, Backpack } from 'lucide-react'
+import { Lock, Search, X, Backpack, UserPlus } from 'lucide-react'
 import { useEnrollment } from './hooks/useEnrollment'
 import { statusColor } from './domain/enrollment'
 
@@ -31,7 +31,7 @@ export default function Enrollment({ user, school }) {
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800 m-0">Enrollment</h2>
+          <h2 className="text-2xl font-bold text-gray-800 m-0 flex items-center gap-2.5"><UserPlus size={22} style={{ color: primaryColor }} />Enrollment</h2>
           <p className="text-gray-500 mt-1">Manage student applications and enrollment</p>
         </div>
         <button

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { AlertTriangle, Check, ClipboardList, Users, BookOpen, X, GraduationCap } from 'lucide-react'
+import { AlertTriangle, Check, ClipboardList, Users, BookOpen, X, GraduationCap, UsersRound } from 'lucide-react'
 import { useCohorts } from './hooks/useCohorts'
 import { COHORT_STATUS } from './domain/cohorts'
 import { DIVISION_COLORS, parseDivisions } from './domain/school'
@@ -204,7 +204,7 @@ export default function Cohorts({ user, school }) {
       {/* Header */}
       <div className="flex justify-between items-start mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800 m-0">Cohorts</h2>
+          <h2 className="text-2xl font-bold text-gray-800 m-0 flex items-center gap-2.5"><UsersRound size={22} style={{ color: primaryColor }} />Cohorts</h2>
           <p className="text-gray-500 mt-1 text-sm">Group students for shared academic journeys — assign cohorts to classes for automatic enrollment</p>
         </div>
         <button onClick={c.startAdd} className="text-white border-0 rounded-lg px-5 py-2.5 font-semibold cursor-pointer text-sm hover:opacity-90 transition-opacity" style={{ background: primaryColor }}>

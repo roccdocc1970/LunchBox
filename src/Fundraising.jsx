@@ -1,4 +1,4 @@
-import { DollarSign, Target, Users, PartyPopper, X, MapPin, GraduationCap, AlertTriangle } from 'lucide-react'
+import { DollarSign, Target, Users, PartyPopper, X, MapPin, GraduationCap, AlertTriangle, HeartHandshake } from 'lucide-react'
 import { useFundraising } from './hooks/useFundraising'
 import {
   CAMPAIGN_TYPES, CAMPAIGN_STATUSES, EVENT_TYPES, PAYMENT_METHODS, DONOR_TYPES, TABS,
@@ -38,9 +38,21 @@ export default function Fundraising({ user, school }) {
     <div className="p-8 max-w-6xl mx-auto">
 
       {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 m-0">Fundraising</h2>
-        <p className="text-gray-500 mt-1 mb-0">Campaigns, donations, events, and donor relationships</p>
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800 m-0 flex items-center gap-2.5"><HeartHandshake size={22} style={{ color: primaryColor }} />Fundraising</h2>
+          <p className="text-gray-500 mt-1 mb-0">Campaigns, donations, events, and donor relationships</p>
+        </div>
+        {activeTab === 'campaigns' && (
+          <button onClick={openNewCampaign} className="text-white border-0 rounded-lg px-5 py-2.5 font-semibold cursor-pointer hover:opacity-90 transition-opacity" style={{ background: primaryColor }}>
+            {showCampaignForm && !editingCampaign ? 'Cancel' : '+ New Campaign'}
+          </button>
+        )}
+        {activeTab === 'events' && (
+          <button onClick={() => setShowEventForm(f => !f)} className="text-white border-0 rounded-lg px-5 py-2.5 font-semibold cursor-pointer hover:opacity-90 transition-opacity" style={{ background: primaryColor }}>
+            {showEventForm ? 'Cancel' : '+ New Event'}
+          </button>
+        )}
       </div>
 
       {/* Tab bar */}
@@ -51,7 +63,10 @@ export default function Fundraising({ user, school }) {
             onClick={() => setActiveTab(tab.id)}
             className={`px-5 py-2 rounded-lg border-0 cursor-pointer text-sm transition-all ${activeTab === tab.id ? 'font-semibold text-white' : 'font-normal text-gray-500'}`}
             style={{ background: activeTab === tab.id ? primaryColor : 'transparent' }}
-          >{tab.label}</button>
+          >
+            {(() => { const Icon = { Target, DollarSign, PartyPopper, Users }[tab.icon]; return Icon ? <Icon size={14} className="inline mr-1.5" /> : null })()}
+            {tab.label}
+          </button>
         ))}
       </div>
 
@@ -59,25 +74,19 @@ export default function Fundraising({ user, school }) {
       {activeTab === 'campaigns' && (
         <>
           {/* Stats */}
-          <div className="grid gap-4 mb-6 grid-cols-[repeat(auto-fit,minmax(160px,1fr))]">
+          <div className="flex gap-4 mb-6 flex-wrap">
             {[
-              { label: 'Total Raised',     value: fmt(stats.totalRaised),  Icon: DollarSign,   color: '#10b981' },
-              { label: 'Active Campaigns', value: stats.activeCampaigns,   Icon: Target,       color: primaryColor },
-              { label: 'Total Donors',     value: stats.uniqueDonors,      Icon: Users,        color: '#8b5cf6' },
-              { label: 'Events',           value: stats.eventCount,        Icon: PartyPopper,  color: '#f59e0b' },
+              { label: 'Total Raised',     value: fmt(stats.totalRaised),  color: '#10b981' },
+              { label: 'Active Campaigns', value: stats.activeCampaigns,   color: primaryColor },
+              { label: 'Total Donors',     value: stats.uniqueDonors,      color: '#8b5cf6' },
+              { label: 'Events',           value: stats.eventCount,        color: '#f59e0b' },
             ].map(s => (
-              <div key={s.label} className="bg-white rounded-2xl p-5 shadow-sm border-t-4" style={{ borderTopColor: s.color }}>
-                <div className="mb-1">{s.Icon ? <s.Icon size={22} style={{ color: s.color }} /> : null}</div>
-                <div className="text-3xl font-bold text-gray-800 leading-none">{s.value}</div>
-                <div className="text-gray-500 text-xs mt-1">{s.label}</div>
+              <div key={s.label} className="bg-white rounded-xl px-5 py-3 shadow-sm flex items-center gap-3">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.color }} />
+                <span className="font-semibold text-gray-800">{s.value}</span>
+                <span className="text-gray-500 text-sm">{s.label}</span>
               </div>
             ))}
-          </div>
-
-          <div className="flex justify-end mb-4">
-            <button onClick={openNewCampaign} className="text-white border-0 rounded-lg px-5 py-2 font-semibold cursor-pointer hover:opacity-90 transition-opacity" style={{ background: primaryColor }}>
-              {showCampaignForm && !editingCampaign ? 'Cancel' : '+ New Campaign'}
-            </button>
           </div>
 
           {showCampaignForm && (
@@ -378,8 +387,8 @@ export default function Fundraising({ user, school }) {
       {/* ── Events Tab ── */}
       {activeTab === 'events' && (
         <>
-          <div className="flex justify-end mb-4">
-            <button onClick={() => setShowEventForm(f => !f)} className="text-white border-0 rounded-lg px-5 py-2 font-semibold cursor-pointer hover:opacity-90 transition-opacity" style={{ background: primaryColor }}>
+          <div className="hidden">
+            <button onClick={() => setShowEventForm(f => !f)}>
               {showEventForm ? 'Cancel' : '+ New Event'}
             </button>
           </div>
@@ -454,17 +463,17 @@ export default function Fundraising({ user, school }) {
       {/* ── Donors Tab ── */}
       {activeTab === 'donors' && (
         <>
-          <div className="grid gap-4 mb-6 grid-cols-[repeat(auto-fit,minmax(160px,1fr))]">
+          <div className="flex gap-4 mb-6 flex-wrap">
             {[
-              { label: 'Total Donors',  value: donorList.length,                                                    Icon: Users,          color: '#8b5cf6' },
-              { label: 'Alumni Donors', value: donorList.filter(d => d.donor_type === 'Alumni').length,             Icon: GraduationCap,  color: '#6366f1' },
-              { label: 'LYBUNT',        value: lybunt.length,                                                       Icon: AlertTriangle,  color: '#f59e0b' },
-              { label: 'Prospects',     value: alumniProspects.filter(a => a.donor_status === 'Prospect').length,   Icon: Target,         color: primaryColor },
+              { label: 'Total Donors',  value: donorList.length,                                                    color: '#8b5cf6' },
+              { label: 'Alumni Donors', value: donorList.filter(d => d.donor_type === 'Alumni').length,             color: '#6366f1' },
+              { label: 'LYBUNT',        value: lybunt.length,                                                       color: '#f59e0b' },
+              { label: 'Prospects',     value: alumniProspects.filter(a => a.donor_status === 'Prospect').length,   color: primaryColor },
             ].map(s => (
-              <div key={s.label} className="bg-white rounded-2xl p-5 shadow-sm border-t-4" style={{ borderTopColor: s.color }}>
-                <div className="mb-1">{s.Icon ? <s.Icon size={22} style={{ color: s.color }} /> : null}</div>
-                <div className="text-3xl font-bold text-gray-800 leading-none">{s.value}</div>
-                <div className="text-gray-500 text-xs mt-1">{s.label}</div>
+              <div key={s.label} className="bg-white rounded-xl px-5 py-3 shadow-sm flex items-center gap-3">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.color }} />
+                <span className="font-semibold text-gray-800">{s.value}</span>
+                <span className="text-gray-500 text-sm">{s.label}</span>
               </div>
             ))}
           </div>

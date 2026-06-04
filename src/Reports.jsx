@@ -1,7 +1,7 @@
 import {
   Backpack, CheckCircle, ClipboardList, Calendar, XCircle, Clock,
   AlertTriangle, Users, GraduationCap, PauseCircle, DollarSign,
-  Target, Trophy, Gift, FolderOpen, Settings2, Wrench, Check, X, Mail,
+  Target, Trophy, Gift, FolderOpen, Settings2, Wrench, Check, X, Mail, BarChart3,
 } from 'lucide-react'
 import { useReports } from './hooks/useReports'
 
@@ -29,17 +29,14 @@ const tdCls = 'px-3 py-2.5'
 
 function StatCards({ stats }) {
   return (
-    <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
-      {stats.map(s => {
-        const Icon = REPORT_ICON_MAP[s.icon]
-        return (
-          <div key={s.label} className="bg-white rounded-2xl p-5 shadow-sm border-t-4" style={{ borderTopColor: s.color }}>
-            <div className="mb-1">{Icon ? <Icon size={22} style={{ color: s.color }} /> : null}</div>
-            <div className="text-3xl font-bold text-gray-800 leading-none">{s.value}</div>
-            <div className="text-gray-500 text-xs mt-1">{s.label}</div>
-          </div>
-        )
-      })}
+    <div className="flex gap-4 mb-6 flex-wrap">
+      {stats.map(s => (
+        <div key={s.label} className="bg-white rounded-xl px-5 py-3 shadow-sm flex items-center gap-3">
+          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.color }} />
+          <span className="font-semibold text-gray-800">{s.value}</span>
+          <span className="text-gray-500 text-sm">{s.label}</span>
+        </div>
+      ))}
     </div>
   )
 }
@@ -84,7 +81,7 @@ export default function Reports({ user, school }) {
     <div className="p-8 max-w-6xl mx-auto">
 
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 m-0">Report Dashboards</h2>
+        <h2 className="text-2xl font-bold text-gray-800 m-0 flex items-center gap-2.5"><BarChart3 size={22} style={{ color: primaryColor }} />Report Dashboards</h2>
         <p className="text-gray-500 mt-1 mb-0">School activity and analytics</p>
       </div>
 

@@ -1,6 +1,6 @@
 import {
   Sparkles, AlertTriangle, Check, Bell, GraduationCap, DoorOpen,
-  ArrowUpRight, X, Building2,
+  ArrowUpRight, X, Building2, CalendarDays,
 } from 'lucide-react'
 import { useScheduling }                  from './hooks/useScheduling'
 import { DIVISION_COLORS, parseDivisions } from './domain/school'
@@ -21,7 +21,7 @@ export default function Scheduling({ user, school, onNavigateToClass }) {
       {/* Header */}
       <div className="flex items-start justify-between mb-5 flex-wrap gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800 m-0">Schedule</h2>
+          <h2 className="text-2xl font-bold text-gray-800 m-0 flex items-center gap-2.5"><CalendarDays size={22} style={{ color: primaryColor }} />Schedule</h2>
           <p className="text-gray-500 mt-1 text-sm">Assign classes to periods · drag to reschedule · auto-schedule for a first pass</p>
         </div>
 

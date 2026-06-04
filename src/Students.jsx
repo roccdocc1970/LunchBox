@@ -1,4 +1,4 @@
-import { Lock, Backpack } from 'lucide-react'
+import { Lock, Backpack, Users } from 'lucide-react'
 import { useStudents } from './hooks/useStudents'
 import { getDivision } from './domain/school'
 import { statusColor, parentDisplayName } from './domain/students'
@@ -16,7 +16,7 @@ export default function Students({ user, school }) {
     <div className="p-8 max-w-6xl mx-auto">
 
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 m-0">Students</h2>
+        <h2 className="text-2xl font-bold text-gray-800 m-0 flex items-center gap-2.5"><Users size={22} style={{ color: primaryColor }} />Students</h2>
         <p className="text-gray-500 mt-1">View and manage your student roster</p>
       </div>
 
@@ -27,6 +27,21 @@ export default function Students({ user, school }) {
           <span className="text-sm text-red-800"><strong>Grade editing is locked.</strong> Complete your Academic Configuration in <strong>Settings → Academic Config</strong> before assigning grades to students.</span>
         </div>
       )}
+
+      {/* Stats */}
+      <div className="flex gap-4 mb-6 flex-wrap">
+        {['Enrolled', 'Applied', 'Waitlisted'].map(s => (
+          <div key={s} className="bg-white rounded-xl px-5 py-3 shadow-sm flex items-center gap-3">
+            <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: statusColor(s) }} />
+            <span className="font-semibold text-gray-800">{h.stats[s.toLowerCase()]}</span>
+            <span className="text-gray-500 text-sm">{s}</span>
+          </div>
+        ))}
+        <div className="bg-white rounded-xl px-5 py-3 shadow-sm flex items-center gap-3">
+          <span className="font-semibold text-gray-800">{h.stats.total}</span>
+          <span className="text-gray-500 text-sm">Total</span>
+        </div>
+      </div>
 
       {/* Filters */}
       <div className="flex gap-4 mb-6 flex-wrap">
@@ -63,21 +78,6 @@ export default function Students({ user, school }) {
         {h.hasFilters && (
           <button onClick={h.clearFilters} className="bg-transparent border border-gray-300 rounded-lg px-4 py-2 cursor-pointer text-gray-500 text-sm hover:bg-gray-50">Clear</button>
         )}
-      </div>
-
-      {/* Stats */}
-      <div className="flex gap-4 mb-6 flex-wrap">
-        {['Enrolled', 'Applied', 'Waitlisted'].map(s => (
-          <div key={s} className="bg-white rounded-xl px-5 py-3 shadow-sm flex items-center gap-3">
-            <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: statusColor(s) }} />
-            <span className="font-semibold text-gray-800">{h.stats[s.toLowerCase()]}</span>
-            <span className="text-gray-500 text-sm">{s}</span>
-          </div>
-        ))}
-        <div className="bg-white rounded-xl px-5 py-3 shadow-sm flex items-center gap-3">
-          <span className="font-semibold text-gray-800">{h.stats.total}</span>
-          <span className="text-gray-500 text-sm">Total</span>
-        </div>
       </div>
 
       {/* Roster table */}

@@ -13,6 +13,8 @@ LunchBox is a **K-12 School Operations SaaS Platform** — enrollment, communica
 
 > **Tailwind CSS refactor is complete.** All 22 `.jsx` files have been migrated. All static `style={{}}` have been replaced with Tailwind classes. Inline `style={{}}` is now used only for runtime-dynamic values (primaryColor, division colors, status/type color maps).
 
+> **Lucide icon migration is complete.** All emoji icons have been replaced with Lucide React components across every page and domain file. The 🍱 LunchBox brand logo is intentionally preserved (no Lucide equivalent). Friendly inline text decorators (e.g. "Great attendance! 🎉") are also preserved.
+
 ---
 
 ## Live URLs & Accounts
@@ -66,7 +68,7 @@ SCHOOL_ID=41beb9b7-ec0c-45f3-9a71-8f94cdd98078  # schools.user_id (NOT schools.i
 | `src/Settings.jsx` | School settings — profile, academic config, bell schedule, campus (buildings + nested rooms), communication, appearance |
 | `src/Students.jsx` | Student roster, profile drawer, health records, incidents, grade progression |
 | `src/Enrollment.jsx` | Enrollment module |
-| `src/Admissions.jsx` | Admissions pipeline — inquiry tracking, convert to student, Copy Application Link |
+| `src/Admissions.jsx` | Admissions pipeline — inquiry tracking, convert to student, Copy Application Link. Pipeline stat cards use compact pill style. |
 | `src/Attendance.jsx` | Daily attendance — take by grade or all grades, history, upsert per student/date |
 | `src/ApplicationPortal.jsx` | Public-facing application form at `?apply=<school_uuid>` — no auth, feeds inquiries |
 | `src/Parents.jsx` | Parent directory — linked students, edit contact, message |
@@ -537,8 +539,8 @@ Groups are collapsible (default expanded). Settings/Wizard live in ⚙️ top-na
 
 - **Dashboard** — standalone. Getting Started checklist widget (7 steps, dismissable, re-openable, turns green when all done).
 - **Academics** (`academics`): Admissions, School Enrollment, Students, Classes, Cohorts, Schedule, Attendance, Report Cards
-- **People** (`people`): Staff, Parents, Alumni
-- **Operations** (`operations`): Fundraising, Facility Requests
+- **People** (`people`): Staff, Parent Directory, Alumni
+- **Operations** (`operations`): Fundraising, Facility Requests (label matches `Facilities.jsx` page header)
 - **Communicate** (`communicate`): Messages, Reports
 
 > Nav order reflects the logical data-entry sequence. Rooms is no longer in the nav — managed via Settings → Campus tab.
@@ -569,6 +571,96 @@ All staff-accessible tables have two policy layers:
 - **Staff:** `school_id = get_staff_school_id()` — SECURITY DEFINER function that looks up school_id from staff table
 
 Tables with staff policies: `schools` (read), `students` (read), `parents` (read), `incidents` (read/insert/update), `report_cards` (read/insert/update), `staff` (read own + update auth_user_id), `work_orders` (read/insert/update), `student_health` (read), `student_health_entries` (read)
+
+---
+
+## Icon System
+
+All icons use **lucide-react**. Never use emoji as UI icons. The 🍱 brand logo is the only permitted emoji in the UI.
+
+### Icon import pattern
+```jsx
+import { Users, BookOpen, AlertTriangle } from 'lucide-react'
+```
+
+### Icon name → purpose mapping (used across the app)
+| Icon | Used for |
+|---|---|
+| `LayoutDashboard` | Dashboard nav + page header |
+| `ClipboardList` | Admissions nav + header |
+| `UserPlus` | Enrollment nav + header |
+| `Users` | Students nav + header; people counts |
+| `BookOpen` | Classes nav + header |
+| `UsersRound` | Cohorts nav + header |
+| `CalendarDays` | Schedule nav + header |
+| `ClipboardCheck` | Attendance nav + header |
+| `FileText` | Report Cards nav + header |
+| `Briefcase` | Staff nav + header |
+| `Heart` | Parent Directory nav + header |
+| `Award` | Alumni nav + header |
+| `HeartHandshake` | Fundraising nav + header |
+| `Wrench` | Facility Requests nav + header; WO category |
+| `MessageSquare` | Messages nav + header |
+| `BarChart3` | Report Dashboards nav + header |
+| `Lock` | Grade-locked nudge banners |
+| `AlertTriangle` | Warnings, errors, orphaned grades |
+| `Check` / `X` | Success/dismiss actions, published status |
+| `Backpack` | Student empty states |
+| `GraduationCap` | Alumni empty states; Graduate to Alumni button; teacher display |
+| `DoorOpen` | Room display |
+| `Building2` | Buildings empty state / header |
+| `Bell` | Bell Schedule empty state |
+| `Sparkles` | Auto-schedule, Setup Wizard button |
+
+### CATEGORY_ICONS pattern (Facilities & StaffDashboard)
+Domain files store Lucide icon **name strings** (e.g. `'Wrench'`). Components maintain a local lookup map and render the component:
+```js
+// domain/facilities.js
+export const CATEGORY_ICONS = { Plumbing: 'Droplets', Electrical: 'Zap', ... }
+
+// Facilities.jsx
+const CAT_ICON_COMPONENTS = { Droplets, Zap, ... }
+function CatIcon({ category }) {
+  const Icon = CAT_ICON_COMPONENTS[CATEGORY_ICONS[category]] || Wrench
+  return <Icon size={14} />
+}
+```
+
+---
+
+## Page Header Convention
+
+**Every landing page header must follow this pattern** — nav icon in `primaryColor` + page title on the same line:
+
+```jsx
+<h2 className="text-2xl font-bold text-gray-800 m-0 flex items-center gap-2.5">
+  <BookOpen size={22} style={{ color: primaryColor }} />Classes
+</h2>
+```
+
+Use the **same icon** that appears in the left nav for that page (defined in `domain/app.js`). Always import the icon in the component file before using it.
+
+---
+
+## Stat Card Convention
+
+**All summary stat cards across the app use the compact pill style:**
+
+```jsx
+<div className="flex gap-4 mb-6 flex-wrap">
+  <div className="bg-white rounded-xl px-5 py-3 shadow-sm flex items-center gap-3">
+    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: color }} />
+    <span className="font-semibold text-gray-800">{value}</span>
+    <span className="text-gray-500 text-sm">{label}</span>
+  </div>
+</div>
+```
+
+- Use `flex` + `flex-wrap`, not `grid`
+- `rounded-xl px-5 py-3 shadow-sm`
+- Colored dot (`w-2.5 h-2.5 rounded-full`) using the stat's accent color
+- No large icons, no `border-t-4`, no tall card layout
+- Stat cards go **above** search/filter bars on every page
 
 ---
 

@@ -1,4 +1,4 @@
-import { Lock, Mail, Phone, AlertTriangle, X, GraduationCap } from 'lucide-react'
+import { Lock, Mail, Phone, AlertTriangle, X, GraduationCap, Briefcase } from 'lucide-react'
 import { useStaff } from './hooks/useStaff'
 import { ROLES, getRoleColor, parseGradeAssignments, getOrphanedGrades, getAssignmentDivisions } from './domain/staff'
 import { getDivision, parseDivisions } from './domain/school'
@@ -37,7 +37,7 @@ export default function Staff({ user, school }) {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800 m-0">Staff</h2>
+          <h2 className="text-2xl font-bold text-gray-800 m-0 flex items-center gap-2.5"><Briefcase size={22} style={{ color: primaryColor }} />Staff</h2>
           <p className="text-gray-500 mt-1">Manage your school's staff directory</p>
         </div>
         <button
