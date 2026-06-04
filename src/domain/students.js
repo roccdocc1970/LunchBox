@@ -44,8 +44,8 @@ export const HEALTH_CATEGORY_COLORS = {
 }
 
 export const HEALTH_CATEGORY_ICONS = {
-  Allergy: '⚠️', Medication: '💊', Immunization: '💉',
-  Condition: '🩺', Injury: '🩹', Other: '📋',
+  Allergy: 'AlertTriangle', Medication: 'Pill', Immunization: 'Syringe',
+  Condition: 'Stethoscope', Injury: 'Bandage', Other: 'ClipboardList',
 }
 
 export const BLANK_HEALTH_ENTRY = {

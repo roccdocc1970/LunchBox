@@ -41,8 +41,8 @@ export const SETUP_STEPS = [
 ]
 
 export const QUICK_ACTIONS = [
-  { label: 'New Enrollment',     icon: '➕', colorKey: 'primary', page: 'enrollment' },
-  { label: 'Send Message',       icon: '✉️', color: '#3b82f6',   page: 'messages'   },
-  { label: 'View Students',      icon: '🎒', color: '#8b5cf6',   page: 'students'   },
-  { label: 'Report Dashboards',  icon: '📊', color: '#10b981',   page: 'reports'    },
+  { label: 'New Enrollment',     icon: 'UserPlus',   colorKey: 'primary', page: 'enrollment' },
+  { label: 'Send Message',       icon: 'MessageSquare', color: '#3b82f6', page: 'messages'   },
+  { label: 'View Students',      icon: 'Users',      color: '#8b5cf6',   page: 'students'   },
+  { label: 'Report Dashboards',  icon: 'BarChart3',  color: '#10b981',   page: 'reports'    },
 ]

@@ -1,3 +1,7 @@
+import {
+  School, BookOpen, Bell, Building2, Mail, Palette,
+  Check, X, ChevronUp, ChevronDown, AlertTriangle, Users,
+} from 'lucide-react'
 import { useSettings } from './hooks/useSettings'
 import { useSchedule } from './hooks/useSchedule'
 import { useBuildings } from './hooks/useBuildings'
@@ -36,13 +40,15 @@ export default function Settings({ user, school, onUpdate }) {
     .map((d, i) => ({ ...d, color: DIVISION_COLORS[i % DIVISION_COLORS.length] }))
     .filter(d => d.grades?.length > 0)
 
+  const SETTINGS_TAB_ICONS = { profile: School, academic: BookOpen, schedule: Bell, campus: Building2, communication: Mail, appearance: Palette }
+
   const tabs = [
-    { id: 'profile',       label: 'School Profile',  icon: '🏫' },
-    { id: 'academic',      label: 'Academic Config',  icon: '📚' },
-    { id: 'schedule',      label: 'Bell Schedule',    icon: '🔔' },
-    { id: 'campus',        label: 'Campus',           icon: '🏛️' },
-    { id: 'communication', label: 'Communication',    icon: '✉️' },
-    { id: 'appearance',    label: 'Appearance',       icon: '🎨' },
+    { id: 'profile',       label: 'School Profile',  },
+    { id: 'academic',      label: 'Academic Config',  },
+    { id: 'schedule',      label: 'Bell Schedule',    },
+    { id: 'campus',        label: 'Campus',           },
+    { id: 'communication', label: 'Communication',    },
+    { id: 'appearance',    label: 'Appearance',       },
   ]
 
   return (
@@ -67,7 +73,7 @@ export default function Settings({ user, school, onUpdate }) {
               color:       activeTab === tab.id ? 'white' : '#6b7280',
             }}
           >
-            <span>{tab.icon}</span><span>{tab.label}</span>
+            {(() => { const Icon = SETTINGS_TAB_ICONS[tab.id]; return Icon ? <Icon size={15} /> : null })()}<span>{tab.label}</span>
           </button>
         ))}
       </div>
@@ -142,7 +148,7 @@ export default function Settings({ user, school, onUpdate }) {
                     style={{ borderColor: checked ? primaryColor : '#e5e7eb', background: checked ? primaryColor + '12' : 'white' }}>
                     <div className="w-4 h-4 rounded flex items-center justify-center shrink-0 border-2 transition-colors"
                       style={{ borderColor: checked ? primaryColor : '#d1d5db', background: checked ? primaryColor : 'white' }}>
-                      {checked && <span className="text-white text-[0.6rem] font-bold">✓</span>}
+                      {checked && <Check size={10} className="text-white" />}
                     </div>
                     <span className="text-sm" style={{ color: checked ? primaryColor : '#374151', fontWeight: checked ? '600' : '400' }}>{grade}</span>
                   </div>
@@ -207,7 +213,7 @@ export default function Settings({ user, school, onUpdate }) {
                       <input value={div.name} onChange={e => updateDivisionName(i, e.target.value)}
                         className="flex-1 rounded-lg px-3 py-2 outline-none text-sm font-semibold"
                         style={{ border: `1px solid ${color}40`, color, background: 'white' }} />
-                      <button onClick={() => removeDivision(i)} className="bg-transparent border border-gray-200 rounded-md px-2 py-1 cursor-pointer text-gray-400 text-sm hover:border-gray-400">✕</button>
+                      <button onClick={() => removeDivision(i)} className="bg-transparent border border-gray-200 rounded-md px-2 py-1 cursor-pointer text-gray-400 hover:border-gray-400 flex items-center"><X size={14} /></button>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {academic.grades_offered.length === 0 && (
@@ -319,8 +325,8 @@ export default function Settings({ user, school, onUpdate }) {
           </div>
 
           {/* Feedback */}
-          {bld.success && <p className="text-green-700 text-sm mb-4 font-medium">✓ {bld.success}</p>}
-          {rm.success  && <p className="text-green-700 text-sm mb-4 font-medium">✓ {rm.success}</p>}
+          {bld.success && <p className="text-green-700 text-sm mb-4 font-medium flex items-center gap-1"><Check size={14} />{bld.success}</p>}
+          {rm.success  && <p className="text-green-700 text-sm mb-4 font-medium flex items-center gap-1"><Check size={14} />{rm.success}</p>}
           {bld.error && !bld.showForm && <p className="text-red-500 text-sm mb-4">{bld.error}</p>}
 
           {/* Building add/edit form */}
@@ -347,9 +353,9 @@ export default function Settings({ user, school, onUpdate }) {
                     {bld.form.floors.map((floor, i) => (
                       <div key={floor} className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg">
                         <span className="flex-1 text-sm text-gray-700">{floor}</span>
-                        <button onClick={() => bld.moveFloor(floor, -1)} disabled={i === 0} className={`border border-gray-200 rounded px-1.5 py-0.5 text-xs ${i === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 cursor-pointer hover:bg-gray-50'}`}>↑</button>
-                        <button onClick={() => bld.moveFloor(floor, 1)} disabled={i === bld.form.floors.length - 1} className={`border border-gray-200 rounded px-1.5 py-0.5 text-xs ${i === bld.form.floors.length - 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 cursor-pointer hover:bg-gray-50'}`}>↓</button>
-                        <button onClick={() => bld.removeFloor(floor)} className="border border-red-200 rounded px-1.5 py-0.5 text-xs text-red-400 cursor-pointer hover:bg-red-50">✕</button>
+                        <button onClick={() => bld.moveFloor(floor, -1)} disabled={i === 0} className={`border border-gray-200 rounded px-1.5 py-0.5 flex items-center ${i === 0 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 cursor-pointer hover:bg-gray-50'}`}><ChevronUp size={12} /></button>
+                        <button onClick={() => bld.moveFloor(floor, 1)} disabled={i === bld.form.floors.length - 1} className={`border border-gray-200 rounded px-1.5 py-0.5 flex items-center ${i === bld.form.floors.length - 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-500 cursor-pointer hover:bg-gray-50'}`}><ChevronDown size={12} /></button>
+                        <button onClick={() => bld.removeFloor(floor)} className="border border-red-200 rounded px-1.5 py-0.5 text-red-400 cursor-pointer hover:bg-red-50 flex items-center"><X size={12} /></button>
                       </div>
                     ))}
                   </div>
@@ -371,7 +377,7 @@ export default function Settings({ user, school, onUpdate }) {
             <p className="text-gray-400 text-sm">Loading…</p>
           ) : bld.buildings.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
-              <div className="text-4xl mb-3">🏛️</div>
+              <div className="mb-3 flex justify-center"><Building2 size={40} className="text-gray-300" /></div>
               <p className="m-0">No buildings yet. Add your first building to get started.</p>
             </div>
           ) : (
@@ -412,8 +418,8 @@ export default function Settings({ user, school, onUpdate }) {
                       ) : (
                         <div className="flex gap-1.5 items-center">
                           <button onClick={e => { e.stopPropagation(); bld.openEdit(building) }} className="text-xs font-semibold border rounded-md px-2.5 py-1 cursor-pointer hover:opacity-80" style={{ color: primaryColor, borderColor: primaryColor, background: 'none' }}>Edit</button>
-                          <button onClick={e => { e.stopPropagation(); bld.setDeleteId(building.id) }} className="text-xs text-gray-400 bg-transparent border border-gray-200 rounded-md px-2 py-1 cursor-pointer hover:border-gray-400">✕</button>
-                          <span className="text-xs text-gray-300">{isExpanded ? '▲' : '▼'}</span>
+                          <button onClick={e => { e.stopPropagation(); bld.setDeleteId(building.id) }} className="text-gray-400 bg-transparent border border-gray-200 rounded-md px-2 py-1 cursor-pointer hover:border-gray-400 flex items-center"><X size={12} /></button>
+                          <span className="text-gray-300 flex items-center">{isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</span>
                         </div>
                       )}
                     </div>
@@ -497,16 +503,16 @@ export default function Settings({ user, school, onUpdate }) {
                                       <span className="font-semibold text-gray-800 text-sm">{room.name}</span>
                                       <span className="text-[0.68rem] font-bold rounded-full px-2 py-0.5" style={{ color: rc, background: rc + '15' }}>{room.type}</span>
                                       {room.floor    && <span className="text-[0.68rem] text-gray-400">{room.floor}</span>}
-                                      {room.capacity && <span className="text-[0.68rem] text-gray-400">👥 {room.capacity}</span>}
+                                      {room.capacity && <span className="text-[0.68rem] text-gray-400 flex items-center gap-0.5"><Users size={10} /> {room.capacity}</span>}
                                       {roomDivs.map(d => {
                                         const dv = divisions.find(x => x.name === d)
                                         const dc = dv?.color || '#6b7280'
                                         return <span key={d} className="text-[0.65rem] font-semibold rounded-full px-1.5 py-0.5" style={{ color: dc, background: dc + '15' }}>{d}</span>
                                       })}
                                     </div>
-                                    <span className="text-[0.7rem] text-gray-300">{isOpen ? '▲' : '▼'}</span>
+                                    <span className="text-gray-300 flex items-center">{isOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}</span>
                                   </div>
-                                  {overCap.length > 0 && <div className="text-[0.7rem] text-amber-800 mt-0.5">⚠️ Over capacity: {overCap.map(c => c.name).join(', ')}</div>}
+                                  {overCap.length > 0 && <div className="text-[0.7rem] text-amber-800 mt-0.5 flex items-center gap-0.5"><AlertTriangle size={10} /> Over capacity: {overCap.map(c => c.name).join(', ')}</div>}
                                   {isOpen && (
                                     <div className="flex gap-2 mt-2.5 pt-2.5 border-t border-gray-100">
                                       <button onClick={e => { e.stopPropagation(); rm.startEdit(room); bld.setExpandedId(building.id) }} className="text-white border-0 rounded-md px-3.5 py-1.5 font-semibold cursor-pointer text-xs hover:opacity-90" style={{ background: primaryColor }}>Edit</button>
@@ -559,7 +565,7 @@ export default function Settings({ user, school, onUpdate }) {
             )}
           </div>
 
-          {sc.success && <p className="text-green-700 text-sm mb-4 font-medium">✓ {sc.success}</p>}
+          {sc.success && <p className="text-green-700 text-sm mb-4 font-medium flex items-center gap-1"><Check size={14} />{sc.success}</p>}
           {sc.error && !sc.showForm && <p className="text-red-500 text-sm mb-4">{sc.error}</p>}
 
           {/* Period add/edit form */}
@@ -590,7 +596,7 @@ export default function Settings({ user, school, onUpdate }) {
             <p className="text-gray-400 text-sm">Loading…</p>
           ) : sc.periods.length === 0 ? (
             <div className="text-center py-12 text-gray-400">
-              <div className="text-4xl mb-3">🔔</div>
+              <div className="mb-3 flex justify-center"><Bell size={40} className="text-gray-300" /></div>
               <p className="m-0">No periods yet. Add your first period to build your bell schedule.</p>
             </div>
           ) : (
@@ -618,7 +624,7 @@ export default function Settings({ user, school, onUpdate }) {
                     ) : (
                       <div className="flex gap-1.5">
                         <button onClick={() => sc.openEdit(period)} className="text-xs font-semibold border rounded-md px-2.5 py-1 cursor-pointer hover:opacity-80" style={{ color: primaryColor, borderColor: primaryColor, background: 'none' }}>Edit</button>
-                        <button onClick={() => sc.setDeleteId(period.id)} className="text-xs text-gray-400 bg-transparent border border-gray-200 rounded-md px-2 py-1 cursor-pointer hover:border-gray-400">✕</button>
+                        <button onClick={() => sc.setDeleteId(period.id)} className="text-gray-400 bg-transparent border border-gray-200 rounded-md px-2 py-1 cursor-pointer hover:border-gray-400 flex items-center"><X size={12} /></button>
                       </div>
                     )}
                   </div>
@@ -644,7 +650,7 @@ function SaveBar({ saving, success, error, onSave, primaryColor = '#f97316' }) {
         style={{ background: primaryColor }}>
         {saving ? 'Saving...' : 'Save Changes'}
       </button>
-      {success && <span className="text-green-700 text-sm font-medium">✓ {success}</span>}
+      {success && <span className="text-green-700 text-sm font-medium flex items-center gap-1"><Check size={14} />{success}</span>}
       {error   && <span className="text-red-500 text-sm">{error}</span>}
     </div>
   )

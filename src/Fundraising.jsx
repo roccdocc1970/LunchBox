@@ -1,3 +1,4 @@
+import { DollarSign, Target, Users, PartyPopper, X, MapPin, GraduationCap, AlertTriangle } from 'lucide-react'
 import { useFundraising } from './hooks/useFundraising'
 import {
   CAMPAIGN_TYPES, CAMPAIGN_STATUSES, EVENT_TYPES, PAYMENT_METHODS, DONOR_TYPES, TABS,
@@ -60,13 +61,13 @@ export default function Fundraising({ user, school }) {
           {/* Stats */}
           <div className="grid gap-4 mb-6 grid-cols-[repeat(auto-fit,minmax(160px,1fr))]">
             {[
-              { label: 'Total Raised',     value: fmt(stats.totalRaised),  icon: '💰', color: '#10b981' },
-              { label: 'Active Campaigns', value: stats.activeCampaigns,   icon: '🎯', color: primaryColor },
-              { label: 'Total Donors',     value: stats.uniqueDonors,      icon: '👥', color: '#8b5cf6' },
-              { label: 'Events',           value: stats.eventCount,        icon: '🎉', color: '#f59e0b' },
+              { label: 'Total Raised',     value: fmt(stats.totalRaised),  Icon: DollarSign,   color: '#10b981' },
+              { label: 'Active Campaigns', value: stats.activeCampaigns,   Icon: Target,       color: primaryColor },
+              { label: 'Total Donors',     value: stats.uniqueDonors,      Icon: Users,        color: '#8b5cf6' },
+              { label: 'Events',           value: stats.eventCount,        Icon: PartyPopper,  color: '#f59e0b' },
             ].map(s => (
               <div key={s.label} className="bg-white rounded-2xl p-5 shadow-sm border-t-4" style={{ borderTopColor: s.color }}>
-                <div className="text-2xl mb-1">{s.icon}</div>
+                <div className="mb-1">{s.Icon ? <s.Icon size={22} style={{ color: s.color }} /> : null}</div>
                 <div className="text-3xl font-bold text-gray-800 leading-none">{s.value}</div>
                 <div className="text-gray-500 text-xs mt-1">{s.label}</div>
               </div>
@@ -156,7 +157,7 @@ export default function Fundraising({ user, school }) {
                       <div className="text-lg font-bold">{selectedCampaign.name}</div>
                       <div className="text-sm opacity-85 mt-0.5">{selectedCampaign.type}</div>
                     </div>
-                    <button onClick={() => setSelectedCampaign(null)} className="bg-white/20 border-0 text-white rounded-lg px-3 py-1 cursor-pointer hover:bg-white/30">✕</button>
+                    <button onClick={() => setSelectedCampaign(null)} className="bg-white/20 border-0 text-white rounded-lg px-3 py-1 cursor-pointer hover:bg-white/30 flex items-center"><X size={16} /></button>
                   </div>
                   {(() => {
                     const raised = getCampaignTotal(donations, selectedCampaign.id)
@@ -361,7 +362,7 @@ export default function Fundraising({ user, school }) {
                         <td className="px-4 py-2.5">
                           <button onClick={() => handleToggleReceipt(d.id, d.receipt_sent)}
                             className={`text-xs font-semibold border rounded-md px-2 py-0.5 cursor-pointer transition-colors bg-transparent ${d.receipt_sent ? 'text-green-500 border-green-500' : 'text-gray-400 border-gray-300'}`}>
-                            {d.receipt_sent ? '✓ Sent' : 'Mark Sent'}
+                            {d.receipt_sent ? <><Check size={11} className="inline mr-0.5" />Sent</> : 'Mark Sent'}
                           </button>
                         </td>
                       </tr>
@@ -423,8 +424,8 @@ export default function Fundraising({ user, school }) {
                       </div>
                       {ev.date && <div className="text-xs text-gray-400">{ev.date}</div>}
                     </div>
-                    {ev.venue   && <div className="text-xs text-gray-500 mb-1">📍 {ev.venue}</div>}
-                    {campaign   && <div className="text-xs text-gray-500 mb-3">🎯 {campaign.name}</div>}
+                    {ev.venue   && <div className="text-xs text-gray-500 mb-1 flex items-center gap-1"><MapPin size={11} />{ev.venue}</div>}
+                    {campaign   && <div className="text-xs text-gray-500 mb-3 flex items-center gap-1"><Target size={11} />{campaign.name}</div>}
                     <div className="grid grid-cols-3 gap-2 mb-3">
                       {[['Gross', revenue, false], ['Expenses', ev.expenses || 0, false], ['Net', net, true]].map(([l, v, isNet]) => (
                         <div key={l} className="bg-gray-50 rounded-lg p-2 text-center">
@@ -455,13 +456,13 @@ export default function Fundraising({ user, school }) {
         <>
           <div className="grid gap-4 mb-6 grid-cols-[repeat(auto-fit,minmax(160px,1fr))]">
             {[
-              { label: 'Total Donors',  value: donorList.length,                                                    icon: '👥', color: '#8b5cf6' },
-              { label: 'Alumni Donors', value: donorList.filter(d => d.donor_type === 'Alumni').length,             icon: '🎓', color: '#6366f1' },
-              { label: 'LYBUNT',        value: lybunt.length,                                                       icon: '⚠️', color: '#f59e0b' },
-              { label: 'Prospects',     value: alumniProspects.filter(a => a.donor_status === 'Prospect').length,   icon: '🎯', color: primaryColor },
+              { label: 'Total Donors',  value: donorList.length,                                                    Icon: Users,          color: '#8b5cf6' },
+              { label: 'Alumni Donors', value: donorList.filter(d => d.donor_type === 'Alumni').length,             Icon: GraduationCap,  color: '#6366f1' },
+              { label: 'LYBUNT',        value: lybunt.length,                                                       Icon: AlertTriangle,  color: '#f59e0b' },
+              { label: 'Prospects',     value: alumniProspects.filter(a => a.donor_status === 'Prospect').length,   Icon: Target,         color: primaryColor },
             ].map(s => (
               <div key={s.label} className="bg-white rounded-2xl p-5 shadow-sm border-t-4" style={{ borderTopColor: s.color }}>
-                <div className="text-2xl mb-1">{s.icon}</div>
+                <div className="mb-1">{s.Icon ? <s.Icon size={22} style={{ color: s.color }} /> : null}</div>
                 <div className="text-3xl font-bold text-gray-800 leading-none">{s.value}</div>
                 <div className="text-gray-500 text-xs mt-1">{s.label}</div>
               </div>

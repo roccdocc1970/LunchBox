@@ -1,3 +1,4 @@
+import { Lock, GraduationCap, Briefcase, Mail, X, Check, Backpack } from 'lucide-react'
 import { useAlumni } from './hooks/useAlumni'
 import {
   RELATIONSHIPS, DONOR_STATUSES, CONTACT_METHODS,
@@ -42,7 +43,7 @@ export default function Alumni({ user, school }) {
       {/* Config nudge */}
       {!configuredGrades && (
         <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-3.5 mb-6 flex items-center gap-3">
-          <span className="text-lg">🔒</span>
+          <Lock size={18} className="text-red-500 shrink-0" />
           <span className="text-sm text-red-800"><strong>Grade editing is locked.</strong> Complete your Academic Configuration in <strong>Settings → Academic Config</strong> before assigning grades.</span>
         </div>
       )}
@@ -95,7 +96,7 @@ export default function Alumni({ user, school }) {
         <p className="text-gray-500">Loading alumni...</p>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
-          <div className="text-5xl mb-4">🎓</div>
+          <div className="mb-4 flex justify-center"><GraduationCap size={48} className="text-gray-300" /></div>
           <p className="text-gray-500 text-lg">
             {alumni.length === 0
               ? 'No alumni yet. Graduate students from the Students module to get started.'
@@ -127,9 +128,9 @@ export default function Alumni({ user, school }) {
                 </div>
               </div>
 
-              {alumnus.employer && <div className="text-xs text-gray-500 mb-1">💼 {alumnus.employer}</div>}
-              {alumnus.college  && <div className="text-xs text-gray-500 mb-1">🎓 {alumnus.college}</div>}
-              {alumnus.email    && <div className="text-xs text-gray-500 mb-1 truncate">✉️ {alumnus.email}</div>}
+              {alumnus.employer && <div className="text-xs text-gray-500 mb-1 flex items-center gap-1"><Briefcase size={11} /> {alumnus.employer}</div>}
+              {alumnus.college  && <div className="text-xs text-gray-500 mb-1 flex items-center gap-1"><GraduationCap size={11} /> {alumnus.college}</div>}
+              {alumnus.email    && <div className="text-xs text-gray-500 mb-1 truncate flex items-center gap-1"><Mail size={11} /> {alumnus.email}</div>}
 
               <div className="flex gap-2 mt-3 flex-wrap">
                 <span className="rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ background: (DONOR_COLORS[alumnus.donor_status] || '#9ca3af') + '20', color: DONOR_COLORS[alumnus.donor_status] || '#9ca3af' }}>
@@ -171,7 +172,7 @@ export default function Alumni({ user, school }) {
                     </div>
                   </div>
                 </div>
-                <button onClick={closeProfile} className="bg-white/20 border-0 text-white rounded-lg px-3 py-1 cursor-pointer text-lg hover:bg-white/30">✕</button>
+                <button onClick={closeProfile} className="bg-white/20 border-0 text-white rounded-lg px-3 py-1 cursor-pointer hover:bg-white/30 flex items-center"><X size={16} /></button>
               </div>
               <div className="flex gap-2 mt-3 flex-wrap">
                 <span className="bg-white/20 rounded-full px-3 py-0.5 text-xs font-semibold">{selected.donor_status || 'Never'}</span>
@@ -179,7 +180,7 @@ export default function Alumni({ user, school }) {
                   <span className="bg-white/20 rounded-full px-3 py-0.5 text-xs font-semibold">{selected.relationship}</span>
                 )}
                 <span className={`rounded-full px-3 py-0.5 text-xs font-semibold ${selected.opt_in ? 'bg-white/20' : 'bg-red-400/40'}`}>
-                  {selected.opt_in ? '✓ Opted In' : '✗ Opted Out'}
+                  {selected.opt_in ? <><Check size={12} className="inline mr-0.5" />Opted In</> : <><X size={12} className="inline mr-0.5" />Opted Out</>}
                 </span>
               </div>
             </div>
@@ -274,7 +275,7 @@ export default function Alumni({ user, school }) {
                   <button
                     onClick={() => { setReenrollConfirm(true); setDeleteConfirm(false) }}
                     className="w-full mt-3 bg-green-50 text-green-700 border-2 border-green-600 rounded-lg py-2.5 font-semibold cursor-pointer hover:bg-green-100 transition-colors"
-                  >🎒 Re-enroll as Student</button>
+                  ><Backpack size={16} className="inline mr-1.5" />Re-enroll as Student</button>
 
                   {reenrollConfirm && (
                     <div className="mt-4 bg-green-50 border border-green-300 rounded-xl p-4">

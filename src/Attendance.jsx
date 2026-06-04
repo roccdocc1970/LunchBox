@@ -1,3 +1,4 @@
+import { Calendar, Backpack, ClipboardList } from 'lucide-react'
 import { useAttendance } from './hooks/useAttendance'
 import { STATUSES, ATTENDANCE_STATUS_COLORS } from './domain/attendance'
 
@@ -76,7 +77,7 @@ export default function Attendance({ user, school, schoolId: schoolIdProp = null
           {/* No grade selected */}
           {!selectedGrade && (
             <div className="bg-white rounded-2xl p-12 shadow-sm text-center text-gray-400">
-              <div className="text-4xl mb-3">📅</div>
+              <div className="mb-3 flex justify-center"><Calendar size={40} className="text-gray-300" /></div>
               <p className="m-0 text-base">Select a grade to take attendance</p>
             </div>
           )}
@@ -87,7 +88,7 @@ export default function Attendance({ user, school, schoolId: schoolIdProp = null
 
           {selectedGrade && !loadingStudents && students.length === 0 && (
             <div className="bg-white rounded-2xl p-12 shadow-sm text-center text-gray-400">
-              <div className="text-3xl mb-2">🎒</div>
+              <div className="mb-2 flex justify-center"><Backpack size={32} className="text-gray-300" /></div>
               <p className="m-0">No enrolled students{selectedGrade === '__all__' ? '' : ` in ${selectedGrade}`}</p>
             </div>
           )}
@@ -216,7 +217,7 @@ export default function Attendance({ user, school, schoolId: schoolIdProp = null
             <div className="p-8 text-gray-500">Loading...</div>
           ) : history.length === 0 ? (
             <div className="bg-white rounded-2xl p-12 shadow-sm text-center text-gray-400">
-              <div className="text-3xl mb-2">📋</div>
+              <div className="mb-2 flex justify-center"><ClipboardList size={32} className="text-gray-300" /></div>
               <p className="m-0">No attendance records found</p>
             </div>
           ) : (

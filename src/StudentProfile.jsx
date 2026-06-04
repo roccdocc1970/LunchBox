@@ -1,3 +1,7 @@
+import {
+  Lock, Check, Pencil, Calendar, GraduationCap,
+  AlertTriangle, Pill, Syringe, Stethoscope, Bandage, ClipboardList,
+} from 'lucide-react'
 import { getDivision } from './domain/school'
 import { ALL_GRADES } from './domain/enrollment'
 import {
@@ -5,6 +9,10 @@ import {
   HEALTH_ENTRY_CATEGORIES, HEALTH_CATEGORY_COLORS, HEALTH_CATEGORY_ICONS,
   statusColor, parentDisplayName, isEntryExpired, isSkipGrade,
 } from './domain/students'
+
+const HEALTH_ICON_COMPONENTS = {
+  AlertTriangle, Pill, Syringe, Stethoscope, Bandage, ClipboardList,
+}
 
 const fieldCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm'
 const labelCls = 'block text-xs font-medium text-gray-500 mb-1'
@@ -62,12 +70,12 @@ export default function StudentProfile({ student, school, h }) {
                       {GRADES.map(g => <option key={g}>{g}</option>)}
                     </select>
                     {h.configuredGrades && h.editForm.status !== 'Enrolled' && (
-                      <p className="text-xs text-gray-500 mt-1">🔒 Grade progression is locked until the student is <strong>Enrolled</strong>.</p>
+                      <p className="text-xs text-gray-500 mt-1 flex items-center gap-1"><Lock size={11} />Grade progression is locked until the student is <strong>Enrolled</strong>.</p>
                     )}
                     {h.editForm.grade && h.editForm.grade === student.grade && (
                       <div onClick={() => h.setRepeatGrade(!h.repeatGrade)} className="flex items-center gap-2 mt-2 cursor-pointer select-none">
                         <div className="w-4 h-4 rounded flex items-center justify-center shrink-0 border-2 transition-colors" style={{ borderColor: h.repeatGrade ? primaryColor : '#d1d5db', background: h.repeatGrade ? primaryColor : 'white' }}>
-                          {h.repeatGrade && <span className="text-white text-[0.6rem] font-bold">✓</span>}
+                          {h.repeatGrade && <Check size={10} className="text-white" />}
                         </div>
                         <span className={`text-sm ${h.repeatGrade ? 'font-semibold' : 'font-normal text-gray-500'}`} style={{ color: h.repeatGrade ? primaryColor : undefined }}>Student is repeating this grade</span>
                       </div>
@@ -75,7 +83,7 @@ export default function StudentProfile({ student, school, h }) {
                     {h.editForm.grade && h.editForm.grade !== student.grade && isSkipGrade(student.grade, h.editForm.grade) && (
                       <div onClick={() => h.setSkipGrade(!h.skipGrade)} className="flex items-center gap-2 mt-2 cursor-pointer select-none">
                         <div className="w-4 h-4 rounded flex items-center justify-center shrink-0 border-2 transition-colors" style={{ borderColor: h.skipGrade ? '#8b5cf6' : '#d1d5db', background: h.skipGrade ? '#8b5cf6' : 'white' }}>
-                          {h.skipGrade && <span className="text-white text-[0.6rem] font-bold">✓</span>}
+                          {h.skipGrade && <Check size={10} className="text-white" />}
                         </div>
                         <span className={`text-sm ${h.skipGrade ? 'font-semibold text-violet-500' : 'font-normal text-gray-500'}`}>Student is skipping a grade</span>
                       </div>
@@ -156,7 +164,7 @@ export default function StudentProfile({ student, school, h }) {
           </div>
         </div>
         <button onClick={h.startEdit} className="bg-white/20 border border-white/40 text-white rounded-lg px-5 py-2 font-semibold cursor-pointer text-sm whitespace-nowrap hover:bg-white/30">
-          ✏️ Edit Profile
+          <Pencil size={14} className="inline mr-1.5" />Edit Profile
         </button>
       </div>
 
@@ -175,7 +183,7 @@ export default function StudentProfile({ student, school, h }) {
                   {state === 'current' && <div className="absolute top-0 left-0 right-0 h-0.5 bg-white/60 rounded-t" />}
                   <div className="text-xs leading-snug truncate" style={{ fontWeight: weight, color }}>{grade.replace(' Grade', '').replace('Grade ', '')}</div>
                   <div className="text-[0.6rem] mt-1" style={{ color: state === 'current' ? 'rgba(255,255,255,0.8)' : state === 'past' ? primaryColor + 'aa' : '#d1d5db' }}>
-                    {state === 'current' ? '● now' : state === 'past' ? '✓' : ''}
+                    {state === 'current' ? <span className="inline-block w-1.5 h-1.5 rounded-full bg-white/60" /> : state === 'past' ? <Check size={10} /> : ''}
                   </div>
                   {gradeMeta[grade]?.repeat && <div className="text-[0.6rem] mt-0.5" style={{ color: state === 'current' ? 'rgba(255,255,255,0.75)' : '#f59e0b' }}>repeated</div>}
                   {gradeMeta[grade]?.skip   && <div className="text-[0.6rem] mt-0.5" style={{ color: state === 'current' ? 'rgba(255,255,255,0.75)' : '#8b5cf6' }}>skipped</div>}
@@ -335,7 +343,7 @@ export default function StudentProfile({ student, school, h }) {
                       <>
                         <div className="flex justify-between items-start mb-1.5">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-xs font-bold rounded-full px-2 py-0.5" style={{ color, background: color + '18' }}>{HEALTH_CATEGORY_ICONS[entry.category]} {entry.category}</span>
+                            <span className="text-xs font-bold rounded-full px-2 py-0.5 flex items-center gap-1" style={{ color, background: color + '18' }}>{(() => { const Icon = HEALTH_ICON_COMPONENTS[HEALTH_CATEGORY_ICONS[entry.category]] || ClipboardList; return <Icon size={11} /> })()} {entry.category}</span>
                             <span className="text-sm font-semibold text-gray-800">{entry.name}</span>
                             {expired && <span className="text-[0.65rem] font-semibold text-red-500 bg-red-50 rounded-full px-1.5 py-0.5">Expired</span>}
                           </div>
@@ -343,7 +351,7 @@ export default function StudentProfile({ student, school, h }) {
                         </div>
                         {entry.detail && <p className="text-xs text-gray-500 m-0 mb-1">{entry.detail}</p>}
                         <div className="flex gap-3">
-                          {entry.date && <span className="text-[0.7rem] text-gray-400">📅 {entry.date}</span>}
+                          {entry.date && <span className="text-[0.7rem] text-gray-400 flex items-center gap-0.5"><Calendar size={10} />{entry.date}</span>}
                           {entry.expiration_date && <span className="text-[0.7rem]" style={{ color: expired ? '#ef4444' : '#9ca3af' }}>Exp: {entry.expiration_date}</span>}
                         </div>
                         {entry.notes && <p className="text-[0.7rem] text-gray-400 italic m-0 mt-0.5">{entry.notes}</p>}
@@ -475,7 +483,7 @@ export default function StudentProfile({ student, school, h }) {
             onClick={() => { h.setGraduateConfirm(true); h.setDeleteConfirm(false); h.setGraduateForm({ graduation_year: new Date().getFullYear(), grade_completed: student.grade || '' }) }}
             className="bg-orange-50 border-2 rounded-lg px-5 py-2.5 font-semibold cursor-pointer text-sm hover:opacity-90 transition-opacity"
             style={{ color: primaryColor, borderColor: primaryColor }}
-          >🎓 Graduate to Alumni</button>
+          ><GraduationCap size={16} className="inline mr-1.5" />Graduate to Alumni</button>
           <button onClick={() => h.setDeleteConfirm(true)} className="bg-white text-red-500 border border-red-400 rounded-lg px-5 py-2.5 font-semibold cursor-pointer text-sm hover:bg-red-50">
             Delete Student
           </button>

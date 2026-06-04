@@ -1,4 +1,15 @@
+import {
+  Backpack, CheckCircle, ClipboardList, Calendar, XCircle, Clock,
+  AlertTriangle, Users, GraduationCap, PauseCircle, DollarSign,
+  Target, Trophy, Gift, FolderOpen, Settings2, Wrench, Check, X, Mail,
+} from 'lucide-react'
 import { useReports } from './hooks/useReports'
+
+const REPORT_ICON_MAP = {
+  Backpack, CheckCircle, ClipboardList, Calendar, XCircle, Clock,
+  AlertTriangle, Users, GraduationCap, PauseCircle, DollarSign,
+  Target, Trophy, Gift, FolderOpen, Settings2, Wrench, Mail,
+}
 import {
   TABS, ATTENDANCE_STATUS_COLORS, STUDENT_STATUS_COLORS,
   INCIDENT_TYPE_COLORS, ROLE_COLORS, WO_PRIORITY_COLORS, WO_STATUS_COLORS,
@@ -19,13 +30,16 @@ const tdCls = 'px-3 py-2.5'
 function StatCards({ stats }) {
   return (
     <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
-      {stats.map(s => (
-        <div key={s.label} className="bg-white rounded-2xl p-5 shadow-sm border-t-4" style={{ borderTopColor: s.color }}>
-          <div className="text-2xl mb-1">{s.icon}</div>
-          <div className="text-3xl font-bold text-gray-800 leading-none">{s.value}</div>
-          <div className="text-gray-500 text-xs mt-1">{s.label}</div>
-        </div>
-      ))}
+      {stats.map(s => {
+        const Icon = REPORT_ICON_MAP[s.icon]
+        return (
+          <div key={s.label} className="bg-white rounded-2xl p-5 shadow-sm border-t-4" style={{ borderTopColor: s.color }}>
+            <div className="mb-1">{Icon ? <Icon size={22} style={{ color: s.color }} /> : null}</div>
+            <div className="text-3xl font-bold text-gray-800 leading-none">{s.value}</div>
+            <div className="text-gray-500 text-xs mt-1">{s.label}</div>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -88,9 +102,9 @@ export default function Reports({ user, school }) {
       {/* ── Enrollment ── */}
       {r.activeTab === 'enrollment' && (<>
         <StatCards stats={[
-          { label: 'Total Students', value: en.total,      icon: '🎒', color: primaryColor },
-          { label: 'Enrolled',       value: en.enrolled,   icon: '✅', color: '#10b981' },
-          { label: 'Applied',        value: en.applied,    icon: '📋', color: '#3b82f6' },
+          { label: 'Total Students', value: en.total,      icon: 'Backpack',      color: primaryColor },
+          { label: 'Enrolled',       value: en.enrolled,   icon: 'CheckCircle',   color: '#10b981' },
+          { label: 'Applied',        value: en.applied,    icon: 'ClipboardList', color: '#3b82f6' },
           { label: 'Waitlisted',     value: en.waitlisted, icon: '⏳', color: '#f59e0b' },
         ]} />
 
@@ -190,11 +204,11 @@ export default function Reports({ user, school }) {
       {/* ── Attendance ── */}
       {r.activeTab === 'attendance' && (<>
         <StatCards stats={[
-          { label: 'Total Records',     value: att.total,                                                      icon: '📅', color: '#3b82f6' },
-          { label: 'Present Rate',      value: att.presentRate !== null ? `${att.presentRate}%` : '—',         icon: '✅', color: '#10b981' },
-          { label: 'Absences',          value: att.absent,                                                     icon: '❌', color: '#ef4444' },
-          { label: 'Tardies',           value: att.tardy,                                                      icon: '⏰', color: '#f59e0b' },
-          { label: 'Chronic Absentees', value: att.chronic.length, icon: '⚠️', color: att.chronic.length > 0 ? '#ef4444' : '#10b981' },
+          { label: 'Total Records',     value: att.total,                                                      icon: 'Calendar',      color: '#3b82f6' },
+          { label: 'Present Rate',      value: att.presentRate !== null ? `${att.presentRate}%` : '—',         icon: 'CheckCircle',   color: '#10b981' },
+          { label: 'Absences',          value: att.absent,                                                     icon: 'XCircle',       color: '#ef4444' },
+          { label: 'Tardies',           value: att.tardy,                                                      icon: 'Clock',         color: '#f59e0b' },
+          { label: 'Chronic Absentees', value: att.chronic.length, icon: 'AlertTriangle', color: att.chronic.length > 0 ? '#ef4444' : '#10b981' },
         ]} />
 
         <div className="grid gap-6 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
@@ -267,9 +281,9 @@ export default function Reports({ user, school }) {
       {/* ── Incidents ── */}
       {r.activeTab === 'incidents' && (<>
         <StatCards stats={[
-          { label: 'Total Student Incidents', value: inc.total,    icon: '📋', color: '#6b7280' },
-          { label: 'Open',                    value: inc.open,     icon: '🔴', color: '#ef4444' },
-          { label: 'Resolved',                value: inc.resolved, icon: '✅', color: '#10b981' },
+          { label: 'Total Student Incidents', value: inc.total,    icon: 'ClipboardList', color: '#6b7280' },
+          { label: 'Open',                    value: inc.open,     icon: 'XCircle',       color: '#ef4444' },
+          { label: 'Resolved',                value: inc.resolved, icon: 'CheckCircle',   color: '#10b981' },
         ]} />
         <div className="grid gap-6 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
           <Card>
@@ -284,8 +298,8 @@ export default function Reports({ user, school }) {
                   </div>
                 ))}
                 <div className="border-t border-gray-100 pt-3 mt-1 flex gap-6">
-                  <span className="text-xs text-green-600">✓ {inc.resolved} resolved</span>
-                  <span className="text-xs text-red-500">● {inc.open} open</span>
+                  <span className="text-xs text-green-600 flex items-center gap-0.5"><Check size={11} />{inc.resolved} resolved</span>
+                  <span className="text-xs text-red-500 flex items-center gap-0.5"><span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />{inc.open} open</span>
                 </div>
               </div>
             )}
@@ -325,8 +339,8 @@ export default function Reports({ user, school }) {
       {/* ── Communications ── */}
       {r.activeTab === 'communications' && (<>
         <StatCards stats={[
-          { label: 'Messages Sent',   value: r.messages.length,         icon: '✉️', color: '#8b5cf6' },
-          { label: 'Parents Reached', value: comms.totalParentsReached,  icon: '👪', color: '#ec4899' },
+          { label: 'Messages Sent',   value: r.messages.length,         icon: 'Mail',  color: '#8b5cf6' },
+          { label: 'Parents Reached', value: comms.totalParentsReached,  icon: 'Users', color: '#ec4899' },
         ]} />
         <Card className="mb-6">
           <CardTitle>Messages Sent — Last 6 Months</CardTitle>
@@ -357,10 +371,10 @@ export default function Reports({ user, school }) {
       {/* ── Staff ── */}
       {r.activeTab === 'staff' && (<>
         <StatCards stats={[
-          { label: 'Total Staff', value: r.staff.length,           icon: '👩‍🏫', color: primaryColor },
-          { label: 'Active',      value: sf.activeStaff.length,    icon: '✅',   color: '#10b981' },
-          { label: 'Inactive',    value: sf.inactiveStaff.length,  icon: '⏸️',  color: '#9ca3af' },
-          { label: 'Roles',       value: sf.distinctRoles,          icon: '🏷️', color: '#6366f1' },
+          { label: 'Total Staff', value: r.staff.length,           icon: 'GraduationCap', color: primaryColor },
+          { label: 'Active',      value: sf.activeStaff.length,    icon: 'CheckCircle',   color: '#10b981' },
+          { label: 'Inactive',    value: sf.inactiveStaff.length,  icon: 'PauseCircle',   color: '#9ca3af' },
+          { label: 'Roles',       value: sf.distinctRoles,          icon: 'Users',  color: '#6366f1' },
         ]} />
         <div className="grid gap-6 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
           <Card>
@@ -434,10 +448,10 @@ export default function Reports({ user, school }) {
       {/* ── Fundraising ── */}
       {r.activeTab === 'fundraising' && (<>
         <StatCards stats={[
-          { label: 'Total Raised',  value: fmt(fr.totalRaised),                                  icon: '💰', color: '#10b981' },
-          { label: 'Campaigns',     value: fr.scoreboard.length,                                  icon: '🎯', color: primaryColor },
-          { label: 'Goal Hit Rate', value: fr.goalHitRate !== null ? `${fr.goalHitRate}%` : '—', icon: '🏆', color: '#f59e0b' },
-          { label: 'Avg Gift',      value: fmt(fr.avgGift),                                       icon: '🎁', color: '#8b5cf6' },
+          { label: 'Total Raised',  value: fmt(fr.totalRaised),                                  icon: 'DollarSign', color: '#10b981' },
+          { label: 'Campaigns',     value: fr.scoreboard.length,                                  icon: 'Target',     color: primaryColor },
+          { label: 'Goal Hit Rate', value: fr.goalHitRate !== null ? `${fr.goalHitRate}%` : '—', icon: 'Trophy',     color: '#f59e0b' },
+          { label: 'Avg Gift',      value: fmt(fr.avgGift),                                       icon: 'Gift',       color: '#8b5cf6' },
         ]} />
 
         <Card className="mb-6">
@@ -455,10 +469,10 @@ export default function Reports({ user, school }) {
                       <div className="flex items-center gap-2 min-w-0">
                         <span className="text-sm font-semibold text-gray-800 truncate">{c.name}</span>
                         <span className="text-[0.68rem] font-semibold rounded-full px-2 py-0.5 whitespace-nowrap shrink-0" style={{ color, background: color + '18' }}>{c.type}</span>
-                        {hit    && <span className="text-[0.68rem] font-bold text-green-600 bg-green-50 rounded-full px-2 py-0.5 whitespace-nowrap shrink-0">✓ Goal Hit</span>}
-                        {missed && <span className="text-[0.68rem] font-bold text-red-500 bg-red-50 rounded-full px-2 py-0.5 whitespace-nowrap shrink-0">✗ Missed</span>}
-                        {c.status === 'Active' && <span className="text-[0.68rem] font-semibold text-green-600 whitespace-nowrap shrink-0">● Active</span>}
-                        {c.status === 'Paused' && <span className="text-[0.68rem] font-semibold text-amber-500 whitespace-nowrap shrink-0">⏸ Paused</span>}
+                        {hit    && <span className="text-[0.68rem] font-bold text-green-600 bg-green-50 rounded-full px-2 py-0.5 whitespace-nowrap shrink-0 flex items-center gap-0.5"><Check size={10} />Goal Hit</span>}
+                        {missed && <span className="text-[0.68rem] font-bold text-red-500 bg-red-50 rounded-full px-2 py-0.5 whitespace-nowrap shrink-0 flex items-center gap-0.5"><X size={10} />Missed</span>}
+                        {c.status === 'Active' && <span className="text-[0.68rem] font-semibold text-green-600 whitespace-nowrap shrink-0 flex items-center gap-0.5"><span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />Active</span>}
+                        {c.status === 'Paused' && <span className="text-[0.68rem] font-semibold text-amber-500 whitespace-nowrap shrink-0 flex items-center gap-0.5"><PauseCircle size={10} />Paused</span>}
                       </div>
                       <div className="text-right shrink-0 ml-4">
                         <span className="text-sm font-bold text-green-600">{fmt(c.raised)}</span>
@@ -540,7 +554,7 @@ export default function Reports({ user, school }) {
                         <td className={`${tdCls} font-bold text-green-600`}>{fmt(raised)}</td>
                         <td className={tdCls}>
                           {c.goal > 0
-                            ? <span className="text-xs font-bold rounded-full px-2.5 py-0.5 whitespace-nowrap" style={{ color: hit ? '#10b981' : '#ef4444', background: hit ? '#10b98118' : '#ef444418' }}>{hit ? `✓ Hit (${pct}%)` : `✗ ${pct}% of goal`}</span>
+                            ? <span className="text-xs font-bold rounded-full px-2.5 py-0.5 whitespace-nowrap flex items-center gap-0.5" style={{ color: hit ? '#10b981' : '#ef4444', background: hit ? '#10b98118' : '#ef444418' }}>{hit ? <><Check size={11} />Hit ({pct}%)</> : <><X size={11} />{pct}% of goal</>}</span>
                             : <span className="text-xs text-gray-400">No goal set</span>}
                         </td>
                         <td className={`${tdCls} text-gray-400 text-xs whitespace-nowrap`}>{c.start_date && c.end_date ? `${c.start_date} → ${c.end_date}` : c.end_date || c.start_date || '—'}</td>
@@ -580,12 +594,12 @@ export default function Reports({ user, school }) {
       {/* ── Facilities ── */}
       {r.activeTab === 'facilities' && (<>
         <StatCards stats={[
-          { label: 'Total Work Orders',     value: r.workOrders.length,           icon: '🔧', color: '#6b7280' },
-          { label: 'Open',                  value: fac.openWOs.length,            icon: '📂', color: '#3b82f6' },
-          { label: 'In Progress',           value: fac.inProgressWOs.length,      icon: '⚙️', color: '#f59e0b' },
-          { label: 'Overdue',               value: fac.overdueWOs.length,         icon: '⚠️', color: '#ef4444' },
-          { label: 'Completed This Month',  value: fac.completedThisMonth.length, icon: '✅', color: '#10b981' },
-          { label: 'Avg Resolution (days)', value: fac.avgDays !== null ? fac.avgDays : '—', icon: '📅', color: '#8b5cf6' },
+          { label: 'Total Work Orders',     value: r.workOrders.length,           icon: 'Wrench',       color: '#6b7280' },
+          { label: 'Open',                  value: fac.openWOs.length,            icon: 'FolderOpen',   color: '#3b82f6' },
+          { label: 'In Progress',           value: fac.inProgressWOs.length,      icon: 'Settings2',    color: '#f59e0b' },
+          { label: 'Overdue',               value: fac.overdueWOs.length,         icon: 'AlertTriangle',color: '#ef4444' },
+          { label: 'Completed This Month',  value: fac.completedThisMonth.length, icon: 'CheckCircle',  color: '#10b981' },
+          { label: 'Avg Resolution (days)', value: fac.avgDays !== null ? fac.avgDays : '—', icon: 'Calendar', color: '#8b5cf6' },
         ]} />
 
         <div className="grid gap-6 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>

@@ -1,9 +1,19 @@
+import {
+  Droplets, Zap, Wind, Hammer, Leaf, Brush, Shield, Monitor, Wrench, X,
+} from 'lucide-react'
 import { useFacilities } from './hooks/useFacilities'
 import {
   CATEGORIES, PRIORITIES, STATUSES,
   PRIORITY_COLORS, STATUS_COLORS, CATEGORY_ICONS,
   isOverdue,
 } from './domain/facilities'
+
+const CAT_ICON_COMPONENTS = { Droplets, Zap, Wind, Hammer, Leaf, Brush, Shield, Monitor, Wrench }
+function CatIcon({ category, size = 14 }) {
+  const name = CATEGORY_ICONS[category] || 'Wrench'
+  const Icon = CAT_ICON_COMPONENTS[name] || Wrench
+  return <Icon size={size} />
+}
 
 const fieldCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none'
 const labelCls = 'block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1'
@@ -156,7 +166,7 @@ export default function Facilities({ user, school }) {
         <p className="text-gray-500">Loading…</p>
       ) : filtered.length === 0 ? (
         <div className="text-center py-12 text-gray-400">
-          <div className="text-4xl mb-3">🔧</div>
+          <div className="mb-3 flex justify-center"><Wrench size={40} className="text-gray-300" /></div>
           <p className="m-0">No work orders found.</p>
         </div>
       ) : (
@@ -173,7 +183,7 @@ export default function Facilities({ user, school }) {
               {filtered.map(wo => (
                 <tr key={wo.id} onClick={() => openDrawer(wo)} className="cursor-pointer hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3 font-medium text-gray-800 max-w-[220px] overflow-hidden text-ellipsis whitespace-nowrap">
-                    <span className="mr-1.5">{CATEGORY_ICONS[wo.category] || '🔧'}</span>{wo.title}
+                    <span className="mr-1.5 inline-flex items-center"><CatIcon category={wo.category} /></span>{wo.title}
                   </td>
                   <td className="px-4 py-3 text-gray-500">{wo.category}</td>
                   <td className="px-4 py-3 text-gray-500">{wo.location || '—'}</td>
@@ -207,14 +217,14 @@ export default function Facilities({ user, school }) {
                 <div className="text-lg font-bold leading-snug mb-2">{selected.title}</div>
                 <div className="flex gap-2 flex-wrap">
                   <span className="text-xs font-bold bg-white/20 rounded-full px-2.5 py-0.5">
-                    {CATEGORY_ICONS[selected.category]} {selected.category}
+                    <CatIcon category={selected.category} size={12} /> {selected.category}
                   </span>
                   <span className="text-xs font-bold rounded-full px-2.5 py-0.5" style={{ background: PRIORITY_COLORS[selected.priority] + 'cc' }}>
                     {selected.priority}
                   </span>
                 </div>
               </div>
-              <button onClick={closeDrawer} className="bg-white/20 border-0 text-white rounded-lg px-3 py-1 cursor-pointer hover:bg-white/30">✕</button>
+              <button onClick={closeDrawer} className="bg-white/20 border-0 text-white rounded-lg px-3 py-1 cursor-pointer hover:bg-white/30 flex items-center"><X size={16} /></button>
             </div>
 
             <div className="p-6 flex flex-col gap-5">

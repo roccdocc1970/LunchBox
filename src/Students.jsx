@@ -1,3 +1,4 @@
+import { Lock, Backpack } from 'lucide-react'
 import { useStudents } from './hooks/useStudents'
 import { getDivision } from './domain/school'
 import { statusColor, parentDisplayName } from './domain/students'
@@ -22,7 +23,7 @@ export default function Students({ user, school }) {
       {/* Config nudge */}
       {!h.configuredGrades && (
         <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-3.5 mb-6 flex items-center gap-3">
-          <span className="text-lg">🔒</span>
+          <Lock size={18} className="text-red-500 shrink-0" />
           <span className="text-sm text-red-800"><strong>Grade editing is locked.</strong> Complete your Academic Configuration in <strong>Settings → Academic Config</strong> before assigning grades to students.</span>
         </div>
       )}
@@ -84,7 +85,7 @@ export default function Students({ user, school }) {
         <p className="text-gray-500">Loading students…</p>
       ) : h.filtered.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
-          <div className="text-5xl mb-4">🎒</div>
+          <div className="mb-4 flex justify-center"><Backpack size={48} className="text-gray-300" /></div>
           <p className="text-gray-500 text-lg">
             {h.students.length === 0 ? 'No students yet. Add students via Enrollment.' : 'No students match your filters.'}
           </p>

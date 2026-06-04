@@ -1,3 +1,4 @@
+import { Lock, Search, X, Backpack } from 'lucide-react'
 import { useEnrollment } from './hooks/useEnrollment'
 import { statusColor } from './domain/enrollment'
 
@@ -20,7 +21,7 @@ export default function Enrollment({ user, school }) {
       {/* Config nudge */}
       {!configuredGrades && (
         <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-3.5 mb-6 flex items-center gap-3">
-          <span className="text-lg">🔒</span>
+          <Lock size={18} className="text-red-500 shrink-0" />
           <span className="text-sm text-red-800">
             <strong>Grade selection is locked.</strong> Complete your Academic Configuration in <strong>Settings → Academic Config</strong> before assigning grades to students.
           </span>
@@ -62,7 +63,7 @@ export default function Enrollment({ user, school }) {
                 <button
                   onClick={() => { setSelectedParent(null); setParentSearch('') }}
                   className="bg-transparent border-0 text-gray-400 cursor-pointer text-xl leading-none hover:text-gray-600"
-                >×</button>
+                ><X size={16} /></button>
               </div>
             ) : (
               <div>
@@ -73,7 +74,7 @@ export default function Enrollment({ user, school }) {
                     onChange={e => handleParentSearch(e.target.value)}
                     className="w-full border border-gray-300 rounded-lg pl-9 pr-4 py-2 outline-none text-sm bg-gray-50"
                   />
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 flex items-center"><Search size={14} /></span>
                   {parentResults.length > 0 && (
                     <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-md z-10 max-h-48 overflow-y-auto">
                       {parentResults.map(p => (
@@ -175,7 +176,7 @@ export default function Enrollment({ user, school }) {
         <p className="text-gray-500">Loading students…</p>
       ) : students.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
-          <div className="text-5xl mb-4">🎒</div>
+          <div className="mb-4 flex justify-center"><Backpack size={48} className="text-gray-300" /></div>
           <p className="text-gray-500 text-lg">No students yet. Add your first student above!</p>
         </div>
       ) : (

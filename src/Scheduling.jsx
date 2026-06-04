@@ -1,3 +1,7 @@
+import {
+  Sparkles, AlertTriangle, Check, Bell, GraduationCap, DoorOpen,
+  ArrowUpRight, X, Building2,
+} from 'lucide-react'
 import { useScheduling }                  from './hooks/useScheduling'
 import { DIVISION_COLORS, parseDivisions } from './domain/school'
 import { fmt12 }                           from './domain/schedule'
@@ -40,11 +44,11 @@ export default function Scheduling({ user, school, onNavigateToClass }) {
 
           {/* View toggle */}
           <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-            {[{ id: 'grid', label: '📅 Grid' }, { id: 'buildings', label: '🏛️ Buildings' }].map(v => (
+            {[{ id: 'grid', label: 'Grid', Icon: Check }, { id: 'buildings', label: 'Buildings', Icon: Building2 }].map(v => (
               <button key={v.id} onClick={() => s.setActiveView(v.id)}
                 className="px-3.5 py-1.5 border-0 rounded-md cursor-pointer text-sm transition-all"
                 style={{ fontWeight: s.activeView === v.id ? '700' : '400', background: s.activeView === v.id ? 'white' : 'transparent', color: s.activeView === v.id ? '#1f2937' : '#6b7280', boxShadow: s.activeView === v.id ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>
-                {v.label}
+                <v.Icon size={14} className="inline mr-1" />{v.label}
               </button>
             ))}
           </div>
@@ -55,7 +59,7 @@ export default function Scheduling({ user, school, onNavigateToClass }) {
               className="border-0 rounded-lg px-4 py-1.5 font-semibold text-sm transition-colors"
               style={{ background: s.unscheduled.length === 0 ? '#f3f4f6' : '#8b5cf6', color: s.unscheduled.length === 0 ? '#9ca3af' : 'white', cursor: s.unscheduled.length === 0 ? 'not-allowed' : 'pointer' }}
               title={s.unscheduled.length === 0 ? 'All classes are already scheduled' : `Auto-schedule ${s.unscheduled.length} unscheduled classes`}>
-              ✨ Auto-Schedule
+              <Sparkles size={14} className="inline mr-1" />Auto-Schedule
             </button>
           )}
 
@@ -83,7 +87,7 @@ export default function Scheduling({ user, school, onNavigateToClass }) {
         ))}
         {s.periods.length === 0 && (
           <div className="bg-amber-50 border border-amber-300 rounded-xl px-5 py-2.5 text-sm text-amber-800">
-            ⚠️ No Class-type periods found — add periods in Settings → Bell Schedule first.
+            <AlertTriangle size={15} className="inline mr-1.5" />No Class-type periods found — add periods in Settings → Bell Schedule first.
           </div>
         )}
       </div>
@@ -91,7 +95,7 @@ export default function Scheduling({ user, school, onNavigateToClass }) {
       {/* Preview banner */}
       {s.preview && (
         <div className="bg-violet-50 border border-violet-400 rounded-xl px-5 py-3.5 mb-4 flex items-center gap-4 flex-wrap">
-          <span className="text-lg">✨</span>
+          <Sparkles size={18} className="text-violet-500 shrink-0" />
           <div className="flex-1">
             <span className="font-bold text-violet-800">Auto-Schedule Preview — </span>
             <span className="text-gray-500 text-sm">{s.preview.sections.length} class{s.preview.sections.length !== 1 ? 'es' : ''} placed (shown with dashed border). Review then apply.</span>
@@ -104,9 +108,9 @@ export default function Scheduling({ user, school, onNavigateToClass }) {
       )}
 
       {/* Alerts */}
-      {s.conflictMsg && <div className="bg-red-50 border border-red-300 rounded-lg px-4 py-2.5 mb-3.5 text-red-700 text-sm font-medium">⚠️ {s.conflictMsg}</div>}
+      {s.conflictMsg && <div className="bg-red-50 border border-red-300 rounded-lg px-4 py-2.5 mb-3.5 text-red-700 text-sm font-medium flex items-center gap-1.5"><AlertTriangle size={14} />{s.conflictMsg}</div>}
       {s.error       && <div className="bg-red-50 border border-red-300 rounded-lg px-4 py-2.5 mb-3.5 text-red-700 text-sm">{s.error}</div>}
-      {s.success     && <div className="bg-green-50 border border-green-300 rounded-lg px-4 py-2.5 mb-3.5 text-green-700 text-sm font-medium">✓ {s.success}</div>}
+      {s.success     && <div className="bg-green-50 border border-green-300 rounded-lg px-4 py-2.5 mb-3.5 text-green-700 text-sm font-medium flex items-center gap-1.5"><Check size={14} />{s.success}</div>}
 
       {/* Views */}
       {s.activeView === 'grid'      && <GridView      s={s} primaryColor={primaryColor} divColorMap={divColorMap} onNavigateToClass={onNavigateToClass} />}
@@ -121,7 +125,7 @@ function GridView({ s, primaryColor, divColorMap, onNavigateToClass }) {
   if (s.periods.length === 0) {
     return (
       <div className="bg-white rounded-2xl p-16 text-center shadow-sm">
-        <div className="text-5xl mb-4">🔔</div>
+        <div className="mb-4 flex justify-center"><Bell size={48} className="text-gray-300" /></div>
         <p className="text-gray-500">No schedulable periods yet. Add Class-type periods in <strong>Settings → Bell Schedule</strong>.</p>
       </div>
     )
@@ -142,7 +146,7 @@ function GridView({ s, primaryColor, divColorMap, onNavigateToClass }) {
           </div>
           <div className="p-2.5 flex flex-col gap-1.5 min-h-28">
             {s.unscheduled.length === 0 ? (
-              <p className="text-green-600 text-xs text-center py-4 m-0">✓ All classes scheduled</p>
+              <p className="text-green-600 text-xs text-center py-4 m-0 flex items-center justify-center gap-1"><Check size={12} />All classes scheduled</p>
             ) : s.unscheduled.map(cls => (
               <ClassCard key={cls.id} cls={cls} sectionId={null} periodId={null} isPreview={false}
                 divColorMap={divColorMap} rooms={s.rooms} staff={s.staff}
@@ -250,7 +254,7 @@ function ClassCard({ cls, sectionId, periodId, isPreview, divColorMap, rooms, st
           <div onClick={e => { e.stopPropagation(); onOpenTeacherPicker() }} title="Click to assign teacher"
             className="text-[0.72rem] truncate cursor-pointer mt-0.5 transition-colors hover:text-orange-500"
             style={{ color: cls.teacher_name ? '#6b7280' : '#d1d5db' }}>
-            👩‍🏫 {cls.teacher_name || 'Assign teacher'}
+            <GraduationCap size={11} className="inline mr-0.5" />{cls.teacher_name || 'Assign teacher'}
           </div>
         )}
 
@@ -268,7 +272,7 @@ function ClassCard({ cls, sectionId, periodId, isPreview, divColorMap, rooms, st
           <div onClick={e => { e.stopPropagation(); onOpenRoomPicker() }} title="Click to assign room"
             className="text-[0.72rem] truncate cursor-pointer mt-0.5 transition-colors hover:text-orange-500"
             style={{ color: cls.room_name ? '#9ca3af' : '#d1d5db' }}>
-            🚪 {cls.room_name || 'Assign room'}
+            <DoorOpen size={11} className="inline mr-0.5" />{cls.room_name || 'Assign room'}
           </div>
         )}
 
@@ -281,12 +285,12 @@ function ClassCard({ cls, sectionId, periodId, isPreview, divColorMap, rooms, st
         {onNavigateToClass && (
           <button onClick={e => { e.stopPropagation(); onNavigateToClass(cls.id) }}
             className="bg-transparent border-0 cursor-pointer text-gray-300 text-[0.7rem] p-0 leading-none hover:text-indigo-500 transition-colors"
-            title="Go to class details">↗</button>
+            title="Go to class details"><ArrowUpRight size={13} /></button>
         )}
         {onRemove && (
           <button onClick={e => { e.stopPropagation(); onRemove() }}
             className="bg-transparent border-0 cursor-pointer text-gray-300 text-xs p-0 leading-none hover:text-red-500 transition-colors"
-            title="Remove from this period">✕</button>
+            title="Remove from this period"><X size={12} /></button>
         )}
       </div>
     </div>
@@ -309,7 +313,7 @@ function BuildingsView({ s, primaryColor, divColorMap }) {
   if (s.buildings.length === 0 && s.rooms.length === 0) {
     return (
       <div className="bg-white rounded-2xl p-16 text-center shadow-sm">
-        <div className="text-5xl mb-4">🏛️</div>
+        <div className="mb-4 flex justify-center"><Building2 size={48} className="text-gray-300" /></div>
         <p className="text-gray-500">No buildings or rooms configured. Add them in <strong>Settings → Campus</strong>.</p>
       </div>
     )
@@ -323,7 +327,7 @@ function BuildingsView({ s, primaryColor, divColorMap }) {
         return (
           <div key={building.id} className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3 bg-gray-50">
-              <span className="text-xl">🏛️</span>
+              <Building2 size={20} className="text-gray-500 shrink-0" />
               <div>
                 <div className="font-bold text-gray-800">{building.name}</div>
                 <div className="text-xs text-gray-400">{building.type} · {bldgRooms.length} room{bldgRooms.length !== 1 ? 's' : ''}</div>
@@ -374,7 +378,7 @@ function RoomCard({ room, roomSectionMap, allPeriods, divColorMap }) {
     <div className="border border-gray-200 rounded-xl overflow-hidden">
       <div className={`px-3.5 py-2.5 bg-gray-50 flex justify-between items-center ${assigned.length > 0 ? 'border-b border-gray-200' : ''}`}>
         <div>
-          <div className="font-semibold text-gray-800 text-sm">🚪 {room.name}</div>
+          <div className="font-semibold text-gray-800 text-sm flex items-center gap-1"><DoorOpen size={14} />{room.name}</div>
           <div className="text-xs text-gray-400">{room.type}{room.capacity ? ` · cap. ${room.capacity}` : ''}</div>
         </div>
         <span className="text-xs font-bold rounded-full px-2 py-0.5"

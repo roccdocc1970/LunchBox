@@ -1,4 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import {
+  AlertTriangle, Check, BookOpen, Users, Loader2, Lock, X,
+  GraduationCap, DoorOpen,
+} from 'lucide-react'
 import { useClasses } from './hooks/useClasses'
 import { CLASS_STATUS, ENROLLMENT_MODES } from './domain/classes'
 import { DIVISION_COLORS, parseDivisions } from './domain/school'
@@ -64,15 +68,15 @@ export default function Classes({ user, school, openClassId, onClearOpenClass })
           </div>
         </div>
 
-        {c.error   && <p className="text-red-500 text-sm mb-4 font-medium">⚠ {c.error}</p>}
-        {c.success && <p className="text-green-700 text-sm mb-4 font-medium">✓ {c.success}</p>}
+        {c.error   && <p className="text-red-500 text-sm mb-4 font-medium flex items-center gap-1"><AlertTriangle size={14} />{c.error}</p>}
+        {c.success && <p className="text-green-700 text-sm mb-4 font-medium flex items-center gap-1"><Check size={14} />{c.success}</p>}
 
         {/* Tab bar */}
         <div className="flex items-center gap-4 mb-6">
           <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">
             {[
-              { id: 'info',       label: '📚 Class Info' },
-              { id: 'enrollment', label: count > 0 && c.selected ? `👥 Class Enrollment (${count} enrolled)` : '👥 Class Enrollment' },
+              { id: 'info',       label: 'Class Info',       Icon: BookOpen },
+              { id: 'enrollment', label: count > 0 && c.selected ? `Class Enrollment (${count} enrolled)` : 'Class Enrollment', Icon: Users },
             ].map(tab => {
               const isActive   = editTab === tab.id
               const isDisabled = tab.id === 'enrollment' && !c.selected
@@ -85,7 +89,7 @@ export default function Classes({ user, school, openClassId, onClearOpenClass })
                     color:       isActive ? 'white' : isDisabled ? '#d1d5db' : '#6b7280',
                     cursor:      isDisabled ? 'not-allowed' : 'pointer',
                   }}>
-                  {tab.label}
+                  {tab.Icon && <tab.Icon size={14} className="inline mr-1.5" />}{tab.label}
                 </button>
               )
             })}
@@ -156,7 +160,7 @@ export default function Classes({ user, school, openClassId, onClearOpenClass })
               if (room && room.capacity && size && size > room.capacity) {
                 return (
                   <div className="bg-amber-50 border border-amber-300 rounded-lg px-4 py-2.5 text-amber-800 text-sm">
-                    ⚠️ Class size ({size}) exceeds <strong>{room.name}</strong> capacity ({room.capacity}). Consider a larger room or reduce class size.
+                    <AlertTriangle size={13} className="inline mr-1" />Class size ({size}) exceeds <strong>{room.name}</strong> capacity ({room.capacity}). Consider a larger room or reduce class size.
                   </div>
                 )
               }
@@ -192,7 +196,7 @@ export default function Classes({ user, school, openClassId, onClearOpenClass })
             {showCohort && (
               <div className="bg-white rounded-2xl shadow-sm p-6">
                 <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Cohort Assignment</div>
-                {c.cohortEnrolling && <p className="text-xs text-indigo-500 mb-3">⏳ Assigning cohort and enrolling students…</p>}
+                {c.cohortEnrolling && <p className="text-xs text-indigo-500 mb-3 flex items-center gap-1"><Loader2 size={12} className="animate-spin" />Assigning cohort and enrolling students…</p>}
                 <div className="grid grid-cols-2 gap-5">
                   {/* Available cohorts */}
                   <div>
@@ -207,7 +211,7 @@ export default function Classes({ user, school, openClassId, onClearOpenClass })
                           title="Assign cohort and enroll all members"
                           className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-500 hover:text-white"
                           style={{ borderColor: '#6366f1', background: 'white', color: '#6366f1', cursor: c.cohortEnrolling ? 'not-allowed' : 'pointer' }}>
-                          👥 {coh.name}
+                          <Users size={13} className="inline mr-1" />{coh.name}
                           {coh.division && <span className="text-[0.65rem] opacity-65">{coh.division}</span>}
                         </button>
                       ))}
@@ -221,10 +225,10 @@ export default function Classes({ user, school, openClassId, onClearOpenClass })
                         <p className="text-xs text-gray-300 italic m-0">No cohorts assigned yet.</p>
                       ) : c.classCohorts.map(cc => (
                         <div key={cc.id} className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm bg-green-50 border-2 border-green-200">
-                          <span className="flex-1 font-semibold text-gray-800 truncate">👥 {cc.cohorts?.name}</span>
+                          <span className="flex-1 font-semibold text-gray-800 truncate flex items-center gap-1"><Users size={13} />{cc.cohorts?.name}</span>
                           {cc.cohorts?.division && <span className="text-xs text-gray-500 whitespace-nowrap">{cc.cohorts.division}</span>}
                           <button onClick={() => c.handleRemoveCohort(cc.id, cc.cohort_id)} title="Remove cohort and unenroll its students"
-                            className="bg-transparent border-0 cursor-pointer text-gray-300 text-base leading-none px-0.5 hover:text-red-500 transition-colors">✕</button>
+                            className="bg-transparent border-0 cursor-pointer text-gray-300 px-0.5 hover:text-red-500 transition-colors flex items-center"><X size={14} /></button>
                         </div>
                       ))}
                     </div>
@@ -251,7 +255,7 @@ export default function Classes({ user, school, openClassId, onClearOpenClass })
 
                 {atCap && (
                   <div className="bg-red-50 border border-red-200 rounded-lg px-3.5 py-2.5 mb-4 text-red-700 text-xs font-medium">
-                    🔒 Class is at capacity — increase Class Size (cap) on the Class Info tab to enroll more.
+                    <Lock size={13} className="inline mr-1" />Class is at capacity — increase Class Size (cap) on the Class Info tab to enroll more.
                   </div>
                 )}
 
@@ -288,7 +292,7 @@ export default function Classes({ user, school, openClassId, onClearOpenClass })
                           {e.students?.first_name} {e.students?.last_name}
                           <span className="text-[0.65rem] opacity-65">{e.students?.grade}</span>
                           <button onClick={() => c.handleUnenroll(e.id)} title="Remove student"
-                            className="bg-transparent border-0 cursor-pointer text-green-300 text-xs leading-none flex items-center hover:text-red-500 transition-colors">✕</button>
+                            className="bg-transparent border-0 cursor-pointer text-green-300 flex items-center hover:text-red-500 transition-colors"><X size={13} /></button>
                         </div>
                       ))}
                     </div>
@@ -317,11 +321,11 @@ export default function Classes({ user, school, openClassId, onClearOpenClass })
         </button>
       </div>
 
-      {c.success && <p className="text-green-700 text-sm mb-4 font-medium">✓ {c.success}</p>}
+      {c.success && <p className="text-green-700 text-sm mb-4 font-medium flex items-center gap-1"><Check size={14} />{c.success}</p>}
 
       {/* Stat cards */}
       <div className="flex gap-4 mb-6 flex-wrap">
-        <StatCard label="Total Classes" value={c.stats.total}    icon="📚" />
+        <StatCard label="Total Classes" value={c.stats.total}    Icon={BookOpen} />
         <StatCard label="Active"        value={c.stats.active}   color="#10b981" />
         <StatCard label="Inactive"      value={c.stats.inactive} color="#9ca3af" />
         {Object.entries(c.stats.byDivision).map(([div, count]) => (
@@ -354,7 +358,7 @@ export default function Classes({ user, school, openClassId, onClearOpenClass })
         <p className="text-gray-400">Loading classes…</p>
       ) : c.filtered.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
-          <div className="text-5xl mb-4">📚</div>
+          <div className="mb-4 flex justify-center"><BookOpen size={48} className="text-gray-300" /></div>
           <p className="text-gray-500 text-lg">
             {c.classes.length === 0 ? 'No classes yet. Add your first class to get started.' : 'No classes match your filters.'}
           </p>
@@ -384,19 +388,19 @@ export default function Classes({ user, school, openClassId, onClearOpenClass })
                     )}
                     {cls.enrollment_mode && cls.enrollment_mode !== 'open' && (
                       <span className="text-xs font-semibold text-indigo-500 bg-indigo-50 rounded-full px-2 py-0.5">
-                        {cls.enrollment_mode === 'cohort' ? '👥 Cohort' : '👥 Mixed'}
+                        <Users size={11} className="inline mr-0.5" />{cls.enrollment_mode === 'cohort' ? 'Cohort' : 'Mixed'}
                       </span>
                     )}
                   </div>
                   <div className="text-xs text-gray-500 flex flex-col gap-0.5">
-                    {cls.teacher_name && <span>👩‍🏫 {cls.teacher_name}</span>}
-                    {cls.room_name    && <span>🚪 {cls.room_name}</span>}
-                    {cls.class_size   && <span>👥 {cls.class_size} max</span>}
+                    {cls.teacher_name && <span className="flex items-center gap-1"><GraduationCap size={11} />{cls.teacher_name}</span>}
+                    {cls.room_name    && <span className="flex items-center gap-1"><DoorOpen size={11} />{cls.room_name}</span>}
+                    {cls.class_size   && <span className="flex items-center gap-1"><Users size={11} />{cls.class_size} max</span>}
                   </div>
                   {(() => {
                     const room = cls.room_id ? c.rooms.find(r => r.id === cls.room_id) : null
                     if (room && room.capacity && cls.class_size && cls.class_size > room.capacity) {
-                      return <div className="mt-2 text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-300 rounded-md px-2 py-1">⚠️ Over capacity by {cls.class_size - room.capacity}</div>
+                      return <div className="mt-2 text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-300 rounded-md px-2 py-1 flex items-center gap-1"><AlertTriangle size={11} />Over capacity by {cls.class_size - room.capacity}</div>
                     }
                     return null
                   })()}
@@ -413,10 +417,10 @@ export default function Classes({ user, school, openClassId, onClearOpenClass })
   )
 }
 
-function StatCard({ label, value, icon, color }) {
+function StatCard({ label, value, Icon, color }) {
   return (
     <div className="bg-white rounded-xl px-5 py-3 shadow-sm flex items-center gap-3">
-      {icon  && <span className="text-xl">{icon}</span>}
+      {Icon  && <Icon size={18} className="text-gray-400 shrink-0" />}
       {color && <span className="w-2.5 h-2.5 rounded-full shrink-0 inline-block" style={{ background: color }} />}
       <span className="font-bold text-gray-800">{value}</span>
       <span className="text-gray-500 text-sm">{label}</span>

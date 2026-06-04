@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { AlertTriangle, Check, ClipboardList, Users, BookOpen, X, GraduationCap } from 'lucide-react'
 import { useCohorts } from './hooks/useCohorts'
 import { COHORT_STATUS } from './domain/cohorts'
 import { DIVISION_COLORS, parseDivisions } from './domain/school'
@@ -56,16 +57,16 @@ export default function Cohorts({ user, school }) {
           </div>
         </div>
 
-        {c.error   && <p className="text-red-500 text-sm mb-4 font-medium">⚠ {c.error}</p>}
-        {c.success && <p className="text-green-700 text-sm mb-4 font-medium">✓ {c.success}</p>}
+        {c.error   && <p className="text-red-500 text-sm mb-4 font-medium flex items-center gap-1"><AlertTriangle size={14} />{c.error}</p>}
+        {c.success && <p className="text-green-700 text-sm mb-4 font-medium flex items-center gap-1"><Check size={14} />{c.success}</p>}
 
         {/* Tab bar */}
         <div className="flex items-center gap-4 mb-6">
           <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">
             {[
-              { id: 'info',    label: '📋 Cohort Info' },
-              { id: 'members', label: memberCount > 0 ? `👥 Members (${memberCount})` : '👥 Members' },
-              { id: 'classes', label: classCount  > 0 ? `📚 Classes (${classCount})`  : '📚 Classes'  },
+              { id: 'info',    label: 'Cohort Info',                                              Icon: ClipboardList },
+              { id: 'members', label: memberCount > 0 ? `Members (${memberCount})` : 'Members',  Icon: Users },
+              { id: 'classes', label: classCount  > 0 ? `Classes (${classCount})`  : 'Classes',  Icon: BookOpen },
             ].map(tab => {
               const isActive   = detailTab === tab.id
               const isDisabled = tab.id !== 'info' && !c.selected
@@ -73,7 +74,7 @@ export default function Cohorts({ user, school }) {
                 <button key={tab.id} onClick={() => !isDisabled && setDetailTab(tab.id)}
                   className={`px-5 py-2 rounded-lg border-0 text-sm transition-all ${isActive ? 'font-semibold text-white' : isDisabled ? 'font-normal text-gray-300 cursor-not-allowed' : 'font-normal text-gray-500 cursor-pointer'}`}
                   style={{ background: isActive ? primaryColor : 'transparent' }}>
-                  {tab.label}
+                  {tab.Icon && <tab.Icon size={14} className="inline mr-1.5" />}{tab.label}
                 </button>
               )
             })}
@@ -151,7 +152,7 @@ export default function Cohorts({ user, school }) {
                       {m.students?.first_name} {m.students?.last_name}
                       <span className="text-[0.65rem] opacity-65">{m.students?.grade}</span>
                       <button onClick={() => c.handleRemoveMember(m.id)} title="Remove from cohort"
-                        className="bg-transparent border-0 cursor-pointer text-green-300 text-xs leading-none flex items-center hover:text-red-500 transition-colors">✕</button>
+                        className="bg-transparent border-0 cursor-pointer text-green-300 flex items-center hover:text-red-500 transition-colors"><X size={13} /></button>
                     </div>
                   ))}
                 </div>
@@ -179,7 +180,7 @@ export default function Cohorts({ user, school }) {
                         <div className="font-semibold text-gray-800">{cls?.name}</div>
                         <div className="text-xs text-gray-400 mt-0.5">{[cls?.subject, cls?.division].filter(Boolean).join(' · ')}</div>
                       </div>
-                      {cls?.teacher_name && <span className="text-xs text-gray-500">👩‍🏫 {cls.teacher_name}</span>}
+                      {cls?.teacher_name && <span className="text-xs text-gray-500 flex items-center gap-1"><GraduationCap size={11} />{cls.teacher_name}</span>}
                       {cls?.division && (
                         <span className="text-xs font-semibold rounded-full px-2 py-0.5 border" style={{ background: divColor + '18', color: divColor, borderColor: divColor + '40' }}>
                           {cls.division}
@@ -211,11 +212,11 @@ export default function Cohorts({ user, school }) {
         </button>
       </div>
 
-      {c.success && <p className="text-green-700 text-sm mb-4 font-medium">✓ {c.success}</p>}
+      {c.success && <p className="text-green-700 text-sm mb-4 font-medium flex items-center gap-1"><Check size={14} />{c.success}</p>}
 
       {/* Stat cards */}
       <div className="flex gap-4 mb-6 flex-wrap">
-        <StatCard label="Total Cohorts" value={total}    icon="👥" />
+        <StatCard label="Total Cohorts" value={total}    Icon={Users} />
         <StatCard label="Active"        value={active}   color="#10b981" />
         <StatCard label="Archived"      value={archived} color="#9ca3af" />
         {Object.entries(byDiv).map(([div, count]) => (
@@ -242,7 +243,7 @@ export default function Cohorts({ user, school }) {
         <p className="text-gray-400">Loading cohorts…</p>
       ) : c.filtered.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
-          <div className="text-5xl mb-4">👥</div>
+          <div className="mb-4 flex justify-center"><Users size={48} className="text-gray-300" /></div>
           <p className="text-gray-500 text-lg">
             {c.cohorts.length === 0 ? 'No cohorts yet. Click + New Cohort to get started.' : 'No cohorts match your filters.'}
           </p>
@@ -284,10 +285,10 @@ export default function Cohorts({ user, school }) {
   )
 }
 
-function StatCard({ label, value, icon, color }) {
+function StatCard({ label, value, Icon, color }) {
   return (
     <div className="bg-white rounded-xl px-5 py-3 shadow-sm flex items-center gap-3">
-      {icon  && <span className="text-xl">{icon}</span>}
+      {Icon  && <Icon size={18} className="text-gray-400 shrink-0" />}
       {color && <span className="w-2.5 h-2.5 rounded-full inline-block shrink-0" style={{ background: color }} />}
       <span className="font-bold text-gray-800">{value}</span>
       <span className="text-gray-500 text-sm">{label}</span>

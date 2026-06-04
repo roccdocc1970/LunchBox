@@ -34,8 +34,8 @@ export const WO_STATUS_COLORS = {
 }
 
 export const CATEGORY_ICONS = {
-  Plumbing: '🚿', Electrical: '⚡', HVAC: '❄️', Carpentry: '🔨',
-  Grounds: '🌿', Custodial: '🧹', Safety: '🛡️', Technology: '💻', Other: '🔧',
+  Plumbing: 'Droplets', Electrical: 'Zap', HVAC: 'Wind', Carpentry: 'Hammer',
+  Grounds: 'Leaf', Custodial: 'Brush', Safety: 'Shield', Technology: 'Monitor', Other: 'Wrench',
 }
 
 export const STATUS_COLORS = { Enrolled: '#10b981', Applied: '#3b82f6', Waitlisted: '#f59e0b' }
@@ -54,12 +54,12 @@ export const canViewLimitedHealth = (role) => isTeacherRole(role)
 
 export function getNavItems(role) {
   return [
-    { id: 'students',    label: isTeacherRole(role) ? 'My Students' : 'Students', icon: '🎒' },
-    ...(isTeacherRole(role) || isPrincipalAdminRole(role) ? [{ id: 'attendance',  label: 'Attendance',       icon: '📅' }] : []),
-    ...(isTeacherRole(role) || isPrincipalAdminRole(role) ? [{ id: 'reportcards', label: 'Report Cards',     icon: '📝' }] : []),
-    { id: 'incidents',   label: 'Student Incidents', icon: '⚠️' },
-    { id: 'facilities',  label: 'Facilities',        icon: '🔧' },
-    ...(isPrincipalAdminRole(role) ? [{ id: 'staffdir', label: 'Staff', icon: '👩‍🏫' }] : []),
+    { id: 'students',    label: isTeacherRole(role) ? 'My Students' : 'Students', icon: 'Users' },
+    ...(isTeacherRole(role) || isPrincipalAdminRole(role) ? [{ id: 'attendance',  label: 'Attendance',       icon: 'ClipboardCheck' }] : []),
+    ...(isTeacherRole(role) || isPrincipalAdminRole(role) ? [{ id: 'reportcards', label: 'Report Cards',     icon: 'FileText' }] : []),
+    { id: 'incidents',   label: 'Student Incidents', icon: 'AlertTriangle' },
+    { id: 'facilities',  label: 'Facilities',        icon: 'Wrench' },
+    ...(isPrincipalAdminRole(role) ? [{ id: 'staffdir', label: 'Staff', icon: 'Briefcase' }] : []),
   ]
 }
 

@@ -1,3 +1,4 @@
+import { Mail } from 'lucide-react'
 import { useMessages } from './hooks/useMessages'
 import { formatMessageDate } from './domain/messages'
 
@@ -102,7 +103,7 @@ export default function Messages({ user }) {
         <p className="text-gray-500">Loading messages...</p>
       ) : messages.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
-          <div className="text-5xl mb-4">✉️</div>
+          <div className="mb-4 flex justify-center"><Mail size={48} className="text-gray-300" /></div>
           <p className="text-gray-500 text-lg">No messages yet. Send your first announcement above!</p>
         </div>
       ) : (

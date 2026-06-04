@@ -1,3 +1,7 @@
+import { ClipboardList, Mail, BarChart3, DollarSign, GraduationCap, Lock } from 'lucide-react'
+
+const FEATURE_ICONS = { ClipboardList, Mail, BarChart3, DollarSign, GraduationCap, Lock }
+
 export default function Landing({ onGetStarted, onLogin }) {
   return (
     <div className="text-gray-800" style={{ fontFamily: 'system-ui, sans-serif' }}>
@@ -63,19 +67,24 @@ export default function Landing({ onGetStarted, onLogin }) {
           </div>
           <div className="grid gap-8" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
             {[
-              { icon: '📋', title: 'Smart Enrollment', desc: 'Manage student applications, track enrollment status, handle waitlists, and collect all the information you need digitally in one place.' },
-              { icon: '✉️', title: 'Parent Communication', desc: 'Send announcements, newsletters, and individual messages to parents instantly. Keep every family informed and engaged.' },
-              { icon: '📊', title: 'Powerful Reporting', desc: 'Get instant insights into enrollment trends, attendance, and school performance. Make data-driven decisions with ease.' },
-              { icon: '💰', title: 'Billing and Payments', desc: 'Collect tuition, fees, and donations online. Automated reminders and receipts save your admin team hours every week.' },
-              { icon: '👩‍🏫', title: 'Staff Management', desc: 'Manage schedules, roles, and communications for your entire staff from one central dashboard.' },
-              { icon: '🔒', title: 'Secure and Compliant', desc: 'Built with security first. Your school data is encrypted, backed up, and only accessible to the right people.' },
-            ].map(feature => (
-              <div key={feature.title} className="bg-white rounded-2xl p-8 shadow-sm">
-                <div className="text-[2.5rem] mb-4">{feature.icon}</div>
-                <h3 className="text-[1.15rem] font-bold text-gray-800 mb-3">{feature.title}</h3>
-                <p className="text-gray-500 leading-relaxed m-0">{feature.desc}</p>
-              </div>
-            ))}
+              { icon: 'ClipboardList', color: '#f97316', title: 'Smart Enrollment', desc: 'Manage student applications, track enrollment status, handle waitlists, and collect all the information you need digitally in one place.' },
+              { icon: 'Mail',         color: '#3b82f6', title: 'Parent Communication', desc: 'Send announcements, newsletters, and individual messages to parents instantly. Keep every family informed and engaged.' },
+              { icon: 'BarChart3',    color: '#10b981', title: 'Powerful Reporting', desc: 'Get instant insights into enrollment trends, attendance, and school performance. Make data-driven decisions with ease.' },
+              { icon: 'DollarSign',   color: '#f59e0b', title: 'Billing and Payments', desc: 'Collect tuition, fees, and donations online. Automated reminders and receipts save your admin team hours every week.' },
+              { icon: 'GraduationCap',color: '#8b5cf6', title: 'Staff Management', desc: 'Manage schedules, roles, and communications for your entire staff from one central dashboard.' },
+              { icon: 'Lock',         color: '#6b7280', title: 'Secure and Compliant', desc: 'Built with security first. Your school data is encrypted, backed up, and only accessible to the right people.' },
+            ].map(feature => {
+              const Icon = FEATURE_ICONS[feature.icon]
+              return (
+                <div key={feature.title} className="bg-white rounded-2xl p-8 shadow-sm">
+                  <div className="mb-4 w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: feature.color + '18' }}>
+                    {Icon && <Icon size={26} style={{ color: feature.color }} />}
+                  </div>
+                  <h3 className="text-[1.15rem] font-bold text-gray-800 mb-3">{feature.title}</h3>
+                  <p className="text-gray-500 leading-relaxed m-0">{feature.desc}</p>
+                </div>
+              )
+            })}
           </div>
         </div>
       </section>

@@ -1,3 +1,9 @@
+import {
+  Users, ClipboardCheck, FileText, AlertTriangle, Wrench, Briefcase,
+  Droplets, Zap, Wind, Hammer, Leaf, Brush, Shield, Monitor,
+  Mail, Phone, Siren, Pill, Syringe, Stethoscope, Bandage, ClipboardList,
+  X,
+} from 'lucide-react'
 import { useStaffDashboard } from './hooks/useStaffDashboard'
 import { getRoleColor } from './domain/staff'
 import {
@@ -6,6 +12,23 @@ import {
   STATUS_COLORS, getNavItems, canViewFullHealth, canViewLimitedHealth,
 } from './domain/staffDashboard'
 import Attendance from './Attendance'
+
+const STAFF_NAV_ICONS = { Users, ClipboardCheck, FileText, AlertTriangle, Wrench, Briefcase }
+
+const WO_ICON_COMPONENTS = {
+  Droplets, Zap, Wind, Hammer, Leaf, Brush, Shield, Monitor, Wrench,
+}
+
+function WoCategoryIcon({ category }) {
+  const name = CATEGORY_ICONS[category] || 'Wrench'
+  const Icon = WO_ICON_COMPONENTS[name] || Wrench
+  return <Icon size={14} />
+}
+
+const HEALTH_ICON_COMPONENTS = {
+  Allergy: AlertTriangle, Medication: Pill, Immunization: Syringe,
+  Condition: Stethoscope, Injury: Bandage, Other: ClipboardList,
+}
 
 const labelCls = 'block text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide'
 const fieldCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none'
@@ -71,7 +94,7 @@ export default function StaffDashboard({ user, staffMember, school, onLogout }) 
                 borderLeftColor: activePage === item.id ? primaryColor : 'transparent',
                 color: activePage === item.id ? primaryColor : undefined,
               }}>
-              <span>{item.icon}</span><span>{item.label}</span>
+              {(() => { const Icon = STAFF_NAV_ICONS[item.icon]; return Icon ? <Icon size={16} /> : null })()}<span>{item.label}</span>
             </button>
           ))}
           <div className="absolute bottom-6 left-0 w-[220px] px-6">
@@ -141,7 +164,7 @@ export default function StaffDashboard({ user, staffMember, school, onLogout }) 
                         <div className="text-[1.2rem] font-bold">{selectedStudent.first_name} {selectedStudent.last_name}</div>
                         <div className="text-sm opacity-85">{selectedStudent.grade || 'No grade'}</div>
                       </div>
-                      <button onClick={closeStudentProfile} className="bg-white/20 border-0 text-white rounded-lg px-3 py-1 cursor-pointer">✕</button>
+                      <button onClick={closeStudentProfile} className="bg-white/20 border-0 text-white rounded-lg px-3 py-1 cursor-pointer flex items-center"><X size={16} /></button>
                     </div>
                     <div className="p-6 flex flex-col gap-5">
 
@@ -151,8 +174,8 @@ export default function StaffDashboard({ user, staffMember, school, onLogout }) 
                         {selectedStudent.parents ? (
                           <div className="bg-gray-50 rounded-xl p-3 text-sm">
                             <div className="font-semibold text-gray-800 mb-1">{selectedStudent.parents.first_name} {selectedStudent.parents.last_name}</div>
-                            {selectedStudent.parents.email && <div className="text-gray-500">✉ {selectedStudent.parents.email}</div>}
-                            {selectedStudent.parents.phone && <div className="text-gray-500">📞 {selectedStudent.parents.phone}</div>}
+                            {selectedStudent.parents.email && <div className="text-gray-500 flex items-center gap-1.5"><Mail size={12} /> {selectedStudent.parents.email}</div>}
+                            {selectedStudent.parents.phone && <div className="text-gray-500 flex items-center gap-1.5"><Phone size={12} /> {selectedStudent.parents.phone}</div>}
                           </div>
                         ) : <p className="text-gray-400 text-sm">No parent linked.</p>}
                       </div>
@@ -166,9 +189,9 @@ export default function StaffDashboard({ user, staffMember, school, onLogout }) 
 
                           {studentHealthProfile?.emergency_contact_name && (
                             <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-2.5 text-[0.85rem]">
-                              <div className="font-bold text-red-600 mb-0.5">🚨 Emergency Contact</div>
+                              <div className="font-bold text-red-600 mb-0.5 flex items-center gap-1.5"><Siren size={14} /> Emergency Contact</div>
                               <div className="text-gray-700">{studentHealthProfile.emergency_contact_name}{studentHealthProfile.emergency_contact_relationship ? ` (${studentHealthProfile.emergency_contact_relationship})` : ''}</div>
-                              {studentHealthProfile.emergency_contact_phone && <div className="text-gray-500">📞 {studentHealthProfile.emergency_contact_phone}</div>}
+                              {studentHealthProfile.emergency_contact_phone && <div className="text-gray-500 flex items-center gap-1.5"><Phone size={12} /> {studentHealthProfile.emergency_contact_phone}</div>}
                             </div>
                           )}
 
@@ -177,7 +200,7 @@ export default function StaffDashboard({ user, staffMember, school, onLogout }) 
                             if (allergies.length === 0) return null
                             return (
                               <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-2.5 text-[0.85rem]">
-                                <div className="font-bold text-amber-600 mb-1.5">⚠️ Allergies ({allergies.length})</div>
+                                <div className="font-bold text-amber-600 mb-1.5 flex items-center gap-1.5"><AlertTriangle size={14} /> Allergies ({allergies.length})</div>
                                 <div className="flex flex-col gap-1">
                                   {allergies.map(a => (
                                     <div key={a.id} className="text-gray-700">
@@ -208,18 +231,17 @@ export default function StaffDashboard({ user, staffMember, school, onLogout }) 
                             const entries = studentHealthEntries.filter(e => e.category !== 'Allergy')
                             if (entries.length === 0) return null
                             const HEALTH_CATEGORY_COLORS = { Medication: '#3b82f6', Immunization: '#10b981', Condition: '#f59e0b', Injury: '#8b5cf6', Other: '#6b7280' }
-                            const HEALTH_CATEGORY_ICONS  = { Medication: '💊', Immunization: '💉', Condition: '🩺', Injury: '🩹', Other: '📋' }
                             return (
                               <div className="flex flex-col gap-1.5">
                                 {entries.map(e => {
                                   const color     = HEALTH_CATEGORY_COLORS[e.category] || '#6b7280'
-                                  const icon      = HEALTH_CATEGORY_ICONS[e.category]  || '📋'
+                                  const HealthIcon = HEALTH_ICON_COMPONENTS[e.category] || ClipboardList
                                   const isExpired = e.expiration_date && e.expiration_date < new Date().toISOString().split('T')[0]
                                   return (
                                     <div key={e.id} className="bg-gray-50 rounded-lg px-3 py-2 text-[0.825rem]"
                                       style={{ border: `1px solid ${color}30`, borderLeft: `3px solid ${color}` }}>
                                       <div className="flex justify-between items-center">
-                                        <span className="font-semibold" style={{ color }}>{icon} {e.name}</span>
+                                        <span className="font-semibold flex items-center gap-1" style={{ color }}><HealthIcon size={13} /> {e.name}</span>
                                         <div className="flex gap-1.5 items-center">
                                           {isExpired && <span className="text-[0.7rem] text-red-500 font-semibold bg-red-100 rounded-full px-1.5 py-0.5">Expired</span>}
                                           <span className="text-[0.7rem] font-semibold rounded-full px-1.5 py-0.5" style={{ color, background: color + '18' }}>{e.category}</span>
@@ -574,7 +596,7 @@ export default function StaffDashboard({ user, staffMember, school, onLogout }) 
 
               {filteredWorkOrders.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">
-                  <div className="text-[2.5rem] mb-3">🔧</div>
+                  <div className="mb-3 flex justify-center"><Wrench size={40} className="text-gray-300" /></div>
                   <p className="m-0">No work orders found.</p>
                 </div>
               ) : (
@@ -591,7 +613,7 @@ export default function StaffDashboard({ user, staffMember, school, onLogout }) 
                       {filteredWorkOrders.map(wo => (
                         <tr key={wo.id} className="border-b border-gray-50 hover:bg-gray-50">
                           <td className="px-4 py-3 font-medium text-gray-800 max-w-[200px] overflow-hidden text-ellipsis whitespace-nowrap">
-                            <span className="mr-1.5">{CATEGORY_ICONS[wo.category] || '🔧'}</span>{wo.title}
+                            <span className="mr-1.5 inline-flex items-center"><WoCategoryIcon category={wo.category} /></span>{wo.title}
                           </td>
                           <td className="px-4 py-3 text-gray-500">{wo.category}</td>
                           <td className="px-4 py-3 text-gray-500">{wo.location || '—'}</td>
@@ -645,8 +667,8 @@ export default function StaffDashboard({ user, staffMember, school, onLogout }) 
                         <div className="text-[0.8rem]" style={{ color: getRoleColor(s.role) }}>{s.role}</div>
                       </div>
                     </div>
-                    {s.email && <div className="text-[0.825rem] text-gray-500 mb-1">✉ {s.email}</div>}
-                    {s.phone && <div className="text-[0.825rem] text-gray-500">📞 {s.phone}</div>}
+                    {s.email && <div className="text-[0.825rem] text-gray-500 mb-1 flex items-center gap-1.5"><Mail size={12} /> {s.email}</div>}
+                    {s.phone && <div className="text-[0.825rem] text-gray-500 flex items-center gap-1.5"><Phone size={12} /> {s.phone}</div>}
                     <div className="mt-2">
                       <span className={`text-xs font-semibold rounded-full px-2 py-0.5 ${s.status === 'Active' ? 'text-green-600 bg-green-50' : 'text-gray-400 bg-gray-100'}`}>{s.status}</span>
                     </div>

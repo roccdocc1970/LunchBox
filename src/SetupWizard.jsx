@@ -1,3 +1,4 @@
+import { GraduationCap, School, BookOpen, FileText, Palette, Check, AlertTriangle } from 'lucide-react'
 import { useState } from 'react'
 import { supabase } from './supabase'
 
@@ -43,12 +44,14 @@ const parseSubjects = (val) => {
 
 const TOTAL_STEPS = 5
 
+const STEP_ICONS = [GraduationCap, School, BookOpen, FileText, Palette]
+
 const STEPS = [
-  { title: 'Grade Levels', subtitle: 'Which grades does your school serve?', icon: '🎓' },
-  { title: 'School Divisions', subtitle: 'Group grades into named divisions like Lower School or Upper School. Totally optional.', icon: '🏫' },
-  { title: 'Subjects Offered', subtitle: 'These will appear as rows on every report card.', icon: '📚' },
-  { title: 'Grading Configuration', subtitle: 'How your school grades students and structures the academic year.', icon: '📝' },
-  { title: 'Brand & Appearance', subtitle: 'Give LunchBox your school\'s look and feel.', icon: '🎨' },
+  { title: 'Grade Levels', subtitle: 'Which grades does your school serve?' },
+  { title: 'School Divisions', subtitle: 'Group grades into named divisions like Lower School or Upper School. Totally optional.' },
+  { title: 'Subjects Offered', subtitle: 'These will appear as rows on every report card.' },
+  { title: 'Grading Configuration', subtitle: 'How your school grades students and structures the academic year.' },
+  { title: 'Brand & Appearance', subtitle: 'Give LunchBox your school\'s look and feel.' },
 ]
 
 const labelCls = 'block text-sm font-semibold text-gray-700 mb-1.5'
@@ -120,8 +123,9 @@ export default function SetupWizard({ user, school, onDone }) {
             <div className="text-[0.8rem] font-semibold text-gray-400 uppercase tracking-wide mb-1">
               Quick Setup — Step {step} of {TOTAL_STEPS}
             </div>
-            <h2 className="text-[1.4rem] font-extrabold text-gray-800 m-0">
-              {currentStep.icon} {currentStep.title}
+            <h2 className="text-[1.4rem] font-extrabold text-gray-800 m-0 flex items-center gap-2">
+              {(() => { const Icon = STEP_ICONS[step - 1]; return Icon ? <Icon size={22} style={{ color: primaryColor }} /> : null })()}
+              {currentStep.title}
             </h2>
             <p className="text-gray-500 text-sm mt-1.5 mb-0">{currentStep.subtitle}</p>
           </div>
@@ -160,7 +164,7 @@ export default function SetupWizard({ user, school, onDone }) {
                     >
                       <div className="w-4 h-4 rounded flex items-center justify-center shrink-0"
                         style={{ border: `2px solid ${checked ? primaryColor : '#d1d5db'}`, background: checked ? primaryColor : 'white' }}>
-                        {checked && <span className="text-white text-[0.7rem] font-bold">✓</span>}
+                        {checked && <Check size={10} className="text-white" />}
                       </div>
                       <span className="text-sm" style={{ color: checked ? primaryColor : '#374151', fontWeight: checked ? '600' : '400' }}>{grade}</span>
                     </div>
@@ -175,7 +179,7 @@ export default function SetupWizard({ user, school, onDone }) {
             <div>
               {grades.length === 0 ? (
                 <div className="p-8 text-center bg-gray-50 rounded-xl border border-gray-200">
-                  <div className="text-[2rem] mb-2">⚠️</div>
+                  <div className="mb-2 flex justify-center"><AlertTriangle size={32} className="text-amber-400" /></div>
                   <p className="text-gray-500 m-0">No grades selected yet. Go back to Step 1 and select grade levels first, or skip this step and configure divisions in Settings later.</p>
                 </div>
               ) : (

@@ -120,7 +120,7 @@ export default function ApplicationPortal({ schoolId }) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-8">
         <div className="bg-white rounded-[1.25rem] shadow-xl p-12 max-w-[480px] w-full text-center">
-          <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6 text-[2rem]">✅</div>
+          <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
           <h2 className="text-2xl font-bold text-gray-800 mt-0 mb-3">Application Submitted!</h2>
           <p className="text-gray-500 mb-6 leading-relaxed">
             Thank you for your interest in <strong>{school?.name}</strong>. The admissions team will be in touch soon.

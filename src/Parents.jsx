@@ -1,3 +1,4 @@
+import { Mail, X } from 'lucide-react'
 import { useParents } from './hooks/useParents'
 import { getDivision } from './domain/school'
 import { initials } from './domain/parents'
@@ -116,7 +117,7 @@ export default function Parents({ user, school, onCompose }) {
                         className="border rounded-md px-2.5 py-1 text-xs font-semibold cursor-pointer hover:opacity-80 transition-opacity whitespace-nowrap bg-transparent"
                         style={{ borderColor: primaryColor, color: primaryColor }}
                       >
-                        ✉ Message
+                        <Mail size={13} className="inline mr-1" />Message
                       </button>
                     )}
                   </td>
@@ -149,7 +150,7 @@ export default function Parents({ user, school, onCompose }) {
                     </div>
                   </div>
                 </div>
-                <button onClick={closeDrawer} className="bg-transparent border-0 text-xl cursor-pointer text-gray-400 hover:text-gray-600 leading-none">×</button>
+                <button onClick={closeDrawer} className="bg-transparent border-0 cursor-pointer text-gray-400 hover:text-gray-600 flex items-center"><X size={16} /></button>
               </div>
             </div>
 
@@ -274,7 +275,7 @@ export default function Parents({ user, school, onCompose }) {
                     className="flex-1 text-white border-0 rounded-xl py-2 font-bold cursor-pointer text-sm hover:opacity-90 transition-opacity"
                     style={{ background: primaryColor }}
                   >
-                    ✉ Send Message
+                    <Mail size={14} className="inline mr-1" />Send Message
                   </button>
                 )}
               </div>

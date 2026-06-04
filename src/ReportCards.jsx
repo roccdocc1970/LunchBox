@@ -1,3 +1,4 @@
+import { Lightbulb, FileText, Check, X } from 'lucide-react'
 import { useReportCards } from './hooks/useReportCards'
 import { GRADE_COLORS, gradedCount } from './domain/reportCards'
 import { parseDivisions } from './domain/school'
@@ -47,7 +48,7 @@ export default function ReportCards({ user, school }) {
       {/* Config nudge */}
       {!school?.grading_scale && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-3.5 mb-6 text-sm text-blue-700">
-          💡 Using default <strong>Letter Grade</strong> scale and standard subjects. Configure both in <strong>School Settings → Academic Config</strong>.
+          <Lightbulb size={15} className="inline mr-1.5 text-blue-500" />Using default <strong>Letter Grade</strong> scale and standard subjects. Configure both in <strong>School Settings → Academic Config</strong>.
         </div>
       )}
 
@@ -194,7 +195,7 @@ export default function ReportCards({ user, school }) {
         <p className="text-gray-500">Loading report cards...</p>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
-          <div className="text-5xl mb-4">📝</div>
+          <div className="mb-4 flex justify-center"><FileText size={48} className="text-gray-300" /></div>
           <p className="text-gray-500 text-lg">
             {stats.total === 0 ? 'No report cards yet. Create your first one above.' : 'No report cards match your filters.'}
           </p>
@@ -223,7 +224,7 @@ export default function ReportCards({ user, school }) {
                   <td className="px-4 py-3 text-gray-700">{gradedCount(rc.grades)}/{(rc.grades || []).length}</td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-3 py-1 text-xs font-semibold border ${rc.published ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
-                      {rc.published ? '✓ Published' : 'Draft'}
+                      {rc.published ? <><Check size={12} className="inline mr-0.5" />Published</> : 'Draft'}
                     </span>
                   </td>
                 </tr>
@@ -256,10 +257,10 @@ export default function ReportCards({ user, school }) {
                 <button
                   onClick={() => setSelected(null)}
                   className="bg-white/20 border-0 text-white rounded-lg px-3 py-1 cursor-pointer text-lg hover:bg-white/30"
-                >✕</button>
+                ><X size={16} /></button>
               </div>
               <span className={`inline-block mt-3 rounded-full px-3 py-0.5 text-xs font-semibold ${selected.published ? 'bg-white/30' : 'bg-white/15'}`}>
-                {selected.published ? '✓ Published' : 'Draft'}
+                {selected.published ? <><Check size={12} className="inline mr-0.5" />Published</> : 'Draft'}
               </span>
             </div>
 
@@ -308,7 +309,7 @@ export default function ReportCards({ user, school }) {
                   className={`flex-1 border rounded-lg py-2.5 font-semibold cursor-pointer text-sm hover:opacity-90 transition-opacity ${selected.published ? 'bg-white text-gray-700 border-gray-300' : 'text-white border-0'}`}
                   style={selected.published ? undefined : { background: primaryColor }}
                 >
-                  {selected.published ? 'Revert to Draft' : '✓ Publish Report Card'}
+                  {selected.published ? 'Revert to Draft' : <><Check size={14} className="inline mr-1" />Publish Report Card</>}
                 </button>
                 <button
                   onClick={() => { if (window.confirm(`Delete ${selected.student_name}'s ${selected.term} report card?`)) remove(selected.id) }}

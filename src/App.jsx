@@ -3,6 +3,7 @@ import {
   LayoutDashboard, ClipboardList, UserPlus, Users, BookOpen, UsersRound,
   CalendarDays, ClipboardCheck, FileText, Briefcase, Heart, Award,
   HeartHandshake, Wrench, MessageSquare, BarChart3, ChevronDown, Settings as SettingsIcon, LogOut,
+  Backpack, Mail, GraduationCap, Check, PartyPopper, Rocket, Sparkles,
 } from 'lucide-react'
 
 const NAV_ICONS = {
@@ -10,6 +11,8 @@ const NAV_ICONS = {
   CalendarDays, ClipboardCheck, FileText, Briefcase, Heart, Award,
   HeartHandshake, Wrench, MessageSquare, BarChart3,
 }
+
+const DASHBOARD_STAT_ICONS = { Backpack, ClipboardList, Mail, GraduationCap }
 import { supabase } from './supabase'
 import { useAuth }      from './hooks/useAuth'
 import { useSchool }    from './hooks/useSchool'
@@ -138,7 +141,7 @@ function App() {
                     </button>
                     <button onClick={() => { sc.setShowWizard(true); setShowSettingsMenu(false) }}
                       className="w-full text-left px-4 py-3 bg-transparent border-0 cursor-pointer text-sm text-gray-700 flex items-center gap-2.5 hover:bg-gray-50">
-                      ✦ Setup Wizard
+                      <Sparkles size={14} /> Setup Wizard
                     </button>
                   </div>
                 </>
@@ -225,7 +228,7 @@ function App() {
                           color:        allDone ? '#15803d' : '#6b7280',
                         }}
                       >
-                        {allDone ? '✅' : '🚀'} Getting Started Checklist{allDone ? ' (Completed)' : ''}
+                        {allDone ? <><Check size={14} className="inline mr-1" />Getting Started Checklist (Completed)</> : <><Rocket size={14} className="inline mr-1" />Getting Started Checklist</>}
                       </button>
                     )
                   })()}
@@ -238,17 +241,19 @@ function App() {
                 {/* Stat cards */}
                 <div className="grid gap-4 mb-8" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
                   {[
-                    { label: 'Total Students',     value: sc.stats.students, icon: '🎒' },
-                    { label: 'Pending Enrollment', value: sc.stats.pending,  icon: '📋' },
-                    { label: 'Messages Sent',      value: sc.stats.messages, icon: '✉️' },
-                    { label: 'Active Staff',        value: sc.stats.staff,    icon: '👩‍🏫' },
-                  ].map(stat => (
+                    { label: 'Total Students',     value: sc.stats.students, icon: 'Backpack',      color: primaryColor },
+                    { label: 'Pending Enrollment', value: sc.stats.pending,  icon: 'ClipboardList', color: '#3b82f6' },
+                    { label: 'Messages Sent',      value: sc.stats.messages, icon: 'Mail',          color: '#8b5cf6' },
+                    { label: 'Active Staff',        value: sc.stats.staff,    icon: 'GraduationCap', color: '#10b981' },
+                  ].map(stat => {
+                    const Icon = DASHBOARD_STAT_ICONS[stat.icon]
+                    return (
                     <div key={stat.label} className="bg-white rounded-2xl p-6 shadow-sm">
-                      <div className="text-3xl mb-2">{stat.icon}</div>
+                      <div className="mb-2">{Icon && <Icon size={28} style={{ color: stat.color }} />}</div>
                       <div className="text-3xl font-bold text-gray-800">{stat.value}</div>
                       <div className="text-gray-500 text-sm mt-1">{stat.label}</div>
                     </div>
-                  ))}
+                  )})}
                 </div>
 
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
@@ -259,7 +264,7 @@ function App() {
                       <button key={action.label} onClick={() => setActivePage(action.page)}
                         className="bg-white border-2 rounded-2xl p-5 cursor-pointer text-left shadow-sm hover:shadow-md transition-shadow"
                         style={{ borderColor: color }}>
-                        <div className="text-3xl mb-2">{action.icon}</div>
+                        <div className="mb-2">{NAV_ICONS[action.icon] && (() => { const Icon = NAV_ICONS[action.icon]; return <Icon size={28} style={{ color }} /> })()}</div>
                         <div className="font-semibold" style={{ color }}>{action.label}</div>
                       </button>
                     )
@@ -340,7 +345,7 @@ function GettingStarted({ counts, school, primaryColor, onNavigate, onDismiss })
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <span className="text-xl">{allDone ? '🎉' : '🚀'}</span>
+          <span>{allDone ? <PartyPopper size={20} className="text-green-600" /> : <Rocket size={20} className="text-gray-500" />}</span>
           <div>
             <div className="font-bold text-gray-800">{allDone ? "You're all set up!" : 'Getting Started'}</div>
             <div className="text-xs text-gray-400 mt-0.5">
@@ -377,7 +382,7 @@ function GettingStarted({ counts, school, primaryColor, onNavigate, onDismiss })
             >
               <span className="w-4.5 h-4.5 rounded-full shrink-0 flex items-center justify-center text-[0.6rem] font-bold text-white border-2 transition-colors"
                 style={{ width: 18, height: 18, background: step.complete ? '#10b981' : 'white', borderColor: step.complete ? '#10b981' : '#d1d5db', color: 'white' }}>
-                {step.complete ? '✓' : ''}
+                {step.complete ? <Check size={10} /> : ''}
               </span>
               <span className="text-sm flex-1" style={{ fontWeight: step.complete ? '400' : '500', color: step.complete ? '#6b7280' : '#1f2937' }}>
                 {step.label}

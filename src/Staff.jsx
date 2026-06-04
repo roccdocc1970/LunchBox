@@ -1,3 +1,4 @@
+import { Lock, Mail, Phone, AlertTriangle, X, GraduationCap } from 'lucide-react'
 import { useStaff } from './hooks/useStaff'
 import { ROLES, getRoleColor, parseGradeAssignments, getOrphanedGrades, getAssignmentDivisions } from './domain/staff'
 import { getDivision, parseDivisions } from './domain/school'
@@ -51,7 +52,7 @@ export default function Staff({ user, school }) {
       {/* Config nudge */}
       {!configuredGrades && (
         <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-3.5 mb-6 flex items-center gap-3">
-          <span className="text-lg">🔒</span>
+          <Lock size={18} className="text-red-500 shrink-0" />
           <span className="text-sm text-red-800"><strong>Grade assignment is locked.</strong> Complete your Academic Configuration in <strong>Settings → Academic Config</strong> before assigning grades to staff.</span>
         </div>
       )}
@@ -158,7 +159,7 @@ export default function Staff({ user, school }) {
         <p className="text-gray-500">Loading staff...</p>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
-          <div className="text-5xl mb-4">👩‍🏫</div>
+          <div className="mb-4 flex justify-center"><GraduationCap size={48} className="text-gray-300" /></div>
           <p className="text-gray-500 text-lg">
             {staff.length === 0 ? 'No staff members yet. Add your first staff member above!' : 'No staff match your filters.'}
           </p>
@@ -187,8 +188,8 @@ export default function Staff({ user, school }) {
 
               <GradeBadges member={member} compact configuredGrades={configuredGrades} school={school} primaryColor={primaryColor} />
 
-              {member.email && <div className="text-xs text-gray-500 mb-1 truncate">✉️ {member.email}</div>}
-              {member.phone && <div className="text-xs text-gray-500 mb-1">📞 {member.phone}</div>}
+              {member.email && <div className="text-xs text-gray-500 mb-1 truncate flex items-center gap-1"><Mail size={11} /> {member.email}</div>}
+              {member.phone && <div className="text-xs text-gray-500 mb-1 flex items-center gap-1"><Phone size={11} /> {member.phone}</div>}
 
               <div className="mt-3">
                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${member.status === 'Active' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
@@ -220,7 +221,7 @@ export default function Staff({ user, school }) {
                     <div className="text-sm opacity-85">{selected.role}</div>
                   </div>
                 </div>
-                <button onClick={closeProfile} className="bg-white/20 border-0 text-white rounded-lg px-3 py-1 cursor-pointer text-lg hover:bg-white/30">✕</button>
+                <button onClick={closeProfile} className="bg-white/20 border-0 text-white rounded-lg px-3 py-1 cursor-pointer hover:bg-white/30 flex items-center"><X size={16} /></button>
               </div>
               <span className="inline-block mt-3 bg-white/20 rounded-full px-3 py-0.5 text-xs font-semibold">
                 {selected.status || 'Active'}
@@ -368,14 +369,14 @@ function GradePicker({ selected: picked, onToggle, locked, grades, configuredGra
           {orphaned.map(grade => (
             <button key={grade} type="button" onClick={() => onToggle(grade)}
               title="This grade is no longer offered at your school. Click to remove."
-              className="px-2.5 py-1 rounded-full text-xs cursor-pointer border-2 line-through transition-all border-yellow-300 bg-yellow-50 text-amber-800">
-              ⚠ {grade}
+              className="px-2.5 py-1 rounded-full text-xs cursor-pointer border-2 line-through transition-all border-yellow-300 bg-yellow-50 text-amber-800 inline-flex items-center gap-0.5">
+              <AlertTriangle size={10} />{grade}
             </button>
           ))}
         </div>
       )}
       {orphaned.length > 0 && (
-        <p className="text-xs text-amber-600 mt-2 mb-0">⚠ {orphaned.length} grade{orphaned.length !== 1 ? 's are' : ' is'} no longer offered. Click to remove.</p>
+        <p className="text-xs text-amber-600 mt-2 mb-0 flex items-center gap-1"><AlertTriangle size={11} />{orphaned.length} grade{orphaned.length !== 1 ? 's are' : ' is'} no longer offered. Click to remove.</p>
       )}
       {picked.length > 0 && orphaned.length === 0 && (
         <p className="text-xs text-gray-400 mt-1.5 mb-0">{picked.length} grade{picked.length !== 1 ? 's' : ''} assigned</p>
@@ -396,7 +397,7 @@ function GradeBadges({ member, compact = false, configuredGrades, school, primar
       <div className="mb-2">
         <div className={`flex flex-wrap gap-1 ${uniqueDivisions.length > 0 ? 'mb-1' : ''}`}>
           {sorted.map(g => isOrphaned(g)
-            ? <span key={g} title="Grade no longer offered" className="text-[0.72rem] bg-yellow-50 text-amber-800 rounded-full px-2 py-0.5 line-through border border-yellow-300">⚠ {g}</span>
+            ? <span key={g} title="Grade no longer offered" className="text-[0.72rem] bg-yellow-50 text-amber-800 rounded-full px-2 py-0.5 line-through border border-yellow-300 inline-flex items-center gap-0.5"><AlertTriangle size={10} /> {g}</span>
             : <span key={g} className="text-[0.72rem] bg-gray-100 text-gray-700 rounded-full px-2 py-0.5">{g}</span>
           )}
         </div>
@@ -414,8 +415,8 @@ function GradeBadges({ member, compact = false, configuredGrades, school, primar
         {sorted.map(g => {
           if (isOrphaned(g)) return (
             <span key={g} title="Grade no longer offered at this school"
-              className="text-xs bg-yellow-50 text-amber-800 border border-yellow-300 rounded-full px-2.5 py-0.5 line-through">
-              ⚠ {g}
+              className="text-xs bg-yellow-50 text-amber-800 border border-yellow-300 rounded-full px-2.5 py-0.5 line-through inline-flex items-center gap-0.5">
+              <AlertTriangle size={11} /> {g}
             </span>
           )
           const div = getDivision(g, school?.divisions)
@@ -424,7 +425,7 @@ function GradeBadges({ member, compact = false, configuredGrades, school, primar
         })}
       </div>
       {sorted.some(isOrphaned) && (
-        <p className="text-xs text-amber-600 m-0 mb-4">⚠ Strikethrough grades are no longer offered. Edit this profile to remove them.</p>
+        <p className="text-xs text-amber-600 m-0 mb-4 flex items-center gap-1"><AlertTriangle size={11} />Strikethrough grades are no longer offered. Edit this profile to remove them.</p>
       )}
       {uniqueDivisions.length > 0 && (
         <>

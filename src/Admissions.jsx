@@ -1,3 +1,4 @@
+import { Check, Link, MailOpen, X, Backpack } from 'lucide-react'
 import { useAdmissions } from './hooks/useAdmissions'
 import { STATUSES, SOURCES, STATUS_COLORS, SOURCE_COLORS, canConvertToStudent } from './domain/admissions'
 
@@ -47,7 +48,7 @@ export default function Admissions({ user, school, onNavigate }) {
               borderColor: linkCopied ? '#10b981' : primaryColor,
             }}
           >
-            {linkCopied ? '✓ Link Copied!' : '🔗 Copy Application Link'}
+            {linkCopied ? <><Check size={14} className="inline mr-1" />Link Copied!</> : <><Link size={14} className="inline mr-1" />Copy Application Link</>}
           </button>
           <button
             onClick={toggleForm}
@@ -190,7 +191,7 @@ export default function Admissions({ user, school, onNavigate }) {
         <div className="text-center py-12 text-gray-400">Loading…</div>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
-          <div className="text-5xl mb-4">📬</div>
+          <div className="mb-4 flex justify-center"><MailOpen size={48} className="text-gray-300" /></div>
           <p className="text-gray-500 text-lg">
             {inquiries.length === 0 ? 'No inquiries yet. Add your first prospective family above.' : 'No inquiries match your filters.'}
           </p>
@@ -254,7 +255,7 @@ export default function Admissions({ user, school, onNavigate }) {
                   <div className="text-xl font-bold">{selected.student_first_name} {selected.student_last_name}</div>
                   <div className="text-sm opacity-85 mt-0.5">{selected.grade_applying_for ? `Applying for ${selected.grade_applying_for}` : 'Grade not specified'}</div>
                 </div>
-                <button onClick={closeDrawer} className="bg-white/20 border-0 text-white rounded-lg px-3 py-1 cursor-pointer text-lg hover:bg-white/30">✕</button>
+                <button onClick={closeDrawer} className="bg-white/20 border-0 text-white rounded-lg px-3 py-1 cursor-pointer hover:bg-white/30 flex items-center"><X size={16} /></button>
               </div>
               <div className="flex gap-2 mt-3 flex-wrap">
                 <span className="bg-white/20 rounded-full px-3 py-0.5 text-xs font-semibold">{selected.status}</span>
@@ -268,7 +269,7 @@ export default function Admissions({ user, school, onNavigate }) {
 
               {convertSuccess && (
                 <div className="bg-green-50 border border-green-300 rounded-xl p-4">
-                  <div className="font-semibold text-green-700 text-sm">✓ Converted to student successfully</div>
+                  <div className="font-semibold text-green-700 text-sm flex items-center gap-1.5"><Check size={14} />Converted to student successfully</div>
                   <p className="text-green-800 text-xs mt-1 mb-0">Parent and student records created in Enrollment.</p>
                   <button
                     onClick={() => { closeDrawer(); onNavigate && onNavigate('enrollment') }}
@@ -307,7 +308,7 @@ export default function Admissions({ user, school, onNavigate }) {
                         className="w-full border-2 rounded-lg py-2.5 font-bold cursor-pointer text-sm hover:opacity-90 transition-opacity bg-orange-50"
                         style={{ color: primaryColor, borderColor: primaryColor }}
                       >
-                        🎒 Convert to Student
+                        <Backpack size={16} className="inline mr-1.5" />Convert to Student
                       </button>
 
                       {convertConfirm && (

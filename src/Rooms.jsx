@@ -1,3 +1,4 @@
+import { Check, Users, School, AlertTriangle } from 'lucide-react'
 import { useRooms } from './hooks/useRooms'
 import { ROOM_TYPES, ROOM_TYPE_COLORS, parseRoomDivisions } from './domain/rooms'
 import { getFloorsForBuilding } from './domain/buildings'
@@ -123,15 +124,15 @@ export default function Rooms({ user, school }) {
         )}
       </div>
 
-      {r.success && <p className="text-green-700 text-sm mb-4 font-medium">✓ {r.success}</p>}
+      {r.success && <p className="text-green-700 text-sm mb-4 font-medium flex items-center gap-1"><Check size={14} />{r.success}</p>}
 
       {r.editing && renderForm()}
 
       {/* Stat cards */}
       {!r.editing && (
         <div className="flex gap-4 mb-6 flex-wrap">
-          <StatCard label="Total Rooms" value={r.stats.total} icon="🏫" />
-          <StatCard label="Total Capacity" value={r.stats.capacity || '—'} icon="👥" />
+          <StatCard label="Total Rooms" value={r.stats.total} Icon={School} />
+          <StatCard label="Total Capacity" value={r.stats.capacity || '—'} Icon={Users} />
           {Object.entries(r.stats.byType).map(([type, count]) => (
             <StatCard key={type} label={type} value={count} color={ROOM_TYPE_COLORS[type]} />
           ))}
@@ -167,7 +168,7 @@ export default function Rooms({ user, school }) {
         <p className="text-gray-400">Loading rooms…</p>
       ) : r.filtered.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
-          <div className="text-[3rem] mb-4">🏫</div>
+          <div className="mb-4 flex justify-center"><School size={48} className="text-gray-300" /></div>
           <p className="text-gray-500 text-[1.1rem]">
             {r.rooms.length === 0 ? 'No rooms yet. Add your first room to get started.' : 'No rooms match your filters.'}
           </p>
@@ -210,12 +211,12 @@ export default function Rooms({ user, school }) {
                   </div>
 
                   <div className="flex gap-4 text-[0.825rem] text-gray-500">
-                    {room.capacity && <span>👥 {room.capacity} max</span>}
+                    {room.capacity && <span className="flex items-center gap-1"><Users size={12} />{room.capacity} max</span>}
                   </div>
 
                   {overCapacityClasses.length > 0 && (
                     <div className="mt-2 bg-amber-50 border border-amber-300 rounded-md px-2.5 py-1.5 text-xs text-amber-900">
-                      ⚠️ Over capacity: {overCapacityClasses.map(c => `${c.name} (${c.class_size})`).join(', ')}
+                      <AlertTriangle size={12} className="inline mr-1" />Over capacity: {overCapacityClasses.map(c => `${c.name} (${c.class_size})`).join(', ')}
                     </div>
                   )}
 
@@ -273,10 +274,10 @@ export default function Rooms({ user, school }) {
   )
 }
 
-function StatCard({ label, value, icon, color }) {
+function StatCard({ label, value, Icon, color }) {
   return (
     <div className="bg-white rounded-xl px-5 py-3.5 shadow-sm flex items-center gap-3">
-      {icon  && <span className="text-xl">{icon}</span>}
+      {Icon  && <Icon size={18} className="text-gray-400 shrink-0" />}
       {color && <span className="w-2.5 h-2.5 rounded-full inline-block shrink-0" style={{ background: color }} />}
       <span className="font-bold text-gray-800">{value}</span>
       <span className="text-gray-500 text-[0.85rem]">{label}</span>

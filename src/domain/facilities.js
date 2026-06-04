@@ -26,8 +26,8 @@ export const STATUS_COLORS = {
 }
 
 export const CATEGORY_ICONS = {
-  Plumbing: '🚿', Electrical: '⚡', HVAC: '❄️', Carpentry: '🔨',
-  Grounds: '🌿', Custodial: '🧹', Safety: '🛡️', Technology: '💻', Other: '🔧',
+  Plumbing: 'Droplets', Electrical: 'Zap', HVAC: 'Wind', Carpentry: 'Hammer',
+  Grounds: 'Leaf', Custodial: 'Brush', Safety: 'Shield', Technology: 'Monitor', Other: 'Wrench',
 }
 
 export const BLANK_FORM = {
