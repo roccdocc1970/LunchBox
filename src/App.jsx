@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
   LayoutDashboard, ClipboardList, UserPlus, Users, BookOpen, UsersRound,
   CalendarDays, ClipboardCheck, FileText, Briefcase, Heart, Award,
@@ -210,90 +211,99 @@ function App() {
 
           {/* Main content */}
           <div className="flex-1 overflow-auto">
-            {activePage === 'dashboard' && (
-              <div className="p-8 max-w-6xl mx-auto">
-                <div className="flex items-start justify-between mb-8">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-800 mb-1 flex items-center gap-2.5"><LayoutDashboard size={22} style={{ color: primaryColor }} />Welcome, {sc.school?.name || 'Your School'}</h2>
-                    <p className="text-gray-500 m-0">Your school operations dashboard</p>
-                  </div>
-                  {setupDismissed && (() => {
-                    const allDone = SETUP_STEPS.every(s => s.done(counts, sc.school))
-                    return (
-                      <button
-                        onClick={restoreSetup}
-                        className="border rounded-lg px-3.5 py-1.5 text-xs cursor-pointer flex items-center gap-1.5 shrink-0 transition-colors hover:border-gray-400"
-                        style={{
-                          background:   allDone ? '#f0fdf4' : 'white',
-                          borderColor:  allDone ? '#86efac' : '#e5e7eb',
-                          color:        allDone ? '#15803d' : '#6b7280',
-                        }}
-                      >
-                        {allDone ? <><Check size={14} className="inline mr-1" />Getting Started Checklist (Completed)</> : <><Rocket size={14} className="inline mr-1" />Getting Started Checklist</>}
-                      </button>
-                    )
-                  })()}
-                </div>
-
-                {!setupDismissed && (
-                  <GettingStarted counts={counts} school={sc.school} primaryColor={primaryColor} onNavigate={setActivePage} onDismiss={dismissSetup} />
-                )}
-
-                {/* Stat cards */}
-                <div className="grid gap-4 mb-8" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-                  {[
-                    { label: 'Total Students',     value: sc.stats.students, icon: 'Backpack',      color: primaryColor },
-                    { label: 'Pending Enrollment', value: sc.stats.pending,  icon: 'ClipboardList', color: '#3b82f6' },
-                    { label: 'Messages Sent',      value: sc.stats.messages, icon: 'Mail',          color: '#8b5cf6' },
-                    { label: 'Active Staff',        value: sc.stats.staff,    icon: 'GraduationCap', color: '#10b981' },
-                  ].map(stat => {
-                    const Icon = DASHBOARD_STAT_ICONS[stat.icon]
-                    return (
-                    <div key={stat.label} className="bg-white rounded-2xl p-6 shadow-sm">
-                      <div className="flex items-center gap-3">
-                        {Icon && <Icon size={22} className="text-gray-300 shrink-0" />}
-                        <div className="text-gray-500 text-sm">{stat.label}</div>
-                        <div className="text-3xl font-bold text-gray-800 ml-auto">{stat.value}</div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activePage}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.1, ease: 'easeOut' }}
+              >
+                {activePage === 'dashboard' && (
+                  <div className="p-8 max-w-6xl mx-auto">
+                    <div className="flex items-start justify-between mb-8">
+                      <div>
+                        <h2 className="text-2xl font-bold text-gray-800 mb-1 flex items-center gap-2.5"><LayoutDashboard size={22} style={{ color: primaryColor }} />Welcome, {sc.school?.name || 'Your School'}</h2>
+                        <p className="text-gray-500 m-0">Your school operations dashboard</p>
                       </div>
+                      {setupDismissed && (() => {
+                        const allDone = SETUP_STEPS.every(s => s.done(counts, sc.school))
+                        return (
+                          <button
+                            onClick={restoreSetup}
+                            className="border rounded-lg px-3.5 py-1.5 text-xs cursor-pointer flex items-center gap-1.5 shrink-0 transition-colors hover:border-gray-400"
+                            style={{
+                              background:   allDone ? '#f0fdf4' : 'white',
+                              borderColor:  allDone ? '#86efac' : '#e5e7eb',
+                              color:        allDone ? '#15803d' : '#6b7280',
+                            }}
+                          >
+                            {allDone ? <><Check size={14} className="inline mr-1" />Getting Started Checklist (Completed)</> : <><Rocket size={14} className="inline mr-1" />Getting Started Checklist</>}
+                          </button>
+                        )
+                      })()}
                     </div>
-                  )})}
-                </div>
 
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
-                <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-                  {QUICK_ACTIONS.map(action => {
-                    const color = action.colorKey === 'primary' ? primaryColor : action.color
-                    return (
-                      <button key={action.label} onClick={() => setActivePage(action.page)}
-                        className="bg-white rounded-2xl p-6 cursor-pointer text-left shadow-sm hover:shadow-md transition-shadow border-0">
-                        <div className="flex items-center gap-3">
-                          {NAV_ICONS[action.icon] && (() => { const Icon = NAV_ICONS[action.icon]; return <Icon size={22} className="text-gray-300 shrink-0" /> })()}
-                          <div className="font-semibold text-gray-800">{action.label}</div>
+                    {!setupDismissed && (
+                      <GettingStarted counts={counts} school={sc.school} primaryColor={primaryColor} onNavigate={setActivePage} onDismiss={dismissSetup} />
+                    )}
+
+                    {/* Stat cards */}
+                    <div className="grid gap-4 mb-8" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                      {[
+                        { label: 'Total Students',     value: sc.stats.students, icon: 'Backpack',      color: primaryColor },
+                        { label: 'Pending Enrollment', value: sc.stats.pending,  icon: 'ClipboardList', color: '#3b82f6' },
+                        { label: 'Messages Sent',      value: sc.stats.messages, icon: 'Mail',          color: '#8b5cf6' },
+                        { label: 'Active Staff',        value: sc.stats.staff,    icon: 'GraduationCap', color: '#10b981' },
+                      ].map(stat => {
+                        const Icon = DASHBOARD_STAT_ICONS[stat.icon]
+                        return (
+                        <div key={stat.label} className="bg-white rounded-2xl p-6 shadow-sm">
+                          <div className="flex items-center gap-3">
+                            {Icon && <Icon size={22} className="text-gray-300 shrink-0" />}
+                            <div className="text-gray-500 text-sm">{stat.label}</div>
+                            <div className="text-3xl font-bold text-gray-800 ml-auto">{stat.value}</div>
+                          </div>
                         </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
+                      )})}
+                    </div>
 
-            {activePage === 'attendance'  && <Attendance  user={session.user} school={sc.school} />}
-            {activePage === 'admissions'  && <Admissions  user={session.user} school={sc.school} onNavigate={setActivePage} />}
-            {activePage === 'enrollment'  && <Enrollment  user={session.user} school={sc.school} />}
-            {activePage === 'messages'    && <Messages    user={session.user} school={sc.school} />}
-            {activePage === 'students'    && <Students    user={session.user} school={sc.school} />}
-            {activePage === 'staff'       && <Staff       user={session.user} school={sc.school} />}
-            {activePage === 'alumni'      && <Alumni      user={session.user} school={sc.school} />}
-            {activePage === 'reportcards' && <ReportCards user={session.user} school={sc.school} />}
-            {activePage === 'reports'     && <Reports     user={session.user} school={sc.school} />}
-            {activePage === 'parents'     && <Parents     user={session.user} school={sc.school} onCompose={() => setActivePage('messages')} />}
-            {activePage === 'fundraising' && <Fundraising user={session.user} school={sc.school} />}
-            {activePage === 'facilities'  && <Facilities  user={session.user} school={sc.school} />}
-            {activePage === 'rooms'       && <Rooms       user={session.user} school={sc.school} />}
-            {activePage === 'classes'     && <Classes      user={session.user} school={sc.school} openClassId={openClassId} onClearOpenClass={() => setOpenClassId(null)} />}
-            {activePage === 'cohorts'     && <Cohorts      user={session.user} school={sc.school} />}
-            {activePage === 'schedule'    && <Scheduling   user={session.user} school={sc.school} onNavigateToClass={navigateToClass} />}
-            {activePage === 'settings'    && <Settings    user={session.user} school={sc.school} onUpdate={sc.setSchool} />}
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
+                    <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+                      {QUICK_ACTIONS.map(action => {
+                        const color = action.colorKey === 'primary' ? primaryColor : action.color
+                        return (
+                          <button key={action.label} onClick={() => setActivePage(action.page)}
+                            className="bg-white rounded-2xl p-6 cursor-pointer text-left shadow-sm hover:shadow-md transition-shadow border-0">
+                            <div className="flex items-center gap-3">
+                              {NAV_ICONS[action.icon] && (() => { const Icon = NAV_ICONS[action.icon]; return <Icon size={22} className="text-gray-300 shrink-0" /> })()}
+                              <div className="font-semibold text-gray-800">{action.label}</div>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+                {activePage === 'attendance'  && <Attendance  user={session.user} school={sc.school} />}
+                {activePage === 'admissions'  && <Admissions  user={session.user} school={sc.school} onNavigate={setActivePage} />}
+                {activePage === 'enrollment'  && <Enrollment  user={session.user} school={sc.school} />}
+                {activePage === 'messages'    && <Messages    user={session.user} school={sc.school} />}
+                {activePage === 'students'    && <Students    user={session.user} school={sc.school} />}
+                {activePage === 'staff'       && <Staff       user={session.user} school={sc.school} />}
+                {activePage === 'alumni'      && <Alumni      user={session.user} school={sc.school} />}
+                {activePage === 'reportcards' && <ReportCards user={session.user} school={sc.school} />}
+                {activePage === 'reports'     && <Reports     user={session.user} school={sc.school} />}
+                {activePage === 'parents'     && <Parents     user={session.user} school={sc.school} onCompose={() => setActivePage('messages')} />}
+                {activePage === 'fundraising' && <Fundraising user={session.user} school={sc.school} />}
+                {activePage === 'facilities'  && <Facilities  user={session.user} school={sc.school} />}
+                {activePage === 'rooms'       && <Rooms       user={session.user} school={sc.school} />}
+                {activePage === 'classes'     && <Classes      user={session.user} school={sc.school} openClassId={openClassId} onClearOpenClass={() => setOpenClassId(null)} />}
+                {activePage === 'cohorts'     && <Cohorts      user={session.user} school={sc.school} />}
+                {activePage === 'schedule'    && <Scheduling   user={session.user} school={sc.school} onNavigateToClass={navigateToClass} />}
+                {activePage === 'settings'    && <Settings    user={session.user} school={sc.school} onUpdate={sc.setSchool} />}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
       </div>

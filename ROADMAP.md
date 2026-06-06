@@ -87,7 +87,10 @@ Full visual consistency pass across all pages:
 - **Nav label updates** — "Parents" → "Parent Directory"; "Facilities" → "Facility Requests" (matched to page headers).
 - **Dashboard** — stat cards and Quick Action cards redesigned to single-line layout (icon + label + value). 🍱 logo restored to top-nav left. Grey icon tone standardized.
 - **Messages** — now receives `school` prop for `primaryColor` consistency; stat card and brand-colored button added.
-- **Fundraising** — New Campaign/Event button moved to top-right header; tab icons added (Target, DollarSign, PartyPopper, Users).
+- **Fundraising** — New Campaign/Event button moved to top-right header; tab icons removed from Campaigns/Donations/Events/Donors tabs.
+- **Settings** — tab icons removed from School Profile/Academic Config/Bell Schedule/Campus/Communication/Appearance tabs.
+- **Cohorts** — stat cards split into two rows: Total Cohorts + Active on top; Archived + division cards below.
+- **Page transitions** — Framer Motion installed (`framer-motion`). All landing pages fade in/out at 100ms via `AnimatePresence` keyed by `activePage` in `App.jsx`.
 
 ### Service Layer (`src/services/`)
 All Supabase business logic extracted from React components into pure JS modules. 7 service files covering all domains. Dependency-injected Supabase client — same functions used by both UI (anon client, RLS enforced) and MCP server (service-role client, RLS bypassed). No code duplication. `getAcademicYear()` defined once in `enrollment.js`, imported everywhere. Cross-service imports use explicit `.js` extensions (Node ESM requirement).
@@ -147,6 +150,7 @@ Local stdio MCP server built with `@modelcontextprotocol/sdk`. 27 tools register
 
 | Capability | What to Build |
 |---|---|
+| **Interactive Guidance** | In-app user guidance system. Three options evaluated: (1) **Product Tours** — Driver.js step-by-step walkthroughs highlighting UI elements with tooltips, ideal for onboarding staff to a new module; (2) **Contextual Tooltips** — `?` badges on fields/buttons with Framer Motion popovers, zero new dependencies; (3) **In-app AI Assistant** — floating chat panel powered by Claude, scoped to LunchBox data and tools via the existing MCP service layer. AI assistant is the long-term target — users can ask questions *and* trigger actions. Driver.js tours are the low-effort near-term win. |
 | **Digital Enrollment Contracts** | E-signature on tuition agreements. DocuSign/HelloSign API or PDF + manual sign flow. |
 | **Lottery Management** | Charter-critical: weighted lottery (siblings, staff children, geographic zones). Draws from inquiries/applications pool. Generates ranked waitlist. |
 | **Live Gradebook** | Assignment-level daily grades beyond term report cards. New `assignments` + `grades` tables. Rolls up to Report Cards. |

@@ -73,7 +73,7 @@ export default function Settings({ user, school, onUpdate }) {
               color:       activeTab === tab.id ? 'white' : '#6b7280',
             }}
           >
-            {(() => { const Icon = SETTINGS_TAB_ICONS[tab.id]; return Icon ? <Icon size={15} /> : null })()}<span>{tab.label}</span>
+            <span>{tab.label}</span>
           </button>
         ))}
       </div>

@@ -64,7 +64,6 @@ export default function Fundraising({ user, school }) {
             className={`px-5 py-2 rounded-lg border-0 cursor-pointer text-sm transition-all ${activeTab === tab.id ? 'font-semibold text-white' : 'font-normal text-gray-500'}`}
             style={{ background: activeTab === tab.id ? primaryColor : 'transparent' }}
           >
-            {(() => { const Icon = { Target, DollarSign, PartyPopper, Users }[tab.icon]; return Icon ? <Icon size={14} className="inline mr-1.5" /> : null })()}
             {tab.label}
           </button>
         ))}

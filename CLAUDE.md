@@ -41,6 +41,7 @@ LunchBox is a **K-12 School Operations SaaS Platform** — enrollment, communica
 | Email | Resend | Free tier, 3K emails/month |
 | Service Layer | Pure JS modules (`src/services/`) | Dependency-injected Supabase client — shared by UI and MCP server |
 | MCP Server | Node.js stdio (`mcp_server/`) | `@modelcontextprotocol/sdk` + Zod — exposes 27 tools to AI agents |
+| Animations | Framer Motion (`framer-motion`) | Page-level fade transitions via `AnimatePresence` + `motion.div` keyed by `activePage` in `App.jsx`. Duration: 100ms ease-out. |
 
 ---
 

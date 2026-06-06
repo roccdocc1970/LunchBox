@@ -215,13 +215,17 @@ export default function Cohorts({ user, school }) {
       {c.success && <p className="text-green-700 text-sm mb-4 font-medium flex items-center gap-1"><Check size={14} />{c.success}</p>}
 
       {/* Stat cards */}
-      <div className="flex gap-4 mb-6 flex-wrap">
-        <StatCard label="Total Cohorts" value={total}    Icon={Users} />
-        <StatCard label="Active"        value={active}   color="#10b981" />
-        <StatCard label="Archived"      value={archived} color="#9ca3af" />
-        {Object.entries(byDiv).map(([div, count]) => (
-          <StatCard key={div} label={div} value={count} color={divColorMap[div] || '#6b7280'} />
-        ))}
+      <div className="flex flex-col gap-2 mb-6">
+        <div className="flex gap-4 flex-wrap">
+          <StatCard label="Total Cohorts" value={total} />
+          <StatCard label="Active"        value={active}   color="#10b981" />
+        </div>
+        <div className="flex gap-4 flex-wrap">
+          <StatCard label="Archived"      value={archived} color="#9ca3af" />
+          {Object.entries(byDiv).map(([div, count]) => (
+            <StatCard key={div} label={div} value={count} color={divColorMap[div] || '#6b7280'} />
+          ))}
+        </div>
       </div>
 
       {/* Filters */}
