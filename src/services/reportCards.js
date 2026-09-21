@@ -12,6 +12,17 @@ export async function getReportCards(supabase, schoolId) {
   return data || []
 }
 
+/** All report cards for one student — used by the student timeline. */
+export async function getReportCardsForStudent(supabase, studentId) {
+  const { data, error } = await supabase
+    .from('report_cards')
+    .select('*')
+    .eq('student_id', studentId)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data || []
+}
+
 /**
  * Fetch enrolled students for the student picker dropdown.
  */

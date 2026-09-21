@@ -57,6 +57,18 @@ export function getGraduationYears(alumni) {
 }
 
 /**
+ * Re-enrollment only makes sense for someone who left before finishing the
+ * school's highest configured grade (e.g. a 3rd grader who moved away and
+ * came back) — not for a student who completed the top grade and graduated
+ * on schedule, since there's no grade left for them to return to.
+ */
+export function canReenroll(alumnus, grades) {
+  if (!alumnus.grade_completed || grades.length === 0) return true
+  const topGrade = grades[grades.length - 1]
+  return alumnus.grade_completed !== topGrade
+}
+
+/**
  * Filter alumni by search text, graduation year, donor status, and relationship.
  */
 export function filterAlumni(alumni, { search, filterYear, filterDonor, filterRelationship }) {

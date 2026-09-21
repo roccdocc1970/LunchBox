@@ -30,6 +30,18 @@ export function parseGrades(school) {
 }
 
 /**
+ * Bucket an arbitrary past date into its academic year string (e.g. "2024-2025").
+ * Same Aug-cutover rule as services/enrollment.js's getAcademicYear(), but for
+ * a historical date rather than "now" — used to group incidents/attendance/
+ * health/donations (which store a raw date, not an academic_year column) by year.
+ */
+export function academicYearForDate(dateStr) {
+  const d = new Date(dateStr)
+  const year = d.getFullYear()
+  return d.getMonth() >= 7 ? `${year}-${year + 1}` : `${year - 1}-${year}`
+}
+
+/**
  * Map an enrollment status to its display color.
  */
 export function statusColor(status) {

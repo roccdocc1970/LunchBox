@@ -75,20 +75,21 @@ export default function ApplicationPortal({ schoolId }) {
 
     setSaving(true)
     setError('')
-    const { error: err } = await supabase.from('inquiries').insert([{
-      school_id: schoolId,
-      parent_first_name: form.parent_first_name.trim(),
-      parent_last_name: form.parent_last_name.trim(),
-      email: form.email.trim() || null,
-      phone: form.phone.trim() || null,
-      student_first_name: form.student_first_name.trim(),
-      student_last_name: form.student_last_name.trim(),
-      grade_applying_for: form.grade_applying_for || null,
-      source: form.source || 'Web',
-      notes: form.notes.trim() || null,
-      status: 'New Inquiry',
-      inquiry_date: today(),
-    }])
+    // Public submissions never touch the students table directly — this
+    // security-definer function is the only write path anon has, so a future
+    // RLS mistake elsewhere can't expose student PII to the public form.
+    const { error: err } = await supabase.rpc('submit_public_inquiry', {
+      p_school_id: schoolId,
+      p_parent_first_name: form.parent_first_name.trim(),
+      p_parent_last_name: form.parent_last_name.trim(),
+      p_email: form.email.trim() || null,
+      p_phone: form.phone.trim() || null,
+      p_student_first_name: form.student_first_name.trim(),
+      p_student_last_name: form.student_last_name.trim(),
+      p_grade_applying_for: form.grade_applying_for || null,
+      p_source: form.source || 'Web',
+      p_notes: form.notes.trim() || null,
+    })
     setSaving(false)
     if (err) setError('Something went wrong. Please try again.')
     else setSubmitted(true)

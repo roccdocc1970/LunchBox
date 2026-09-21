@@ -20,6 +20,7 @@ export async function getStudents(supabase, schoolId) {
     .from('students')
     .select('*, parents(first_name, last_name, email, phone)')
     .eq('school_id', schoolId)
+    .in('status', ['Applied', 'Enrolled', 'Waitlisted'])
     .order('created_at', { ascending: false })
   if (error) throw error
   return data || []

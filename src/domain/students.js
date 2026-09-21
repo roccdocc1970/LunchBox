@@ -9,11 +9,26 @@ import { ALL_GRADES } from './enrollment.js'
 import { getDivision } from './school.js'
 
 // ─── Status ───────────────────────────────────────────────────────────────────
+// Single lifecycle vocabulary spanning inquiry through alumni — a student's row
+// and id never change, only this value. See domain/admissions.js for the
+// pre-enrollment subset shown in the Admissions pipeline.
 
 export const STATUS_COLORS = {
-  Enrolled:   '#10b981',
-  Waitlisted: '#f59e0b',
-  Applied:    '#3b82f6',
+  'New Inquiry': '#3b82f6',
+  Toured:        '#8b5cf6',
+  Applied:       '#f97316',
+  Enrolled:      '#10b981',
+  Waitlisted:    '#f59e0b',
+  Withdrawn:     '#9ca3af',
+  Alumni:        '#14b8a6',
+}
+
+/** Buckets the full status vocabulary into the four broad life stages. */
+export const getLifecycleStage = (status) => {
+  if (status === 'New Inquiry' || status === 'Toured') return 'prospect'
+  if (status === 'Alumni') return 'alumni'
+  if (status === 'Withdrawn') return 'withdrawn'
+  return 'applicant' // Applied, Enrolled, Waitlisted
 }
 
 // ─── Incidents ────────────────────────────────────────────────────────────────

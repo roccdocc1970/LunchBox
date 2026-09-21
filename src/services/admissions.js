@@ -1,19 +1,63 @@
 /**
  * Admissions Service
  *
- * Manages the inquiry pipeline and the convert-to-student flow.
+ * Manages the inquiry pipeline and the convert-to-student flow. An "inquiry"
+ * is simply a students.status IN ('New Inquiry','Toured') row in the unified
+ * `students` table — this service maps between that unified shape and the
+ * flat inquiry-shaped fields (student_first_name, parent_first_name,
+ * grade_applying_for, etc.) the Admissions UI already expects, so the
+ * permanent identity unification stays contained to this layer.
  */
 
 import { getAcademicYear } from './enrollment.js'
 
+const toInquiryShape = (row) => ({
+  id: row.id,
+  school_id: row.school_id,
+  created_at: row.created_at,
+  parent_id: row.parent_id,
+  status: row.status,
+  source: row.source,
+  inquiry_date: row.inquiry_date,
+  tour_date: row.tour_date,
+  notes: row.notes,
+  grade_applying_for: row.grade,
+  student_first_name: row.first_name,
+  student_last_name: row.last_name,
+  parent_first_name: row.parents?.first_name || '',
+  parent_last_name: row.parents?.last_name || '',
+  email: row.parents?.email || '',
+  phone: row.parents?.phone || '',
+})
+
+async function resolveParentId(supabase, schoolId, { email, parent_first_name, parent_last_name, phone }) {
+  if (email) {
+    const { data: existing } = await supabase
+      .from('parents')
+      .select('id')
+      .eq('email', email)
+      .eq('school_id', schoolId)
+      .maybeSingle()
+    if (existing) return existing.id
+  }
+  const { data: newParent, error } = await supabase
+    .from('parents')
+    .insert([{ school_id: schoolId, first_name: parent_first_name, last_name: parent_last_name, email: email || null, phone: phone || null }])
+    .select()
+    .single()
+  if (error) throw error
+  return newParent.id
+}
+
 export async function getInquiries(supabase, schoolId) {
   const { data, error } = await supabase
-    .from('inquiries')
-    .select('*')
+    .from('students')
+    .select('*, parents(first_name, last_name, email, phone)')
     .eq('school_id', schoolId)
+    .in('status', ['New Inquiry', 'Toured', 'Withdrawn'])
     .order('created_at', { ascending: false })
   if (error) throw error
-  return data || []
+  return (data || []).map(toInquiryShape)
 }
 
 /**
@@ -23,85 +67,73 @@ export async function createInquiry(supabase, schoolId, form) {
   if (!form.parent_first_name || !form.parent_last_name || !form.student_first_name || !form.student_last_name) {
     throw new Error('Parent name and student name are required.')
   }
-  const payload = { ...form, school_id: schoolId, tour_date: form.tour_date || null }
-  const { error } = await supabase.from('inquiries').insert([payload])
+  const parentId = await resolveParentId(supabase, schoolId, form)
+  const { error } = await supabase.from('students').insert([{
+    school_id: schoolId,
+    parent_id: parentId,
+    first_name: form.student_first_name,
+    last_name: form.student_last_name,
+    grade: form.grade_applying_for || null,
+    status: form.status || 'New Inquiry',
+    source: form.source || null,
+    inquiry_date: form.inquiry_date || null,
+    tour_date: form.tour_date || null,
+    notes: form.notes || null,
+  }])
   if (error) throw error
-}
-
-export async function updateInquiry(supabase, inquiryId, editForm) {
-  const payload = { ...editForm, tour_date: editForm.tour_date || null }
-  const { data, error } = await supabase
-    .from('inquiries')
-    .update(payload)
-    .eq('id', inquiryId)
-    .select()
-    .single()
-  if (error) throw error
-  return data
 }
 
 /**
- * Convert an inquiry to a student record.
- * - Deduplicates parent by email
- * - Creates parent + student
- * - Writes grade history entry if grade is set
- * - Marks the inquiry as Applied
- *
- * Returns the new student row.
+ * Update an inquiry's parent contact info and admissions fields.
+ * Updates the already-linked parent row rather than creating a new one.
+ */
+export async function updateInquiry(supabase, inquiryId, editForm) {
+  if (editForm.parent_id) {
+    const { error: parentError } = await supabase
+      .from('parents')
+      .update({
+        first_name: editForm.parent_first_name,
+        last_name: editForm.parent_last_name,
+        email: editForm.email || null,
+        phone: editForm.phone || null,
+      })
+      .eq('id', editForm.parent_id)
+    if (parentError) throw parentError
+  }
+
+  const { data, error } = await supabase
+    .from('students')
+    .update({
+      first_name: editForm.student_first_name,
+      last_name: editForm.student_last_name,
+      grade: editForm.grade_applying_for || null,
+      status: editForm.status,
+      source: editForm.source,
+      inquiry_date: editForm.inquiry_date || null,
+      tour_date: editForm.tour_date || null,
+      notes: editForm.notes || null,
+    })
+    .eq('id', inquiryId)
+    .select('*, parents(first_name, last_name, email, phone)')
+    .single()
+  if (error) throw error
+  return toInquiryShape(data)
+}
+
+/**
+ * Convert an inquiry to an applicant — a status change on the same permanent
+ * record (parent + student already exist since inquiry creation).
  */
 export async function convertInquiryToStudent(supabase, schoolId, inquiry) {
-  let parentId = null
-
-  if (inquiry.email) {
-    const { data: existing } = await supabase
-      .from('parents')
-      .select('id')
-      .eq('email', inquiry.email)
-      .eq('school_id', schoolId)
-      .maybeSingle()
-    if (existing) parentId = existing.id
-  }
-
-  if (!parentId) {
-    const { data: newParent, error: pErr } = await supabase
-      .from('parents')
-      .insert([{
-        school_id: schoolId,
-        first_name: inquiry.parent_first_name,
-        last_name: inquiry.parent_last_name,
-        email: inquiry.email || null,
-        phone: inquiry.phone || null,
-      }])
-      .select()
-      .single()
-    if (pErr) throw pErr
-    parentId = newParent.id
-  }
-
-  const { data: newStudent, error: sErr } = await supabase
-    .from('students')
-    .insert([{
-      school_id: schoolId,
-      first_name: inquiry.student_first_name,
-      last_name: inquiry.student_last_name,
-      grade: inquiry.grade_applying_for || null,
-      parent_id: parentId,
-      status: 'Applied',
-    }])
-    .select()
-    .single()
-  if (sErr) throw sErr
+  const { error } = await supabase.from('students').update({ status: 'Applied' }).eq('id', inquiry.id)
+  if (error) throw error
 
   if (inquiry.grade_applying_for) {
     await supabase.from('student_grade_history').insert([{
-      student_id: newStudent.id,
+      student_id: inquiry.id,
       grade: inquiry.grade_applying_for,
       academic_year: getAcademicYear(),
       school_id: schoolId,
     }])
   }
-
-  await supabase.from('inquiries').update({ status: 'Applied' }).eq('id', inquiry.id)
-
-  return newStudent
 }

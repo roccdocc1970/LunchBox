@@ -31,6 +31,7 @@ export async function getStudents(supabase, schoolId) {
     .from('students')
     .select('*, parents(id, first_name, last_name, email, phone, address)')
     .eq('school_id', schoolId)
+    .in('status', ['Applied', 'Enrolled', 'Waitlisted'])
     .order('last_name', { ascending: true })
   if (error) throw error
   return data || []
@@ -107,25 +108,28 @@ export async function deleteStudent(supabase, studentId) {
 }
 
 /**
- * Graduate a student to alumni: inserts into alumni table, deletes from students.
+ * Graduate a student to alumni: a status change on the same permanent record,
+ * plus an upserted student_alumni_details row. The student's id, and every
+ * table referencing it (cohort_students, class_enrollments, incidents,
+ * report_cards, attendance, grade history), is untouched.
  */
 export async function graduateStudentToAlumni(supabase, schoolId, student, { graduationYear, gradeCompleted }) {
-  const { error: insertError } = await supabase.from('alumni').insert([{
-    first_name: student.first_name,
-    last_name: student.last_name,
+  const { error: updateError } = await supabase
+    .from('students')
+    .update({ status: 'Alumni' })
+    .eq('id', student.id)
+  if (updateError) throw updateError
+
+  const { error: detailsError } = await supabase.from('student_alumni_details').upsert([{
+    student_id: student.id,
+    school_id: schoolId,
+    graduation_year: graduationYear || null,
+    grade_completed: gradeCompleted || student.grade || null,
     email: student.parents?.email || null,
     phone: student.parents?.phone || null,
     address: student.parents?.address || null,
-    graduation_year: graduationYear || null,
-    grade_completed: gradeCompleted || student.grade || null,
-    donor_status: 'Never',
-    relationship: 'None',
-    opt_in: true,
-    original_student_id: student.id,
-    school_id: schoolId,
   }])
-  if (insertError) throw insertError
-  await supabase.from('students').delete().eq('id', student.id)
+  if (detailsError) throw detailsError
 }
 
 // ─── Grade History ────────────────────────────────────────────────────────────
@@ -244,6 +248,7 @@ export async function getStudentsWithParents(supabase, schoolId, gradeFilter = [
     .from('students')
     .select('*, parents(first_name, last_name, email, phone)')
     .eq('school_id', schoolId)
+    .in('status', ['Applied', 'Enrolled', 'Waitlisted'])
     .order('last_name')
   if (gradeFilter.length > 0) q = q.in('grade', gradeFilter)
   const { data, error } = await q

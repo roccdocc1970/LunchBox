@@ -271,7 +271,7 @@ export default function Admissions({ user, school, onNavigate }) {
               {convertSuccess && (
                 <div className="bg-green-50 border border-green-300 rounded-xl p-4">
                   <div className="font-semibold text-green-700 text-sm flex items-center gap-1.5"><Check size={14} />Converted to student successfully</div>
-                  <p className="text-green-800 text-xs mt-1 mb-0">Parent and student records created in Enrollment.</p>
+                  <p className="text-green-800 text-xs mt-1 mb-0">Now showing as an applicant in Enrollment.</p>
                   <button
                     onClick={() => { closeDrawer(); onNavigate && onNavigate('enrollment') }}
                     className="mt-2.5 bg-green-700 text-white border-0 rounded-md px-3.5 py-1.5 text-xs font-semibold cursor-pointer hover:bg-green-800"
@@ -316,8 +316,7 @@ export default function Admissions({ user, school, onNavigate }) {
                         <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
                           <p className="text-orange-900 font-semibold m-0 mb-2 text-sm">Convert {selected.student_first_name} {selected.student_last_name} to a student?</p>
                           <p className="text-orange-700 text-xs leading-relaxed m-0 mb-3.5">
-                            A parent record and student application will be created in Enrollment. This inquiry will be marked as Applied.
-                            {selected.email && <><br />Parent email <strong>{selected.email}</strong> will be checked for duplicates.</>}
+                            This marks them as Applied and moves them into the Enrollment roster — same record, no new data is created.
                           </p>
                           <div className="flex gap-2">
                             <button

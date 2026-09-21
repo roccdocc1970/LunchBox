@@ -4,12 +4,12 @@ import { getDivision } from './domain/school'
 import { statusColor, parentDisplayName } from './domain/students'
 import StudentProfile from './StudentProfile'
 
-export default function Students({ user, school }) {
+export default function Students({ user, school, onNavigateToCohort, onNavigateToClass, onNavigate }) {
   const primaryColor = school?.primary_color || '#f97316'
   const h = useStudents(user, school)
 
   if (h.selected) {
-    return <StudentProfile student={h.selected} school={school} h={h} />
+    return <StudentProfile student={h.selected} school={school} h={h} onNavigateToCohort={onNavigateToCohort} onNavigateToClass={onNavigateToClass} onNavigate={onNavigate} />
   }
 
   return (

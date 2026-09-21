@@ -13,15 +13,37 @@ export async function getFundraisingData(supabase, schoolId) {
     supabase.from('campaigns').select('*').eq('school_id', schoolId).order('created_at', { ascending: false }),
     supabase.from('donations').select('*').eq('school_id', schoolId).order('date', { ascending: false }),
     supabase.from('fundraising_events').select('*').eq('school_id', schoolId).order('date', { ascending: false }),
-    supabase.from('alumni').select('id, first_name, last_name, email, donor_status, graduation_year')
-      .eq('school_id', schoolId).in('donor_status', ['Prospect', 'Active Donor', 'Lapsed']),
+    supabase.from('students').select('id, first_name, last_name, student_alumni_details!inner(email, donor_status, graduation_year)')
+      .eq('school_id', schoolId).eq('status', 'Alumni')
+      .in('student_alumni_details.donor_status', ['Prospect', 'Active Donor', 'Lapsed']),
   ])
   return {
     campaigns:       campaigns  || [],
     donations:       donations  || [],
     events:          events     || [],
-    alumniProspects: prospects  || [],
+    alumniProspects: (prospects || [])
+      .filter(a => a.student_alumni_details)
+      .map(a => ({ id: a.id, first_name: a.first_name, last_name: a.last_name, ...a.student_alumni_details })),
   }
+}
+
+/**
+ * Fetch donation history tied to one student's family — donations made as a
+ * parent (donor_id = parent_id) plus, once the student is an alumnus,
+ * donations made as themself (donor_id = student id, donor_type 'Alumni').
+ * Used by the student timeline.
+ */
+export async function getDonationsForFamily(supabase, { parentId, studentId }) {
+  const queries = []
+  if (parentId) {
+    queries.push(supabase.from('donations').select('*').eq('donor_type', 'Parent').eq('donor_id', parentId))
+  }
+  if (studentId) {
+    queries.push(supabase.from('donations').select('*').eq('donor_type', 'Alumni').eq('donor_id', studentId))
+  }
+  if (queries.length === 0) return []
+  const results = await Promise.all(queries)
+  return results.flatMap(r => r.data || [])
 }
 
 /**
@@ -63,15 +85,16 @@ export async function deleteCampaign(supabase, id) {
 export async function searchDonors(supabase, schoolId, query, type) {
   if (!query || query.length < 1) return []
   if (type === 'Alumni') {
-    const { data } = await supabase.from('alumni')
-      .select('id, first_name, last_name, email, graduation_year')
-      .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,email.ilike.%${query}%`)
-      .eq('school_id', schoolId).limit(8)
+    const { data } = await supabase.from('students')
+      .select('id, first_name, last_name, student_alumni_details!inner(email, graduation_year)')
+      .eq('school_id', schoolId).eq('status', 'Alumni')
+      .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,student_alumni_details.email.ilike.%${query}%`)
+      .limit(8)
     return (data || []).map(a => ({
       id:    a.id,
       name:  `${a.first_name} ${a.last_name}`,
-      sub:   a.graduation_year ? `Class of ${a.graduation_year}` : '',
-      email: a.email || '',
+      sub:   a.student_alumni_details?.graduation_year ? `Class of ${a.student_alumni_details.graduation_year}` : '',
+      email: a.student_alumni_details?.email || '',
     }))
   }
   if (type === 'Parent') {

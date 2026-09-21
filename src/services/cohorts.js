@@ -104,6 +104,15 @@ export async function getAllCohortClasses(supabase, schoolId) {
   return data || []
 }
 
+/** All cohort memberships (past and present) for one student — used by the student timeline. */
+export async function getCohortsForStudent(supabase, studentId) {
+  const { data } = await supabase
+    .from('cohort_students')
+    .select('id, cohort_id, cohorts(name, academic_year)')
+    .eq('student_id', studentId)
+  return data || []
+}
+
 /** All cohort_students for a school — used by the Schedule conflict detector */
 export async function getAllCohortStudents(supabase, schoolId) {
   const { data } = await supabase

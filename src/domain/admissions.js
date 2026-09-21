@@ -9,14 +9,15 @@ import { ALL_GRADES } from './enrollment.js'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-export const STATUSES = ['New Inquiry', 'Toured', 'Applied', 'Withdrawn']
+// Pre-enrollment subset of the student status vocabulary (domain/students.js
+// STATUS_COLORS is the canonical source across the full lifecycle).
+export const STATUSES = ['New Inquiry', 'Toured', 'Withdrawn']
 
 export const SOURCES = ['Web', 'Tour', 'Referral', 'Word of Mouth', 'Social Media', 'Other']
 
 export const STATUS_COLORS = {
   'New Inquiry': '#3b82f6',
   'Toured':      '#8b5cf6',
-  'Applied':     '#f97316',
   'Withdrawn':   '#9ca3af',
 }
 

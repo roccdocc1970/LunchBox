@@ -1,15 +1,18 @@
 import { Lock, GraduationCap, Briefcase, Mail, X, Check, Backpack, Award } from 'lucide-react'
 import { useAlumni } from './hooks/useAlumni'
+import { useStudentTimeline } from './hooks/useStudentTimeline'
+import { supabase } from './supabase'
+import StudentTimeline from './StudentTimeline'
 import {
   RELATIONSHIPS, DONOR_STATUSES, CONTACT_METHODS,
   DONOR_COLORS, RELATIONSHIP_COLORS,
-  calcGivingTotal,
+  calcGivingTotal, canReenroll,
 } from './domain/alumni'
 
 const fieldCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm'
 const labelCls = 'block text-xs font-medium text-gray-500 mb-1'
 
-export default function Alumni({ user, school }) {
+export default function Alumni({ user, school, onNavigateToCohort, onNavigateToClass, onNavigate }) {
   const primaryColor = school?.primary_color || '#f97316'
 
   const {
@@ -20,7 +23,7 @@ export default function Alumni({ user, school }) {
     startEdit, saving, saveEdit,
     deleteConfirm, setDeleteConfirm, remove,
     reenrollConfirm, setReenrollConfirm, reenrolling, reenroll,
-    gradeHistory, givingHistory,
+    givingHistory,
     error,
     search, setSearch,
     filterYear, setFilterYear,
@@ -28,6 +31,8 @@ export default function Alumni({ user, school }) {
     filterRelationship, setFilterRelationship,
     clearFilters,
   } = useAlumni(user.id, school)
+
+  const t = useStudentTimeline(supabase, user.id, selected)
 
   const hasFilters = search || filterYear || filterDonor || filterRelationship
 
@@ -233,33 +238,14 @@ export default function Alumni({ user, school }) {
                     </DrawerSection>
                   )}
 
-                  {gradeHistory.length > 0 && (
-                    <DrawerSection title="Academic Journey">
-                      <div className="relative pl-5">
-                        <div className="absolute left-[5px] top-0 bottom-0 w-0.5 bg-gray-200" />
-                        {gradeHistory.map((entry, i) => {
-                          const isFinal = i === gradeHistory.length - 1
-                          return (
-                            <div key={entry.id} className={`relative ${i < gradeHistory.length - 1 ? 'mb-3.5' : ''}`}>
-                              <div
-                                className={`absolute -left-[18px] top-1 w-2.5 h-2.5 rounded-full border-2 ${isFinal ? '' : 'bg-gray-300 border-gray-200'}`}
-                                style={isFinal ? { background: primaryColor, borderColor: primaryColor } : undefined}
-                              />
-                              <div className="flex justify-between items-center">
-                                <span className={`text-sm ${isFinal ? 'font-semibold' : 'font-normal text-gray-700'}`} style={isFinal ? { color: primaryColor } : undefined}>{entry.grade}</span>
-                                <span className="text-xs text-gray-400">{entry.academic_year}</span>
-                              </div>
-                              <div className="flex gap-2">
-                                {isFinal       && <span className="text-xs font-medium" style={{ color: primaryColor }}>graduated</span>}
-                                {entry.is_repeat && <span className="text-xs text-amber-500 font-medium">repeated</span>}
-                                {entry.is_skip   && <span className="text-xs text-purple-500 font-medium">skipped</span>}
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </DrawerSection>
-                  )}
+                  <StudentTimeline
+                    t={t}
+                    student={selected}
+                    primaryColor={primaryColor}
+                    onNavigateToCohort={onNavigateToCohort}
+                    onNavigateToClass={onNavigateToClass}
+                    onNavigate={onNavigate}
+                  />
 
                   <div className="flex gap-3 mt-6">
                     <button
@@ -273,23 +259,27 @@ export default function Alumni({ user, school }) {
                     >Remove</button>
                   </div>
 
-                  <button
-                    onClick={() => { setReenrollConfirm(true); setDeleteConfirm(false) }}
-                    className="w-full mt-3 bg-green-50 text-green-700 border-2 border-green-600 rounded-lg py-2.5 font-semibold cursor-pointer hover:bg-green-100 transition-colors"
-                  ><Backpack size={16} className="inline mr-1.5" />Re-enroll as Student</button>
+                  {canReenroll(selected, grades) && (
+                    <>
+                      <button
+                        onClick={() => { setReenrollConfirm(true); setDeleteConfirm(false) }}
+                        className="w-full mt-3 bg-green-50 text-green-700 border-2 border-green-600 rounded-lg py-2.5 font-semibold cursor-pointer hover:bg-green-100 transition-colors"
+                      ><Backpack size={16} className="inline mr-1.5" />Re-enroll as Student</button>
 
-                  {reenrollConfirm && (
-                    <div className="mt-4 bg-green-50 border border-green-300 rounded-xl p-4">
-                      <p className="text-green-900 font-semibold m-0 mb-2">Re-enroll {selected.first_name} {selected.last_name} as a student?</p>
-                      <p className="text-green-700 text-sm m-0 mb-4">They will be moved back to the student roster with <strong>Applied</strong> status. Their alumni record will be removed.</p>
-                      {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
-                      <div className="flex gap-2">
-                        <button onClick={reenroll} disabled={reenrolling} className="bg-green-600 text-white border-0 rounded-lg px-4 py-2 font-semibold cursor-pointer disabled:opacity-70 hover:bg-green-700">
-                          {reenrolling ? 'Moving...' : 'Confirm Re-enroll'}
-                        </button>
-                        <button onClick={() => setReenrollConfirm(false)} className="bg-white text-gray-700 border border-gray-300 rounded-lg px-4 py-2 cursor-pointer hover:bg-gray-50">Cancel</button>
-                      </div>
-                    </div>
+                      {reenrollConfirm && (
+                        <div className="mt-4 bg-green-50 border border-green-300 rounded-xl p-4">
+                          <p className="text-green-900 font-semibold m-0 mb-2">Re-enroll {selected.first_name} {selected.last_name} as a student?</p>
+                          <p className="text-green-700 text-sm m-0 mb-4">They will be moved back to the student roster with <strong>Applied</strong> status. Their full history — incidents, health records, grade progression — stays intact.</p>
+                          {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+                          <div className="flex gap-2">
+                            <button onClick={reenroll} disabled={reenrolling} className="bg-green-600 text-white border-0 rounded-lg px-4 py-2 font-semibold cursor-pointer disabled:opacity-70 hover:bg-green-700">
+                              {reenrolling ? 'Moving...' : 'Confirm Re-enroll'}
+                            </button>
+                            <button onClick={() => setReenrollConfirm(false)} className="bg-white text-gray-700 border border-gray-300 rounded-lg px-4 py-2 cursor-pointer hover:bg-gray-50">Cancel</button>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {deleteConfirm && (

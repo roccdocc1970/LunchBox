@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { AlertTriangle, Check, ClipboardList, Users, BookOpen, X, GraduationCap, UsersRound } from 'lucide-react'
 import { useCohorts } from './hooks/useCohorts'
 import { COHORT_STATUS } from './domain/cohorts'
@@ -7,9 +7,16 @@ import { DIVISION_COLORS, parseDivisions } from './domain/school'
 const fieldCls = 'w-full border border-gray-300 rounded-lg px-3 py-2 outline-none text-sm'
 const labelCls = 'block text-xs font-medium text-gray-500 mb-1'
 
-export default function Cohorts({ user, school }) {
+export default function Cohorts({ user, school, openCohortId, onClearOpenCohort }) {
   const primaryColor = school?.primary_color || '#f97316'
   const c = useCohorts(user, school)
+
+  const pendingIdRef = useRef(openCohortId)
+  useEffect(() => {
+    if (!pendingIdRef.current || c.loading || c.cohorts.length === 0) return
+    const cohort = c.cohorts.find(co => co.id === pendingIdRef.current)
+    if (cohort) { pendingIdRef.current = null; c.openCohort(cohort); c.startEdit(cohort); onClearOpenCohort?.() }
+  }, [c.loading, c.cohorts.length])
 
   const allDivs     = parseDivisions(school?.divisions)
   const divColorMap = Object.fromEntries(allDivs.map((d, i) => [d.name, DIVISION_COLORS[i % DIVISION_COLORS.length]]))

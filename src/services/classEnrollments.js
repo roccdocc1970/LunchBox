@@ -4,6 +4,8 @@
  * Supabase CRUD for the class_enrollments table.
  */
 
+import { getAcademicYear } from './enrollment.js'
+
 export async function getEnrollments(supabase, schoolId, classId) {
   const { data } = await supabase
     .from('class_enrollments')
@@ -14,10 +16,19 @@ export async function getEnrollments(supabase, schoolId, classId) {
   return data || []
 }
 
+/** All class enrollments for one student, with class names — used by the student timeline. */
+export async function getClassEnrollmentsForStudent(supabase, studentId) {
+  const { data } = await supabase
+    .from('class_enrollments')
+    .select('id, class_id, academic_year, classes(name)')
+    .eq('student_id', studentId)
+  return data || []
+}
+
 export async function enrollStudent(supabase, schoolId, classId, studentId) {
   const { data, error } = await supabase
     .from('class_enrollments')
-    .insert({ school_id: schoolId, class_id: classId, student_id: studentId })
+    .insert({ school_id: schoolId, class_id: classId, student_id: studentId, academic_year: getAcademicYear() })
     .select()
     .single()
   if (error) throw new Error(error.message)

@@ -13,7 +13,6 @@ import {
   deleteAlumnus,
   reenrollAsStudent,
   getAlumnusGivingHistory,
-  getAlumnusGradeHistory,
 } from '../services/alumni'
 import {
   filterAlumni,
@@ -46,7 +45,6 @@ export function useAlumni(userId, school) {
   const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [reenrollConfirm, setReenrollConfirm] = useState(false)
   const [reenrolling, setReenrolling] = useState(false)
-  const [gradeHistory, setGradeHistory] = useState([])
   const [givingHistory, setGivingHistory] = useState([])
 
   useEffect(() => { load() }, [])
@@ -67,13 +65,11 @@ export function useAlumni(userId, school) {
     setReenrollConfirm(false)
     setError(null)
     setGivingHistory([])
-    getAlumnusGradeHistory(supabase, alumnus.original_student_id).then(setGradeHistory)
     getAlumnusGivingHistory(supabase, alumnus.id).then(setGivingHistory)
   }
 
   const closeProfile = () => {
     setSelected(null)
-    setGradeHistory([])
     setGivingHistory([])
     setEditing(false)
     setDeleteConfirm(false)
@@ -94,7 +90,7 @@ export function useAlumni(userId, school) {
     setError(null)
     try {
       const payload = buildAlumnusPayload(editForm)
-      const data = await updateAlumnus(supabase, selected.id, payload)
+      const data = await updateAlumnus(supabase, userId, selected.id, payload)
       setSelected(data)
       setEditing(false)
       load()
@@ -119,7 +115,7 @@ export function useAlumni(userId, school) {
     setReenrolling(true)
     setError(null)
     try {
-      await reenrollAsStudent(supabase, userId, selected)
+      await reenrollAsStudent(supabase, selected)
       closeProfile()
       load()
     } catch (err) {
@@ -154,7 +150,7 @@ export function useAlumni(userId, school) {
     startEdit, saving, saveEdit,
     deleteConfirm, setDeleteConfirm, remove,
     reenrollConfirm, setReenrollConfirm, reenrolling, reenroll,
-    gradeHistory, givingHistory,
+    givingHistory,
     error,
     // filters
     search, setSearch,

@@ -11,7 +11,7 @@ export async function getNavCounts(supabase, schoolId) {
     sections, reportCards, staff, parents,
     alumni, facilities, rooms, campaigns, messages,
   ] = await Promise.all([
-    supabase.from('inquiries')       .select('*', { count: 'exact', head: true }).eq('school_id', schoolId),
+    supabase.from('students')        .select('*', { count: 'exact', head: true }).eq('school_id', schoolId).in('status', ['New Inquiry', 'Toured', 'Withdrawn']),
     supabase.from('students')        .select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('status', 'Enrolled'),
     supabase.from('classes')         .select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('status', 'Active'),
     supabase.from('cohorts')         .select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('status', 'Active'),
@@ -19,7 +19,7 @@ export async function getNavCounts(supabase, schoolId) {
     supabase.from('report_cards')    .select('*', { count: 'exact', head: true }).eq('school_id', schoolId),
     supabase.from('staff')           .select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('status', 'Active'),
     supabase.from('parents')         .select('*', { count: 'exact', head: true }).eq('school_id', schoolId),
-    supabase.from('alumni')          .select('*', { count: 'exact', head: true }).eq('school_id', schoolId),
+    supabase.from('students')        .select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('status', 'Alumni'),
     supabase.from('work_orders')     .select('*', { count: 'exact', head: true }).eq('school_id', schoolId).in('status', ['Open', 'In Progress']),
     supabase.from('rooms')           .select('*', { count: 'exact', head: true }).eq('school_id', schoolId),
     supabase.from('campaigns')       .select('*', { count: 'exact', head: true }).eq('school_id', schoolId).eq('status', 'Active'),

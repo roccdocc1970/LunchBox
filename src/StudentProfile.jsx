@@ -9,6 +9,9 @@ import {
   HEALTH_ENTRY_CATEGORIES, HEALTH_CATEGORY_COLORS, HEALTH_CATEGORY_ICONS,
   statusColor, parentDisplayName, isEntryExpired, isSkipGrade,
 } from './domain/students'
+import { useStudentTimeline } from './hooks/useStudentTimeline'
+import { supabase } from './supabase'
+import StudentTimeline from './StudentTimeline'
 
 const HEALTH_ICON_COMPONENTS = {
   AlertTriangle, Pill, Syringe, Stethoscope, Bandage, ClipboardList,
@@ -19,23 +22,10 @@ const labelCls = 'block text-xs font-medium text-gray-500 mb-1'
 const cardCls  = 'bg-white rounded-2xl shadow-sm p-6'
 const secHead  = 'text-xs font-bold text-gray-400 uppercase tracking-wider mb-4'
 
-export default function StudentProfile({ student, school, h }) {
+export default function StudentProfile({ student, school, h, onNavigateToCohort, onNavigateToClass, onNavigate }) {
   const primaryColor = school?.primary_color || '#f97316'
   const GRADES = h.configuredGrades || ALL_GRADES
-
-  const gradeSet  = new Set(h.gradeHistory.map(e => e.grade))
-  const gradeMeta = h.gradeHistory.reduce((acc, e) => {
-    if (!acc[e.grade]) acc[e.grade] = { repeat: false, skip: false }
-    if (e.is_repeat) acc[e.grade].repeat = true
-    if (e.is_skip)   acc[e.grade].skip   = true
-    return acc
-  }, {})
-
-  const gradeState = (g) => {
-    if (g === student.grade) return 'current'
-    if (gradeSet.has(g))    return 'past'
-    return 'future'
-  }
+  const t = useStudentTimeline(supabase, school?.user_id, student)
 
   const division = getDivision(student.grade, school?.divisions)
 
@@ -168,34 +158,15 @@ export default function StudentProfile({ student, school, h }) {
         </button>
       </div>
 
-      {/* Grade Journey Bar */}
-      {GRADES.length > 0 && (
-        <div className={`${cardCls} mb-6`}>
-          <div className={secHead}>Academic Journey</div>
-          <div className="flex items-stretch rounded-lg overflow-hidden border border-gray-200">
-            {GRADES.map((grade, i) => {
-              const state = gradeState(grade)
-              const bg    = state === 'current' ? primaryColor : state === 'past' ? primaryColor + '30' : '#f9fafb'
-              const color = state === 'current' ? 'white' : state === 'past' ? primaryColor : '#9ca3af'
-              const weight = state === 'current' ? '700' : state === 'past' ? '600' : '400'
-              return (
-                <div key={grade} className={`flex-1 text-center py-3 px-2 relative min-w-[60px] ${i < GRADES.length - 1 ? 'border-r border-gray-200' : ''}`} style={{ background: bg }}>
-                  {state === 'current' && <div className="absolute top-0 left-0 right-0 h-0.5 bg-white/60 rounded-t" />}
-                  <div className="text-xs leading-snug truncate" style={{ fontWeight: weight, color }}>{grade.replace(' Grade', '').replace('Grade ', '')}</div>
-                  <div className="text-[0.6rem] mt-1" style={{ color: state === 'current' ? 'rgba(255,255,255,0.8)' : state === 'past' ? primaryColor + 'aa' : '#d1d5db' }}>
-                    {state === 'current' ? <span className="inline-block w-1.5 h-1.5 rounded-full bg-white/60" /> : state === 'past' ? <Check size={10} /> : ''}
-                  </div>
-                  {gradeMeta[grade]?.repeat && <div className="text-[0.6rem] mt-0.5" style={{ color: state === 'current' ? 'rgba(255,255,255,0.75)' : '#f59e0b' }}>repeated</div>}
-                  {gradeMeta[grade]?.skip   && <div className="text-[0.6rem] mt-0.5" style={{ color: state === 'current' ? 'rgba(255,255,255,0.75)' : '#8b5cf6' }}>skipped</div>}
-                </div>
-              )
-            })}
-          </div>
-          {h.gradeHistory.length === 0 && (
-            <p className="text-xs text-gray-400 mt-3 mb-0">No grade history recorded yet — highlighted once the student is enrolled and a grade is assigned.</p>
-          )}
-        </div>
-      )}
+      {/* Student Evolution Timeline */}
+      <StudentTimeline
+        t={t}
+        student={student}
+        primaryColor={primaryColor}
+        onNavigateToCohort={onNavigateToCohort}
+        onNavigateToClass={onNavigateToClass}
+        onNavigate={onNavigate}
+      />
 
       {/* Info cards */}
       <div className="grid gap-6 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
@@ -492,7 +463,7 @@ export default function StudentProfile({ student, school, h }) {
         {h.graduateConfirm && (
           <div className="mt-5 bg-orange-50 border border-orange-200 rounded-xl p-5">
             <p className="text-orange-900 font-semibold m-0 mb-2">Graduate {student.first_name} {student.last_name} to Alumni?</p>
-            <p className="text-orange-700 text-sm m-0 mb-4">They will be removed from the student roster and added to Alumni.</p>
+            <p className="text-orange-700 text-sm m-0 mb-4">They'll move to Alumni status — cohort, class, incident, and health history all stay attached to their record.</p>
             <div className="grid grid-cols-2 gap-3 mb-4 max-w-sm">
               <div>
                 <label className={labelCls}>Graduation Year</label>

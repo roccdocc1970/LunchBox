@@ -65,19 +65,22 @@ export async function saveAttendance(supabase, schoolId, { students, attendanceM
 
 /**
  * Query attendance history with optional filters.
- * Returns up to 500 records ordered by date desc, student name asc.
+ * Returns up to 500 records ordered by date desc, student name asc — unless
+ * studentId is passed, in which case the result is already bounded to one
+ * student and the cap is dropped so full multi-year history comes through.
  */
-export async function getAttendanceHistory(supabase, schoolId, { date, grade, status } = {}) {
+export async function getAttendanceHistory(supabase, schoolId, { date, grade, status, studentId } = {}) {
   let q = supabase
     .from('attendance')
     .select('*')
     .eq('school_id', schoolId)
     .order('date', { ascending: false })
     .order('student_name', { ascending: true })
-    .limit(500)
   if (date) q = q.eq('date', date)
   if (grade) q = q.eq('student_grade', grade)
   if (status) q = q.eq('status', status)
+  if (studentId) q = q.eq('student_id', studentId)
+  else q = q.limit(500)
   const { data, error } = await q
   if (error) throw error
   return data || []
