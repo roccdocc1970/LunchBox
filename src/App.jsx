@@ -41,17 +41,20 @@ import Facilities        from './Facilities'
 import Rooms             from './Rooms'
 import Classes           from './Classes'
 import Cohorts           from './Cohorts'
+import Chat              from './Chat'
 import Scheduling        from './Scheduling'
 
 function App() {
   const [session,         setSession]         = useState(null)
   const [showLanding,     setShowLanding]     = useState(true)
-  const [activePage,      setActivePage]      = useState('dashboard')
+  const [activePage,      setActivePage]      = useState('chat')
   const [collapsedGroups, setCollapsedGroups] = useState({ academics: false, people: false, operations: false, communicate: false })
   const [showSettingsMenu, setShowSettingsMenu] = useState(false)
   const [openClassId,     setOpenClassId]     = useState(null)
+  const [openCohortId,    setOpenCohortId]    = useState(null)
 
-  const navigateToClass = (classId) => { setOpenClassId(classId); setActivePage('classes') }
+  const navigateToClass  = (classId)  => { setOpenClassId(classId); setActivePage('classes') }
+  const navigateToCohort = (cohortId) => { setOpenCohortId(cohortId); setActivePage('cohorts') }
 
   const auth = useAuth()
   const sc   = useSchool()
@@ -159,8 +162,16 @@ function App() {
 
           {/* Sidebar */}
           <div className="w-[240px] bg-white border-r border-gray-100 py-5 flex flex-col shrink-0">
-            {/* Dashboard button */}
-            <div className="px-3 mb-1">
+            {/* Chat + Dashboard buttons */}
+            <div className="px-3 mb-1 flex flex-col gap-0.5">
+              <button
+                onClick={() => setActivePage('chat')}
+                className={`w-full text-left px-3 py-2 rounded-lg border-0 cursor-pointer text-sm flex items-center gap-2.5 transition-all ${activePage === 'chat' ? 'text-white font-semibold shadow-sm' : 'text-gray-500 font-normal hover:bg-gray-50 hover:text-gray-900'}`}
+                style={activePage === 'chat' ? { background: primaryColor } : {}}
+              >
+                <Sparkles size={15} className="shrink-0" />
+                <span>Ask LunchBox</span>
+              </button>
               <button
                 onClick={() => setActivePage('dashboard')}
                 className={`w-full text-left px-3 py-2 rounded-lg border-0 cursor-pointer text-sm flex items-center gap-2.5 transition-all ${activePage === 'dashboard' ? 'text-white font-semibold shadow-sm' : 'text-gray-500 font-normal hover:bg-gray-50 hover:text-gray-900'}`}
@@ -219,6 +230,10 @@ function App() {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.1, ease: 'easeOut' }}
               >
+                {activePage === 'chat' && (
+                  <Chat school={sc.school} onNavigateToClass={navigateToClass} onNavigateToCohort={navigateToCohort} onNavigate={setActivePage} />
+                )}
+
                 {activePage === 'dashboard' && (
                   <div className="p-8 max-w-6xl mx-auto">
                     <div className="flex items-start justify-between mb-8">
@@ -289,9 +304,9 @@ function App() {
                 {activePage === 'admissions'  && <Admissions  user={session.user} school={sc.school} onNavigate={setActivePage} />}
                 {activePage === 'enrollment'  && <Enrollment  user={session.user} school={sc.school} />}
                 {activePage === 'messages'    && <Messages    user={session.user} school={sc.school} />}
-                {activePage === 'students'    && <Students    user={session.user} school={sc.school} />}
+                {activePage === 'students'    && <Students    user={session.user} school={sc.school} onNavigateToClass={navigateToClass} onNavigateToCohort={navigateToCohort} onNavigate={setActivePage} />}
                 {activePage === 'staff'       && <Staff       user={session.user} school={sc.school} />}
-                {activePage === 'alumni'      && <Alumni      user={session.user} school={sc.school} />}
+                {activePage === 'alumni'      && <Alumni      user={session.user} school={sc.school} onNavigateToClass={navigateToClass} onNavigateToCohort={navigateToCohort} onNavigate={setActivePage} />}
                 {activePage === 'reportcards' && <ReportCards user={session.user} school={sc.school} />}
                 {activePage === 'reports'     && <Reports     user={session.user} school={sc.school} />}
                 {activePage === 'parents'     && <Parents     user={session.user} school={sc.school} onCompose={() => setActivePage('messages')} />}
@@ -299,7 +314,7 @@ function App() {
                 {activePage === 'facilities'  && <Facilities  user={session.user} school={sc.school} />}
                 {activePage === 'rooms'       && <Rooms       user={session.user} school={sc.school} />}
                 {activePage === 'classes'     && <Classes      user={session.user} school={sc.school} openClassId={openClassId} onClearOpenClass={() => setOpenClassId(null)} />}
-                {activePage === 'cohorts'     && <Cohorts      user={session.user} school={sc.school} />}
+                {activePage === 'cohorts'     && <Cohorts      user={session.user} school={sc.school} openCohortId={openCohortId} onClearOpenCohort={() => setOpenCohortId(null)} />}
                 {activePage === 'schedule'    && <Scheduling   user={session.user} school={sc.school} onNavigateToClass={navigateToClass} />}
                 {activePage === 'settings'    && <Settings    user={session.user} school={sc.school} onUpdate={sc.setSchool} />}
               </motion.div>

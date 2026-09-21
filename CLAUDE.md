@@ -15,6 +15,8 @@ LunchBox is a **K-12 School Operations SaaS Platform** — enrollment, communica
 
 > **Lucide icon migration is complete.** All emoji icons have been replaced with Lucide React components across every page and domain file. The 🍱 LunchBox brand logo is intentionally preserved (no Lucide equivalent). Friendly inline text decorators (e.g. "Great attendance! 🎉") are also preserved.
 
+> **"Ask LunchBox" AI chat is live (v1)** and is now the default post-login home screen. See the dedicated "AI Chat Backend" section below for the full architecture. ⚠️ **Known gap, must fix before a second school ever uses this**: multi-tenant data isolation for the chat feature has been designed for (every chat request is scoped through the calling user's own Supabase session, never the service-role key, so RLS enforces isolation) but has **never been tested with two different school accounts**. Do not roll this out to more than one school until that's been verified — see ROADMAP.md's Tier 1.5 for the exact test to run.
+
 ---
 
 ## Live URLs & Accounts
@@ -25,7 +27,10 @@ LunchBox is a **K-12 School Operations SaaS Platform** — enrollment, communica
 | Supabase Project | https://supabase.com/dashboard/project/omroxjrlhqeovnskzyok |
 | Vercel Dashboard | https://vercel.com |
 | Resend Dashboard | https://resend.com |
-| Local Dev | http://localhost:5173 (`npm run dev`) |
+| Anthropic Console (billing/keys for "Ask LunchBox") | https://console.anthropic.com |
+| Local Dev | http://localhost:5173 (`npm run dev`) + http://localhost:3001 (`npm run dev:api`, required for the chat feature — see AI Chat Backend section) |
+
+> **Login email for GitHub & Supabase:** `roccdocc1970@gmail.com`. GitHub username tied to the repo above is `roccdocc1970`. When signing into Supabase, use "Continue with GitHub" while signed into GitHub as `roccdocc1970` — signing into GitHub as a different account will make Supabase offer to create a new (wrong) account instead of recognizing the existing project.
 
 ---
 
@@ -39,8 +44,9 @@ LunchBox is a **K-12 School Operations SaaS Platform** — enrollment, communica
 | Auth | Supabase Auth | Email/password |
 | Hosting | Vercel | Auto-deploys from GitHub on push |
 | Email | Resend | Free tier, 3K emails/month |
-| Service Layer | Pure JS modules (`src/services/`) | Dependency-injected Supabase client — shared by UI and MCP server |
-| MCP Server | Node.js stdio (`mcp_server/`) | `@modelcontextprotocol/sdk` + Zod — exposes 27 tools to AI agents |
+| Service Layer | Pure JS modules (`src/services/`) | Dependency-injected Supabase client — shared by UI, MCP server, and the AI chat backend |
+| MCP Server | Node.js stdio (`mcp_server/`) | `@modelcontextprotocol/sdk` + Zod — exposes 27 tools to AI agents (Claude Desktop, local dev only) |
+| AI Chat Backend | Vercel serverless (`api/`) | `@anthropic-ai/sdk` — powers the in-app "Ask LunchBox" chat. See dedicated section below. |
 | Animations | Framer Motion (`framer-motion`) | Page-level fade transitions via `AnimatePresence` + `motion.div` keyed by `activePage` in `App.jsx`. Duration: 100ms ease-out. |
 
 ---
@@ -55,7 +61,10 @@ VITE_SUPABASE_ANON_KEY=sb_publishable_yc2d1xNiGddeKcx5erg_iQ_pUE-HANS
 VITE_RESEND_API_KEY=re_your_key_here
 SUPABASE_SERVICE_ROLE_KEY=sb_secret_...   # MCP server only — bypasses RLS
 SCHOOL_ID=41beb9b7-ec0c-45f3-9a71-8f94cdd98078  # schools.user_id (NOT schools.id)
+ANTHROPIC_API_KEY=sk-ant-...   # AI chat backend only (api/) — prepaid Anthropic Console credits, no auto-reload
 ```
+
+> **Local dev note for the AI chat feature:** `api/**.js` are Vercel serverless functions — `vite dev` alone doesn't run them. `npm run dev:api` runs `dev-server.js`, a local Express shim that mounts the same handler files on `localhost:3001`; `vite.config.js` proxies `/api/*` to it. This file is dev-only — production deploys `api/**.js` directly as Vercel functions and never touches `dev-server.js`.
 
 ---
 
@@ -63,11 +72,13 @@ SCHOOL_ID=41beb9b7-ec0c-45f3-9a71-8f94cdd98078  # schools.user_id (NOT schools.i
 
 | File | Purpose |
 |---|---|
-| `src/App.jsx` | Main app — auth, routing, dashboard, nav. Detects admin vs staff on login. Getting Started checklist widget on dashboard. Live nav count badges. |
+| `src/App.jsx` | Main app — auth, routing, dashboard, nav. Detects admin vs staff on login. Getting Started checklist widget on dashboard. Live nav count badges. Default post-login page is `'chat'` (Ask LunchBox), not the dashboard. |
+| `src/Chat.jsx` | "Ask LunchBox" — the AI chat home screen. Message list with inline `<GeneratedView>` (tables/stat rows/chip lists/mini-timelines) and `<ConfirmAction>` cards for proposed writes. See "AI Chat Backend" section. |
 | `src/Landing.jsx` | Public marketing/landing page |
 | `src/Onboarding.jsx` | First-time school setup flow |
 | `src/Settings.jsx` | School settings — profile, academic config, bell schedule, campus (buildings + nested rooms), communication, appearance |
 | `src/Students.jsx` | Student roster, profile drawer, health records, incidents, grade progression |
+| `src/StudentTimeline.jsx` | "Student Evolution" timeline — per-year cards (grade, cohort, electives, milestones) spanning a student's full lifecycle. Rendered from both `StudentProfile.jsx` and `Alumni.jsx`'s drawer via the `useStudentTimeline` hook. Collapsed-year rows expand on click; cohort/class chips navigate to their detail page. |
 | `src/Enrollment.jsx` | Enrollment module |
 | `src/Admissions.jsx` | Admissions pipeline — inquiry tracking, convert to student, Copy Application Link. Pipeline stat cards use compact pill style. |
 | `src/Attendance.jsx` | Daily attendance — take by grade or all grades, history, upsert per student/date |
@@ -97,10 +108,11 @@ All Supabase business logic extracted from components. Every function takes `sup
 | File | Exports |
 |---|---|
 | `enrollment.js` | `getAcademicYear`, `getStudents`, `searchParents`, `enrollStudent`, `updateStudentStatus` |
-| `attendance.js` | `getStudentsWithAttendance`, `saveAttendance`, `getAttendanceHistory` |
-| `students.js` | `getStudents`, `updateStudent`, `deleteStudent`, `graduateStudentToAlumni`, `getGradeHistory`, `getReportCardCount`, `getStudentHealth`, `saveHealthProfile`, `addHealthEntry`, `updateHealthEntry`, `deleteHealthEntry`, `deleteHealthProfile`, `getIncidents`, `logIncident`, `updateIncident`, `resolveIncident`, `searchStaff` |
-| `admissions.js` | `getInquiries`, `createInquiry`, `updateInquiry`, `convertInquiryToStudent` |
-| `reportCards.js` | `getReportCards`, `getEnrolledStudents`, `createReportCard`, `setReportCardPublished`, `deleteReportCard` |
+| `attendance.js` | `getStudentsWithAttendance`, `saveAttendance`, `getAttendanceHistory` (optional `studentId` filter, uncapped when scoped to one student) |
+| `students.js` | `getStudents`, `updateStudent`, `deleteStudent`, `graduateStudentToAlumni` (status update + `student_alumni_details` upsert — no table move), `getGradeHistory`, `getReportCardCount`, `getStudentHealth`, `saveHealthProfile`, `addHealthEntry`, `updateHealthEntry`, `deleteHealthEntry`, `deleteHealthProfile`, `getIncidents`, `getSchoolIncidents`, `getStudentsWithParents`, `logIncident`, `updateIncident`, `resolveIncident`, `searchStaff` |
+| `admissions.js` | `getInquiries`, `createInquiry`, `updateInquiry`, `convertInquiryToStudent` — all operate on `students` rows filtered/updated by status; maps to/from the flat inquiry-shaped fields the UI expects |
+| `alumni.js` | `getAlumni`, `updateAlumnus`, `deleteAlumnus`, `reenrollAsStudent`, `getAlumnusGivingHistory` — `students` rows filtered to `status='Alumni'`, joined with `student_alumni_details` and flattened |
+| `reportCards.js` | `getReportCards`, `getReportCardsForStudent`, `getEnrolledStudents`, `createReportCard`, `setReportCardPublished`, `updateReportCard`, `deleteReportCard` |
 | `staff.js` | `getStaff`, `createStaffMember`, `updateStaffMember`, `deleteStaffMember` |
 | `facilities.js` | `getWorkOrders`, `getFacilitiesStaff`, `createWorkOrder`, `updateWorkOrder`, `updateWorkOrderStatus` |
 | `rooms.js` | `getRooms`, `saveRoom`, `deleteRoom` |
@@ -108,8 +120,11 @@ All Supabase business logic extracted from components. Every function takes `sup
 | `schedule.js` | `getPeriods`, `savePeriod`, `deletePeriod` |
 | `classes.js` | `getClasses`, `saveClass`, `deleteClass` |
 | `classSections.js` | `getSections`, `saveSection`, `deleteSection`, `batchSaveSections`, `clearSections` |
-| `classEnrollments.js` | `getEnrollments`, `enrollStudent`, `unenrollStudent` |
-| `cohorts.js` | `getCohorts`, `saveCohort`, `deleteCohort`, `getCohortStudents`, `getAllCohortStudents`, `addCohortStudent`, `removeCohortStudent`, `getCohortClasses`, `getAllCohortClasses`, `addCohortClass`, `removeCohortClass`, `bulkEnrollCohort` |
+| `classEnrollments.js` | `getEnrollments`, `getClassEnrollmentsForStudent`, `enrollStudent` (stamps `academic_year`), `unenrollStudent` |
+| `cohorts.js` | `getCohorts`, `saveCohort`, `deleteCohort`, `getCohortStudents`, `getCohortsForStudent`, `getAllCohortStudents`, `addCohortStudent`, `removeCohortStudent`, `getCohortClasses`, `getAllCohortClasses`, `addCohortClass`, `removeCohortClass`, `bulkEnrollCohort` |
+| `fundraising.js` | `getFundraisingData`, `createCampaign`, `updateCampaign`, `deleteCampaign`, `searchDonors`, `getDonationsForFamily`, `createDonation`, `toggleReceipt`, `createEvent` |
+| `timeline.js` | `getStudentTimelineData` — fetches every source the student evolution timeline needs (grade history, cohorts, classes, report cards, incidents, health, attendance, donations) in parallel; aggregation happens in `domain/timeline.js` |
+| `chat.js` | `sendChatMessage`, `executeConfirmedAction` — thin client for `/api/chat` and `/api/chat/execute`; forwards the current Supabase session's access token as a Bearer header |
 | `navCounts.js` | `getNavCounts` — batch COUNT queries for all nav sections, returns counts keyed by page id |
 
 ### MCP Server (`mcp_server/`)
@@ -123,26 +138,29 @@ All Supabase business logic extracted from components. Every function takes `sup
 **Connect to Claude Desktop:** `%APPDATA%\Claude\claude_desktop_config.json` already configured.
 **SCHOOL_ID note:** Use `schools.user_id` (not `schools.id`) — all `school_id` FK columns reference `auth.users`.
 
+### AI Chat Backend (`api/`)
+
+Powers "Ask LunchBox", the in-app chat home screen. Deployed as Vercel serverless functions (zero-config `/api/**.js` convention — no `vercel.json` needed), **not** a standalone server. Locally, `dev-server.js` + `npm run dev:api` mounts the same handler files under Express so they're testable without the Vercel CLI (see Environment Variables section).
+
+| File | Purpose |
+|---|---|
+| `api/_lib/supabaseFromRequest.js` | Builds a per-request Supabase client from the caller's own JWT (anon key, never service-role) — the entire multi-tenant safety mechanism. Every query the model triggers is RLS-scoped exactly like the browser UI. |
+| `api/_lib/getSchoolContext.js` | Resolves `schoolId` **and the caller's `role`** from the authenticated user (admin via `schools.user_id`, else linked `staff.school_id`/`staff.role`) — mirrors `useSchool.js`'s `fetchSchool()` logic. The `role` is threaded into every tool call as `ctx` so tools can replicate app-level role gating that RLS alone doesn't enforce (see `get_student_health` below). |
+| `api/_lib/tools.js` | Tool definitions wrapping `src/services/*` functions, split into `READ_TOOLS` (auto-executed), `WRITE_TOOLS` (confirm-gated — see below), and `NAVIGATE_TOOLS` (deep-link only, no `run()`). **Read coverage is intentionally broad — every major domain is queryable** (students, incidents, attendance, grades, health, report cards, alumni, admissions, classes, cohorts, work orders, staff, rooms, buildings, messages, parents, fundraising, school settings). **Settings is read-only in chat by design** — `get_school_settings` exists, but there is no matching write tool; any request to change configuration (grading scale, subjects, divisions, grades offered, branding, bell schedule, buildings/rooms) is routed via `navigate_to_page("settings")` instead. Settings changes are rare, foundational, and can quietly break unrelated logic if malformed (e.g. `grades_offered` already determines the alumni re-enrollment eligibility rule) — a stronger case for deep-link-only than even scheduling. Includes `get_student_evolution` (the richest tool — full lifecycle via `services/timeline.js`), `get_classes`/`get_cohorts` (for resolving a name to an id before navigating), and `RENDER_VIEW_TOOL` (the model's final-answer tool — see Generative Views below). **`get_student_health` is the one tool with role-gating logic of its own** — RLS grants all staff full DB access to health records, but the tool replicates `domain/staffDashboard.js`'s `canViewFullHealth`/`canViewLimitedHealth` tiers (full for Principal/Admin/Counselor, emergency-contact-and-allergies-only for Teacher/Asst/Sub, none for Support Staff/Facilities/Maintenance) so chat can't see more than the app itself ever shows that role. |
+| `api/chat/index.js` | The tool-calling loop (max 8 turns). Read tool calls execute and the loop continues; a call to `render_view`, any `WRITE_TOOLS` entry, or any `NAVIGATE_TOOLS` entry immediately stops the loop and returns a structured response instead of continuing the conversation. System prompt + tool definitions are marked `cache_control: ephemeral` for prompt caching. |
+| `api/chat/execute.js` | The **only** place a chat-originated write actually happens — called after the human clicks Confirm on a `ConfirmAction` card. `index.js` only ever proposes; this file executes. |
+
+**Generative views (reads only, never writes):** the model never writes UI code. Its final answer is a small JSON view-spec (`{ template, data }`) that `src/views/GeneratedView.jsx` dispatches to one of four fixed, pre-built templates — `Table`, `StatRow`, `ChipList`, `MiniTimeline` (in `src/views/`) — matching this codebase's existing stat-pill and chip conventions exactly. `src/domain/icons.js`/`colors.js` provide safe-fallback name→component and value→color resolution for fields the model fills in.
+
+**The guiding safety rule:** reads get freely-generated views; writes never do. A write tool call always produces a `ConfirmAction` card (the one and only write-facing template) and executes only on explicit human confirmation. Anything scheduling-related, multi-record, or capacity-sensitive (cohort assignment, class enrollment, schedule changes) isn't a write tool at all — the model can only respond with a navigation directive that deep-links into the real, already-guardrailed screen (reusing the `openClassId`/`navigateToClass` pattern in `App.jsx`), never attempt the change itself.
+
+**Voice (`src/hooks/useVoice.js`):** browser-native only — no API key, no backend involvement, zero added token cost. Voice input transcribes to plain text client-side before it ever reaches `/api/chat`; voice output just reads the existing reply text aloud. Both are feature-detected, so unsupported browsers simply don't show the corresponding button rather than showing a dead control.
+
+> **Browser support caveat (checked 2026-09-20 — re-verify if this matters months later, support shifts over time):** Voice **input** (`SpeechRecognition`/`webkitSpeechRecognition`) works well in Chrome and Edge, but Firefox does not support it and Safari's support is inconsistent/partial — on those browsers the mic button is hidden entirely (feature-detected), not broken. Voice **output** (`SpeechSynthesis`) has much broader support across all major browsers and is safe to rely on. Net effect: staff on Chromebooks or Chrome/Edge get full voice in-and-out; staff on Safari/Firefox get voice output but fall back to typing for input.
+
 ---
 
 ## Database Schema
-
-### Table: `inquiries`
-
-| Column | Type | Notes |
-|---|---|---|
-| id | UUID | PK auto |
-| school_id | UUID | References auth.users(id) |
-| parent_first_name / parent_last_name | TEXT | Required |
-| email / phone | TEXT | Optional |
-| student_first_name / student_last_name | TEXT | Required |
-| grade_applying_for | TEXT | Optional |
-| status | TEXT | New Inquiry, Toured, Applied, Withdrawn |
-| source | TEXT | Web, Tour, Referral, Word of Mouth, Social Media, Other |
-| inquiry_date / tour_date | DATE | |
-| notes | TEXT | |
-
-> RLS: school_id = auth.uid(). Convert to Student creates parent + student, marks status Applied.
 
 ### Table: `parents`
 
@@ -158,19 +176,47 @@ All Supabase business logic extracted from components. Every function takes `sup
 
 ### Table: `students`
 
+**One permanent record per child, spanning the entire lifecycle — inquiry through alumni.** There is no separate `inquiries` or `alumni` table; a "New Inquiry" and a graduated alum are the same row with a different `status`. The row's `id` never changes, so `cohort_students`, `class_enrollments`, `incidents`, `report_cards`, `attendance`, and `student_grade_history` all stay attached across the student's whole history — graduating (or re-enrolling) is a plain `UPDATE students SET status = ...`, never an insert-then-delete.
+
 | Column | Type | Notes |
 |---|---|---|
-| id | UUID | PK auto |
+| id | UUID | PK auto — permanent for the student's whole lifecycle |
 | school_id | UUID | References auth.users(id) |
 | first_name / last_name | TEXT | Required |
 | grade | TEXT | e.g. "3rd Grade" |
 | date_of_birth | DATE | Optional |
-| parent_id | UUID | References parents(id) |
-| status | TEXT | Applied, Enrolled, Waitlisted |
+| parent_id | UUID | References parents(id) — set at inquiry time, before conversion |
+| status | TEXT | New Inquiry, Toured, Applied, Enrolled, Waitlisted, Withdrawn, Alumni — one linear progression (see `getLifecycleStage()` in `domain/students.js` for the four broad buckets) |
+| source | TEXT | Web, Tour, Referral, Word of Mouth, Social Media, Other — set at inquiry time |
+| inquiry_date / tour_date | DATE | Optional, admissions-stage only |
 | notes | TEXT | Optional |
 
-> RLS: school_id = auth.uid() + staff layer.
+> RLS: admin (`school_id = auth.uid()`) full access. Staff read via `get_staff_school_id()`, with an additional **restrictive** policy hiding `status = 'Alumni'` rows from staff (admin-only visibility, matching pre-refactor behavior).
 > Query with parent join: `select('*, parents(id, first_name, last_name, email, phone, address)')`
+> Public applicants never get direct table access — `ApplicationPortal.jsx` calls the `submit_public_inquiry` Postgres function (`SECURITY DEFINER`), which upserts the parent and inserts the student row server-side. `anon` only has `EXECUTE` on that function, not table grants.
+
+### Table: `student_alumni_details`
+
+1:1 with `students` (same pattern as `student_health`) — only populated once a student's `status` becomes `Alumni`. Holds fields that don't belong on the core roster row.
+
+| Column | Type | Notes |
+|---|---|---|
+| student_id | UUID | PK, References students(id) ON DELETE CASCADE |
+| school_id | UUID | References auth.users(id) |
+| graduation_year | INTEGER | |
+| grade_completed | TEXT | |
+| donor_status | TEXT | Never, Prospect, Active Donor, Lapsed |
+| relationship | TEXT | None, Donor, Volunteer, Mentor, Ambassador |
+| opt_in | BOOLEAN | Default true |
+| preferred_contact | TEXT | Email, Phone, Mail |
+| last_contacted_date | DATE | |
+| employer / college | TEXT | |
+| email / phone / address / city / state / zip | TEXT | The alumnus's own adult contact info — distinct from `parents`, since a grown alum isn't reached through their childhood parent record |
+| notes | TEXT | Optional |
+
+> RLS: admin only (`school_id = auth.uid()`) — no staff policy, matching `students`' alumni-hiding restrictive policy above.
+> `services/alumni.js` flattens this table's columns onto the `students` row it joins from (`getAlumni`), so UI code reads/writes them as if they were flat alumnus fields.
+> `donations.donor_type = 'Alumni'` → `donor_id` references `students.id` (not a separate alumni id).
 
 ### Table: `student_grade_history`
 
@@ -294,24 +340,6 @@ All Supabase business logic extracted from components. Every function takes `sup
 
 > RLS: Admin full access. Staff can read own record via auth_user_id = auth.uid() or email match.
 
-### Table: `alumni`
-
-| Column | Type | Notes |
-|---|---|---|
-| id | UUID | PK auto |
-| school_id | UUID | |
-| first_name / last_name | TEXT | Required |
-| graduation_year | INTEGER | |
-| grade_completed / email / phone / address / city / state / zip | TEXT | |
-| opt_in | BOOLEAN | Default true |
-| preferred_contact | TEXT | Email, Phone, Mail |
-| last_contacted_date | DATE | |
-| relationship | TEXT | None, Donor, Volunteer, Mentor, Ambassador |
-| donor_status | TEXT | Never, Prospect, Active Donor, Lapsed |
-| employer / college / notes | TEXT | |
-
-> Moved from students via "Graduate to Alumni" — inserted into alumni, deleted from students.
-
 ### Table: `report_cards`
 
 | Column | Type | Notes |
@@ -345,7 +373,7 @@ All Supabase business logic extracted from components. Every function takes `sup
 | id / school_id | UUID | |
 | campaign_id | UUID | Nullable — unlinked gift |
 | donor_type | TEXT | Alumni, Parent, External |
-| donor_id | UUID | Nullable for external donors |
+| donor_id | UUID | Nullable for external donors. For `Alumni`, references `students.id` (status='Alumni'); for `Parent`, references `parents.id` |
 | donor_name / donor_email | TEXT | Denormalized at log time |
 | amount | NUMERIC | Required |
 | date | DATE | |
@@ -498,6 +526,7 @@ All Supabase business logic extracted from components. Every function takes `sup
 | id / school_id | UUID | |
 | class_id | UUID | References classes(id) ON DELETE CASCADE |
 | student_id | UUID | References students(id) ON DELETE CASCADE |
+| academic_year | TEXT | e.g. "2025-2026" — stamped at enroll time via `getAcademicYear()`. Named per-year (e.g. "Robotics (2025-2026)") when the same elective recurs, since the UNIQUE constraint below doesn't include this column |
 | created_at | TIMESTAMPTZ | Auto |
 
 > UNIQUE on (school_id, class_id, student_id). Enrollment hard-blocked when count ≥ class_size. RLS: Admin full access (school_id = auth.uid()).
@@ -865,7 +894,7 @@ const students = await getStudents(supabaseAdmin, schoolId)
 Same service function. Different client. No code duplication.
 
 **Key rules:**
-- `getAcademicYear()` lives in `enrollment.js` — import from there, never redefine
+- `getAcademicYear()` lives in `services/enrollment.js` (computes "now") — import from there, never redefine. `academicYearForDate(dateStr)` lives in `domain/enrollment.js` (buckets an arbitrary past date, e.g. `incidents.date`) — a separate pure function, not a duplicate
 - `nullify(obj)` in `students.js` — converts empty strings to null before Supabase inserts
 - Cross-imports between services use explicit `.js` extension (Node ESM requirement)
 - `.env.local` is parsed manually in `supabase_admin.js` — dotenv prints to stdout which breaks the MCP stdio protocol
@@ -923,10 +952,11 @@ const DIVISION_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6', 
 
 ```bash
 npm run dev          # local dev at http://localhost:5173
+npm run dev:api      # second terminal — required for the "Ask LunchBox" chat feature (localhost:3001)
 npm run mcp          # run MCP stdio server (connects to Claude Desktop)
 git add .
 git commit -m "..."
-git push             # Vercel auto-deploys in ~60 seconds
+git push             # Vercel auto-deploys in ~60 seconds — api/**.js deploys as serverless functions automatically
 ```
 
 Always open Claude Code from `C:\Users\Daniel Rocco\Desktop\lunchbox`.

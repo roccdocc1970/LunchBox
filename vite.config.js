@@ -8,4 +8,11 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    proxy: {
+      // Local-only: forwards to dev-server.js (see `npm run dev:api`).
+      // In production, Vercel serves api/**.js as serverless functions directly.
+      '/api': 'http://localhost:3001',
+    },
+  },
 })

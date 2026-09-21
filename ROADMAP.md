@@ -138,19 +138,22 @@ Local stdio MCP server built with `@modelcontextprotocol/sdk`. 27 tools register
 | **Stripe Integration** | Monthly subscription billing for schools — required to go live. |
 | **Resend Domain Verification** | Required before live parent email delivery works. |
 
-### Tier 1.5 — AI Agent Extension (in progress)
+### Tier 1.5 — AI Agent Extension
 
-| Capability | What to Build |
+| Capability | Status |
 |---|---|
-| **HTTP Agent API** | `mcp_server/api.js` — Express/Hono wrapper around service functions exposing `POST /agent/chat`. Enables web-embedded agents inside LunchBox UI. Same service functions, HTTP instead of stdio. |
-| **Domain Agents** | One agent per module (Enrollment, Attendance, Facilities, etc.) — scoped tool subset + domain-specific system prompt. Haiku for simple ops, Sonnet for reasoning. Embedded as "Ask AI" chat panel in each module. |
-| **Policy / Document RAG** | New `policy_documents` table with pgvector embeddings. Upload school policy docs (handbook, HR, safety). Semantic search via Supabase RPC `match_policies`. Policy Agent answers questions from retrieved chunks — no hallucination. |
+| **In-app AI chat ("Ask LunchBox")** | ✅ Shipped (v1), now the default post-login home screen. `api/chat/index.js` + `api/chat/execute.js` — Vercel serverless functions, **not** the originally-planned Express/Hono `mcp_server/api.js` wrapper (Vercel's zero-config `/api/*.js` convention was simpler, since hosting is already Vercel and it deploys with the same `git push`). Tool-calling loop over the existing `src/services/*` layer, split into read tools (auto-executed, freely render a generated view), write tools (confirm-gated — proposes via a `ConfirmAction` card, only executes on explicit human click), and navigate tools (deep-link into the real screen for anything scheduling/capacity-sensitive, never attempted conversationally). Prompt caching enabled on the system prompt + tool definitions. See `src/Chat.jsx`, `src/hooks/useChat.js`, `src/services/chat.js`, `src/views/*`, `api/_lib/tools.js`. |
+| **⚠️ NOT YET VERIFIED — multi-tenant isolation** | The chat backend scopes every query through the *calling user's own* Supabase session (anon key + their JWT, never the service-role key) specifically so RLS enforces tenant isolation automatically — see `api/_lib/supabaseFromRequest.js` and `getSchoolContext.js`. This is correct by design, but has only ever been exercised against a single school account during dev testing. **Before this feature is ever used by more than one school, verify it with two real school accounts logged in concurrently** — confirm one school's chat session can never see, reference, or act on another school's data. This is the single most important open item on this feature. |
+| **Saved chat views (deliberately simple — not a report builder)** | Not started. Lets a user pin a generated view from "Ask LunchBox" for later, and re-run it to refresh the numbers. This is the intended replacement for endless one-off custom-report requests and for ever building a drag-and-drop report designer — **do not scope-creep this into one**. Implementation is small on purpose: a new `saved_views` table (`school_id`, `question`, `template`, `data` JSONB, `reply`, `created_at`) written when the user clicks "save" on a view already rendered by `GeneratedView`; a simple list that replays saved rows through that same component (no new rendering logic needed); a "Refresh" action that just re-sends the original `question` text through the existing `/api/chat` endpoint and overwrites `data`. Scheduled/emailed delivery (e.g. "send me this every Monday" via the existing Resend integration) is a further, separate future step — not part of this item. |
+| **Deterministic counts in chat answers (low priority)** | Mitigated, not solved — see `api/chat/index.js`'s `withCounts()`. A real bug surfaced: asked "how many cohorts," the model answered 32 for an actual 33, because it was mentally tallying a long list read out of a tool result rather than being given the count. Fix shipped: every list-returning tool result now includes an explicit `count` field (`withCounts()`, one level deep — handles both a bare-array result and an object whose direct properties are arrays), plus a system-prompt instruction to use it instead of counting manually. **This reduces the error rate but is not a hard guarantee** — the model still has to notice the field, follow the instruction, and transcribe the number correctly into its reply; all three steps remain generative/probabilistic, just far more reliable than manual tallying. A truly deterministic fix would have the backend code (not the model) inject the real number directly into the rendered view — e.g., the model references *which* named count it means rather than restating literal digits, and `api/chat/index.js` substitutes the true value before the response reaches the frontend. Estimated ~1 hour, contained to the same file. Deferred because a wrong count is a display-only inaccuracy on a read-only answer — no data risk — so it's lower priority than the write-safety and multi-tenant work above. Revisit if wrong counts show up often enough in practice to undermine trust in the feature. |
+| **Domain Agents** | Not started. One agent per module (Enrollment, Attendance, Facilities, etc.) — scoped tool subset + domain-specific system prompt, Haiku for simple ops / Sonnet for reasoning. |
+| **Policy / Document RAG** | Not started. New `policy_documents` table with pgvector embeddings, semantic search via Supabase RPC `match_policies`. |
 
 ### Tier 2 — Important extensions
 
 | Capability | What to Build |
 |---|---|
-| **Interactive Guidance** | In-app user guidance system. Three options evaluated: (1) **Product Tours** — Driver.js step-by-step walkthroughs highlighting UI elements with tooltips, ideal for onboarding staff to a new module; (2) **Contextual Tooltips** — `?` badges on fields/buttons with Framer Motion popovers, zero new dependencies; (3) **In-app AI Assistant** — floating chat panel powered by Claude, scoped to LunchBox data and tools via the existing MCP service layer. AI assistant is the long-term target — users can ask questions *and* trigger actions. Driver.js tours are the low-effort near-term win. |
+| **Interactive Guidance** | In-app user guidance system. (1) **Product Tours** — Driver.js step-by-step walkthroughs highlighting UI elements with tooltips, ideal for onboarding staff to a new module — not started; (2) **Contextual Tooltips** — `?` badges on fields/buttons with Framer Motion popovers, zero new dependencies — not started; (3) **In-app AI Assistant** — ✅ shipped, see Tier 1.5's "Ask LunchBox". Driver.js tours remain the low-effort near-term win for pure UI onboarding, separate from the AI assistant. |
 | **Digital Enrollment Contracts** | E-signature on tuition agreements. DocuSign/HelloSign API or PDF + manual sign flow. |
 | **Lottery Management** | Charter-critical: weighted lottery (siblings, staff children, geographic zones). Draws from inquiries/applications pool. Generates ranked waitlist. |
 | **Live Gradebook** | Assignment-level daily grades beyond term report cards. New `assignments` + `grades` tables. Rolls up to Report Cards. |
@@ -299,6 +302,7 @@ Full audit found no critical vulnerabilities. Service role key is correctly serv
 | M3 | **MCP mutation tools lack `school_id` guard** | `mcp_server/server.js` — `delete_student`, `update_student_status`, `resolve_incident`, `delete_staff_member`, `delete_report_card`, `update_work_order_status` | Add `.eq('school_id', schoolId)` to each destructive service function when called with the service-role client. |
 | M4 | **No security headers (CSP, X-Frame-Options, etc.)** | Missing `vercel.json` | Create `vercel.json` with `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, and a `Content-Security-Policy` header. |
 | M5 | **Messages logged as "Sent" before Resend is wired up** | `src/hooks/useMessages.js` | Set status to `'Draft'` or `'Pending'` until actual email delivery is confirmed. Address when Resend domain is verified. |
+| M6 | **No dependency vulnerability scan has ever been run** | `package.json` — includes `@anthropic-ai/sdk` and `express` added 2026-09-20 for the AI chat feature, never scanned | Run `npm audit` (and ideally a proper SCA tool, e.g. `npm audit` isn't exhaustive) and fix or accept-with-reason anything it surfaces. Cheap, should be routine, not a one-time event — re-run periodically as dependencies change. |
 
 #### 🟢 Low
 
@@ -306,6 +310,22 @@ Full audit found no critical vulnerabilities. Service role key is correctly serv
 |---|---|---|
 | L1 | No password minimum enforced in UI | Add client-side 8-char check in `useAuth.js`; raise Supabase dashboard minimum to 8. |
 | L2 | Wizard completion in `localStorage` re-shows on new browser | Move `wizard_complete` flag to `schools` table column. |
+
+#### 🔵 Planned — Full architecture & call-chain security review
+
+The 2026-04-30 audit above and everything found during the AI chat build (the multi-tenant isolation design, the `get_student_health` role-gating bug caught mid-build) were both scoped to whatever was being actively worked on at the time — neither is a systematic pass over the *entire* system. "Ensure there are no exploitable holes anywhere" isn't a single fix, it's an ongoing practice; the concrete, actionable version of that goal is:
+1. **Trace every write and every cross-tenant-sensitive read path**, end to end, from UI/API entry point through service layer to the database — not just the AI chat backend, the whole app (UI direct-to-Supabase calls, the MCP server, and the new `api/` chat backend) — checking specifically for missing `school_id` scoping, missing RLS policies, or an admin-only boundary that a staff-role account could slip past. M3 above (MCP mutation tools missing `school_id` guards) is a known example of exactly this category of gap — there are likely others not yet found precisely because no one has looked systematically.
+2. **Re-verify the multi-tenant isolation test** for the AI chat feature (already tracked above under Tier 1.5) as part of this same pass, not separately.
+3. **Get a professional third-party security review or penetration test** before any wider rollout beyond pilot schools — this is the point past which self-review (mine or the founder's) stops being sufficient, especially once real student PII from more than one school is in the system.
+
+---
+
+## Architecture Documentation (Founder To-Do)
+
+Captured 2026-09-20, not yet started — these are understanding/documentation exercises for Daniel to work through (with Claude's help when he gets to it), separate from the bug-fix-style items above.
+
+- **Full architecture post-mortem.** A deliberate, complete walkthrough of every feature and function built to date — not just the AI chat work from this session, the whole system (student lifecycle/unification, the evolution timeline, cohorts/classes/scheduling, the MCP server, the chat backend, RLS/auth model) — so Daniel has full, first-hand understanding of what exists and how it fits together, rather than understanding accumulated piecemeal across many sessions.
+- **ArchiMate realization diagrams for the entire system.** Formal enterprise-architecture diagrams (business/application/technology layers and their realization relationships, per the ArchiMate standard) covering the full system. Useful both for Daniel's own understanding and as a credible artifact to show a school district's IT/compliance reviewers, an auditor, or an investor — this is the kind of documentation larger, more formal buyers often expect and smaller ed-tech vendors often lack.
 
 ---
 

@@ -35,7 +35,14 @@
       "mcp__lunchbox__graduate_student_to_alumni",
       "mcp__lunchbox__delete_student",
       "Skill(update-config)",
-      "Skill(update-config:*)"
+      "Skill(update-config:*)",
+      "mcp__visualize__read_me",
+      "mcp__visualize__show_widget",
+      "Bash(mkdir -p \"/c/Users/DANIEL~1/AppData/Local/Temp/claude/C--Users-Daniel-Rocco-Desktop-lunchbox/e0fb8c69-b5dc-4d08-b57f-c90a9ebd0981/scratchpad\")",
+      "Bash(node --input-type=module -e \"import\\('./api/chat/index.js'\\).then\\(\\(\\) => console.log\\('OK: module loads cleanly'\\)\\).catch\\(e => { console.error\\('FAIL:', e.message\\); process.exit\\(1\\) }\\)\")",
+      "Bash(node --input-type=module -e \"import\\('./api/chat/execute.js'\\).then\\(\\(\\) => console.log\\('OK'\\)\\).catch\\(e => { console.error\\('FAIL:', e.message\\); process.exit\\(1\\) }\\)\")",
+      "Bash(node --input-type=module -e \"import\\('./api/chat/index.js'\\).then\\(\\(\\) => console.log\\('OK'\\)\\).catch\\(e => { console.error\\('FAIL:', e.message\\); process.exit\\(1\\) }\\)\")",
+      "Bash(node --input-type=module -e \"import\\('./api/chat/execute.js'\\).then\\(\\(\\) => console.log\\('OK exec'\\)\\).catch\\(e => { console.error\\('FAIL:', e.message\\); process.exit\\(1\\) }\\)\")"
     ]
   },
   "hooks": {

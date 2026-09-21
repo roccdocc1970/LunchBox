@@ -170,7 +170,7 @@ server.tool(
 
 server.tool(
   'graduate_student_to_alumni',
-  'Graduate a student, moving them to the alumni table.',
+  'Graduate a student to alumni status. Their record and full history stay intact.',
   {
     studentId: z.string().uuid(),
     firstName: z.string(),
@@ -269,7 +269,7 @@ server.tool(
 
 server.tool(
   'convert_inquiry_to_student',
-  'Convert an admissions inquiry into a parent + student record.',
+  'Mark an inquiry as Applied, moving it from the admissions pipeline into the enrollment roster.',
   { inquiryId: z.string().uuid() },
   async ({ inquiryId }) => {
     const inquiries = await getInquiries(supabaseAdmin, schoolId)
