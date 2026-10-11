@@ -14,7 +14,10 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - A token is an ID badge Supabase hands you at login. Every request shows the badge, and the database shows you only your school's rows.
 - The secret key is a master key that bypasses all those rules and never leaves the server.
 - Finer roles (teacher vs counselor) are enforced in code, not in the database.
-- The isolation test proves all this. *(Status: written, not yet run.)*
+- The key says which project; the token says which user. The school is then looked up from the user.
+- An admin's user id doubles as the school id; staff are looked up in the staff table. A memberships redesign is deferred.
+- Hiding something on screen is not security: the screens hide health data from some staff roles, but the database lets every staff member read it (F1).
+- The isolation test proves all this. *(Status: first run 2026-10-11 — 87 checks passed; 1 finding: the public can read the `schools` table; 1 check not yet meaningful.)*
 
 *(Each later item adds its own 2–5 line summary here when its chapter is written.)*
 
@@ -95,7 +98,10 @@ sequenceDiagram
 - A token is an ID badge Supabase hands you at login. Every request shows the badge, and the database shows you only your school's rows.
 - The secret key is a master key that bypasses all those rules and never leaves the server.
 - Finer roles (teacher vs counselor) are enforced in code, not in the database.
-- The isolation test proves it. *(Status: written, not yet run.)*
+- The key says which project; the token says which user. The school is then looked up from the user.
+- An admin's user id doubles as the school id; staff are looked up in the staff table. A memberships redesign is deferred.
+- Hiding something on screen is not security: the screens hide health data from some staff roles, but the database lets every staff member read it (F1).
+- The isolation test proves it. *(Status: first run 2026-10-11 — 87 checks passed; 1 finding: the public can read the `schools` table; 1 check not yet meaningful.)*
 
 *Full explanation follows.*
 
@@ -213,12 +219,60 @@ The MCP server does **not** act under a logged-in user's identity. Making it do 
 Each check reports PASS, FAIL (a leak) or VACUOUS (School A has no rows there, so a pass proves nothing — seed data and re-run).
 
 ### 0.12 Results log
-*(Fill in after the first run: date, counts of pass/fail/vacuous, what was fixed.)*
+**First run: 2026-10-11 — 87 passed, 1 failed, 1 vacuous.** School A = the existing school (31 students, 206 class enrollments, etc.); school B = a new test school with minimal data.
+
+| Area | Result | What it means |
+|---|---|---|
+| Table sweep (25 tables) | 24 pass, 1 vacuous | School B saw none of school A's rows in any table. `report_cards` is vacuous: school A has no report cards, so that pass proves nothing yet. |
+| Anonymous, no login (25 tables) | 24 pass, **1 fail** | With no login, 24 tables returned nothing. The `schools` table returned 3 rows to the public (finding F8). |
+| Chat tools run as B (35 checks) | 35 pass | No tool returned school A's data, including with A's school id or student id supplied. Two checks show "Cannot coerce the result to a single JSON object": that is the database returning zero rows to a query expecting exactly one, i.e. RLS hid the record. |
+| Writes (4 checks) | 4 pass | B could not edit, delete, or forge a row into school A; A's row was unchanged. |
+
+**Second test, same day — staff escalation (F9): FAILED, i.e. the vulnerability is real.** Using only the two existing accounts, school B created a staff row with its own email, rewrote that row to point at school A, and then read A's students. Lesson: the first run (87 of 89 passed) tested the *intended* paths; the real hole sat in a path nobody was testing — the one I'd listed as a gap. A green test only covers what it tests, and the way to find holes is to read the rules and attack the assumptions behind them. Cleanup removed the test row. Fix: `db/migrations/001_fix_staff_self_update.sql`.
+
+**What the first run does not prove** (important — a green test only covers what it tests):
+- Only admin-vs-admin, and only school B looking at school A. School A looking at B was not tested.
+- No staff accounts: staff policies, the Alumni restriction, and the health role tiers are untested.
+- Only the 25 tables in the script's list; any other table or function is not covered.
+- The policies themselves have not been reviewed (the blueprint check), and `submit_public_inquiry` was not tested.
+- School B has almost no data, so B's own side is thin.
 
 ### 0.13 Design-note questions to answer once the test has run
 - Which policies were too broad or missing?
 - Did any tool leak? Which?
 - What would I change to move the finer role rules (teacher vs counselor) from code into the database?
+
+### 0.14 Baseline vs target
+*Baseline = what exists today. Target = best practice. Gap + decision = what we do about it.* (Same method as TOGAF baseline/target architecture and ArchiMate plateaus and gaps.)
+
+| Area | Baseline (LunchBox today) | Target (best practice) | Decision |
+|---|---|---|---|
+| Tenancy pattern | One shared database; every row carries a school id; RLS enforces it | Same — this is the standard "shared database + tenant id + RLS" model | Matches target |
+| Tenant identity | The admin's login id doubles as the school id | An independent school id, with a memberships table linking users to schools and roles | Defer (finding F7) until a real need appears and the isolation test exists |
+| Roles | Admin vs staff in policies; finer roles (teacher/counselor) only in tool code | The role stored with the membership and enforced in the database for sensitive data such as health | Open — decide after reviewing the policies |
+| Where rules live | Only inside Supabase; no migration files | Version-controlled migrations in the repo | Open (finding F4) |
+| Agent identity (MCP server) | Secret key, one hardcoded school | Scoped per-user credentials | Planned — item 21 |
+| Verification | Isolation test run once (87 of 89 checks passed); admin-only, no staff accounts | Automated test run on every change, including staff accounts | In progress — this item |
+
+### 0.15 Blueprint review: policy query results (2026-10-11)
+*Method: listed every table's RLS switch, every policy, and every `SECURITY DEFINER` function.*
+
+**What is sound**
+- All 25 tables have RLS on, each has at least one policy, and the isolation test's table list matches the database exactly — so the earlier "only the tables in the script" gap is closed for tables.
+- Every ordinary policy is tied to `auth.uid()` or `get_staff_school_id()`. `ALL` policies without an explicit `WITH CHECK` reuse their `USING` condition for writes (Postgres default), consistent with the forged-insert test being denied.
+- The Alumni rule is properly *restrictive* and exempts the admin (`school_id = auth.uid()`).
+
+**What needs attention**
+
+| Finding | What the policies show | Severity |
+|---|---|---|
+| F8 confirmed | Policy "Public can read schools": role `anon`, command SELECT, condition `true` — every column of every school, to anyone | Medium |
+| F9 (suspected, unverified) | Policy `staff_update_own` on the `staff` table: condition and check are only `email = auth.email()`. It doesn't limit *which columns* a staff member may change. If so, a staff member could edit their own `role` (which drives the health-data tiers) or their own `school_id` (which `get_staff_school_id()` may use to decide which school they can read). Needs the function's definition and a test with a real staff account. | Potentially high |
+| F1 sharpened | `staff_read_student_health`, `..._entries`, `staff_read_students`, `staff_read_parents`: any staff member of the school can read these tables. Role tiers (e.g. Facilities/Maintenance get no health access) exist only in screens and chat-tool code. The public key is public, so anyone with a staff login can call the database directly and skip the screens. **Hiding something in the UI is not authorization.** | Medium–high |
+| F10 (hygiene) | Policies are granted to role `public` (all roles, including anonymous) instead of `authenticated`. It works only because `auth.uid()` is empty for anonymous callers. Safer to restrict to `authenticated` as defense in depth. | Low |
+| F11 (low) | Staff can read `campaigns` (fundraising); probably unintended. | Low |
+
+**`SECURITY DEFINER` functions found:** `get_staff_school_id` (used by the staff policies), `submit_public_inquiry` (the intended public write path), `rls_auto_enable` (purpose to confirm; likely an automatic-RLS helper). Functions in the `public` schema are callable through the API unless access is revoked, so their definitions were reviewed on 2026-10-11: `rls_auto_enable` is a safety net that automatically turns RLS on for any new table (good); `get_staff_school_id` is central to F9 and has no pinned `search_path` (minor hardening gap); `submit_public_inquiry` is covered by F5.
 
 ---
 
@@ -230,9 +284,13 @@ Each check reports PASS, FAIL (a leak) or VACUOUS (School A has no rows there, s
 | F2 | Seven tools take only `studentId` and ignore the school; they are protected solely by RLS. | `api/_lib/tools.js` | Covered by the isolation test |
 | F3 | MCP server uses the service-role key and a hardcoded `SCHOOL_ID`; does not act as the logged-in user. | `mcp_server/` | Open — item 21 / ROADMAP M3 |
 | F4 | RLS policies — and the whole database schema (tables, functions) — are not in the repository; there are no migration files, so they exist only inside Supabase and aren't version-controlled or reproducible. | Item 0 | Open — export the schema and policies into the repo (e.g. Supabase CLI `db dump` / migrations) and review |
-| F5 | `submit_public_inquiry` is callable without login by design; it can create records in a school identified by its public id (spam / free-text injection vector). | CLAUDE.md schema notes | Open — consider rate limiting; relevant to prompt injection (item 3) |
+| F5 | `submit_public_inquiry` is callable without login by design; it can create records in a school identified by its public id (spam / free-text injection vector). Definition reviewed 2026-10-11: no rate limit and no input length limits; it attaches the new student to an existing parent when the email matches, so someone who knows a parent's email can add fake records under that family; the free-text `notes` flows into records the chat agent later reads. | CLAUDE.md schema notes | Open — consider rate limiting; relevant to prompt injection (item 3) |
 | F6 | Production chat is not live: `ANTHROPIC_API_KEY` is not set in Vercel. | ROADMAP | Open (founder to-do) |
-| F7 | A school's tenant id is its admin's login id (`schools.user_id`), not an independent school id. Ties tenancy to one admin account; worth understanding before adding multiple admins, ownership transfer, or account deletion. | Item 0 follow-up | Open — design question, not a bug |
+| F9 | **Suspected, unverified.** The `staff_update_own` policy lets a staff member update their own staff row with no column limits (condition and check are only `email = auth.email()`). If it works, a staff member could change their own `role` or `school_id`, escalating privileges or reaching another school. Function definition reviewed 2026-10-11: `get_staff_school_id()` returns the school from the caller's own staff row (`select school_id from staff where auth_user_id = auth.uid()`), so rewriting that row's `school_id` would redirect all of their staff access. Chained with F8 (school ids are public) and open self-signup (any customer admin can create a staff row with their own email), this would let any customer read any school. **CONFIRMED exploitable on 2026-10-11** by `npm run test:staff-escalation`: school B rewrote its own staff row to point at school A, `get_staff_school_id()` then returned school A, and B read A's students. Fix prepared in `db/migrations/001_fix_staff_self_update.sql`: a narrow `link_staff_account()` function that can only set `auth_user_id`, a trigger that forbids changing `school_id` on staff rows, and removal of `staff_update_own`; plus the matching change in `useSchool.js`. | Policy review + test | **Open — high; fix prepared, awaiting SQL run and deploy** |
+| F10 | Policies are granted to role `public` instead of `authenticated`; safe only because `auth.uid()` is empty for anonymous callers. | Policy review | Open — hygiene |
+| F11 | Staff can read `campaigns` (fundraising); probably unintended. | Policy review | Open — low |
+| F8 | **Found by the first isolation run.** The `schools` table can be read by anyone without logging in (3 rows returned). This is almost certainly deliberate: the public application form (`ApplicationPortal.jsx`) reads the school's name, logo, colour, motto and divisions. But row-level rules can't limit *columns*, so the same access likely exposes every column of every school (address, phone, principal, capacity) plus each school's tenant id (which is its admin's login id). **Confirmed by the policy review** (rule "Public can read schools": role `anon`, command SELECT, condition `true`). Likely fix: remove public read on the table and have the form call a small database function that returns only the five fields for one school. Related to F5 (public form as an attack surface). | Isolation test run | Open — fix |
+| F7 | A school's tenant id is its admin's login id (`schools.user_id`), not an independent school id. Ties tenancy to one admin account; worth understanding before adding multiple admins, ownership transfer, or account deletion. | Item 0 follow-up | **Decision (2026-10-11): defer.** A memberships table (one place recording every person's school and role) is the standard, more flexible design: it allows several admins, ownership transfer, and people in two schools. But migrating means repointing every `school_id` foreign key, rewriting all policies and school-lookup code, and adding a "which school am I acting as" choice for multi-school users. Migrating security rules is where isolation bugs are introduced, so do it only when a real need appears, and only after the isolation test exists to verify the result. |
 
 ---
 

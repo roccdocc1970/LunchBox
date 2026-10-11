@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "mcp": "node mcp_server/server.js",
-    "test:isolation": "node scripts/isolation-test.mjs"
+    "test:isolation": "node scripts/isolation-test.mjs",
+    "test:staff-escalation": "node scripts/staff-escalation-test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.127.0",

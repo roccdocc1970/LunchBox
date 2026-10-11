@@ -61,7 +61,12 @@ async function signIn(prefix) {
   if (error) throw new Error(`${prefix} sign-in failed: ${error.message}`)
   // Build the client the same way the real backend does.
   const supabase = supabaseFromRequest({ headers: { authorization: `Bearer ${data.session.access_token}` } })
-  const ctx = await getSchoolContext(supabase)
+  let ctx
+  try {
+    ctx = await getSchoolContext(supabase)
+  } catch (err) {
+    throw new Error(`${prefix} signed in, but: ${err.message}. This login needs to be a school admin (owns a row in the schools table) or a linked staff member.`)
+  }
   return { supabase, ...ctx }
 }
 

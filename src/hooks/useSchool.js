@@ -73,8 +73,10 @@ export function useSchool() {
         .maybeSingle()
 
       if (byEmail) {
-        await supabase.from('staff').update({ auth_user_id: userId }).eq('id', byEmail.id)
-        foundStaff = { ...byEmail, auth_user_id: userId }
+        // Linking goes through a narrow database function (db/migrations/001) — staff
+        // can no longer update their own staff row directly.
+        const { error: linkError } = await supabase.rpc('link_staff_account')
+        if (!linkError) foundStaff = { ...byEmail, auth_user_id: userId }
       }
     }
 

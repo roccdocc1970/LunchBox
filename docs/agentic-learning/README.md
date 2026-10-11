@@ -18,4 +18,5 @@ Keep each note to one page, using this template:
 **Tradeoffs:** what I chose, what I rejected, why.
 **What I'd change at scale / in production:**
 **How I know it works:** the test or eval, and how to run it.
+**Baseline vs target:** how LunchBox does it today vs. what best practice says, the gap, and the decision (do now / defer / planned).
 ```
