@@ -56,6 +56,16 @@ For an enrollment status change or logging an incident, call the matching tool o
 
 Call render_view as your final step once you have the data needed to answer. Use a view template (table/stat_row/chip_list/mini_timeline) whenever the answer is a list, a set of counts, or a history — use template "none" only for a single fact or short explanation.`
 
+// Token usage is returned with every response so callers (the eval runner today,
+// tracing later) can see what a request cost without scraping the Anthropic console.
+function addUsage(total, u = {}) {
+  total.calls += 1
+  total.input_tokens += u.input_tokens || 0
+  total.output_tokens += u.output_tokens || 0
+  total.cache_read_tokens += u.cache_read_input_tokens || 0
+  total.cache_creation_tokens += u.cache_creation_input_tokens || 0
+}
+
 const MAX_TURNS = 8
 
 // The system prompt and tool definitions are identical on every call in the
@@ -90,6 +100,7 @@ export default async function handler(req, res) {
 
   const readByName = Object.fromEntries(READ_TOOLS.map(t => [t.name, t]))
   const conversation = [...messages]
+  const usage = { calls: 0, input_tokens: 0, output_tokens: 0, cache_read_tokens: 0, cache_creation_tokens: 0 }
 
   try {
     for (let turn = 0; turn < MAX_TURNS; turn++) {
@@ -101,11 +112,13 @@ export default async function handler(req, res) {
         messages: conversation,
       })
 
+      addUsage(usage, response.usage)
+
       const toolUses = response.content.filter(b => b.type === 'tool_use')
 
       if (toolUses.length === 0) {
         const text = response.content.filter(b => b.type === 'text').map(b => b.text).join('\n')
-        return res.status(200).json({ reply: text, view: null })
+        return res.status(200).json({ reply: text, view: null, usage })
       }
 
       const shortCircuit = toolUses.find(tu =>
@@ -117,17 +130,19 @@ export default async function handler(req, res) {
       if (shortCircuit) {
         if (shortCircuit.name === 'render_view') {
           const { reply, template, data } = shortCircuit.input
-          return res.status(200).json({ reply, view: template && template !== 'none' ? { template, data } : null })
+          return res.status(200).json({ reply, view: template && template !== 'none' ? { template, data } : null, usage })
         }
         if (WRITE_TOOLS.some(t => t.name === shortCircuit.name)) {
           return res.status(200).json({
             reply: `I'd like to ${shortCircuit.name.replace(/_/g, ' ')} — take a look and confirm.`,
             pendingAction: { tool: shortCircuit.name, input: shortCircuit.input },
+            usage,
           })
         }
         return res.status(200).json({
           reply: `Opening that for you.`,
           navigate: { tool: shortCircuit.name, input: shortCircuit.input },
+          usage,
         })
       }
 
@@ -146,7 +161,7 @@ export default async function handler(req, res) {
       conversation.push({ role: 'user', content: toolResults })
     }
 
-    return res.status(200).json({ reply: "I wasn't able to finish that — try rephrasing or asking something narrower.", view: null })
+    return res.status(200).json({ reply: "I wasn't able to finish that — try rephrasing or asking something narrower.", view: null, usage })
   } catch (err) {
     return res.status(500).json({ error: err.message })
   }

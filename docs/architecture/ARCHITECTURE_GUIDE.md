@@ -20,6 +20,13 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - The isolation test proves all this. *(Status: done 2026-10-11 — testing found two real holes, both fixed and re-tested; 88 of 89 checks pass, 1 not yet meaningful.)*
 - A green test only covers what it tests: the serious hole (a staff member redirecting their own record to another school) sat in a path the first test never exercised.
 
+**Item 1 — Evals** *(concept done; first 12-question set built, 12/12 pass — too easy to be meaningful; harder set next)*
+- An eval is a test for AI answers: questions with known right answers, run automatically, scored as a pass rate.
+- Answers vary run to run, so one pass proves nothing. You need enough different questions and enough repeats.
+- The first evals check facts with exact answers (counts, names), where the right answer comes from a plain database query.
+- Test the tools without the model (free, exact) and the model's reporting with the model (costs tokens).
+- A perfect score on an easy set means the set is too weak, not that the agent is perfect. Cover behaviors (decline, confirm-gated writes, navigation, restricted data), not just more questions.
+
 *(Each later item adds its own 2–5 line summary here when its chapter is written.)*
 
 ## Contents
@@ -31,6 +38,19 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - Part 3 — Findings & open questions
 - Part 4 — Glossary
 - Related documents
+
+---
+
+# Working method: the four review questions
+
+A review lens for any piece of code, design, tool or AI agent — it keeps you at the architect's level of abstraction, so you can verify work without reading every line. Apply it to every roadmap item.
+
+1. **What is it for?** (responsibility — one clear purpose)
+2. **What can it touch?** (interfaces, dependencies, privileges, blast radius)
+3. **What happens when it fails?** (failure modes — and what it fails *into*)
+4. **How would you know it works?** (a test, an eval, or a log you can check)
+
+Worked example, Item 0: *For* keeping each school's data private; *touches* 25 tables, the chat tools, two database functions, the public application form; *fails into* a cross-school data leak; *known to work* by two re-runnable tests (and the retest after each fix). Asking question 2 of `get_staff_school_id()` — "what decides which school someone belongs to, and can that be edited?" — is what exposed the staff hole.
 
 ---
 
@@ -277,6 +297,57 @@ Each check reports PASS, FAIL (a leak) or VACUOUS (School A has no rows there, s
 | F11 (low) | Staff can read `campaigns` (fundraising); probably unintended. | Low |
 
 **`SECURITY DEFINER` functions found:** `get_staff_school_id` (used by the staff policies), `submit_public_inquiry` (the intended public write path), `rls_auto_enable` (purpose to confirm; likely an automatic-RLS helper). Functions in the `public` schema are callable through the API unless access is revoked, so their definitions were reviewed on 2026-10-11: `rls_auto_enable` is a safety net that automatically turns RLS on for any new table (good); `get_staff_school_id` is central to F9 and has no pinned `search_path` (minor hardening gap); `submit_public_inquiry` is covered by F5.
+
+## Item 1 — Evals
+
+*Concept discussed and first version built 2026-10-11 (in progress). Primer: `docs/agentic-learning/concepts.md`.*
+
+### In brief
+- An eval is a test for AI answers: questions with known right answers, run automatically, scored as a pass rate.
+- Answers vary run to run, so one pass proves nothing. You need enough different questions and enough repeats.
+- The first evals check facts with exact answers (counts, names), where the right answer comes from a plain database query.
+- Test the tools without the model (free, exact) and the model's reporting with the model (costs tokens).
+
+### 1.1 What it is and why you need it
+Ordinary code gives the same output every time, so one test run tells you something. An AI agent can answer slightly differently each time, and sometimes wrongly, so you measure *how often* it is right. Without that, you cannot tell whether a change to the prompt, the model or the tools made things better or worse. The cohort miscount (32 instead of 33) was found only by luck; an eval question like "how many cohorts are there?" would have caught it automatically.
+
+### 1.2 A LunchBox example
+- *Question:* "How many students are in the school?"
+- *Right answer:* obtained directly from the database with a plain query, so it is known for certain.
+- *Check:* does the agent's reply contain that number? No judging is needed, which is why the first version is the lighter one — it has the same shape as the isolation test: run it, get PASS or FAIL per question, read the table.
+
+### 1.3 Two kinds of "sample size"
+- **More different questions** = coverage (does it work across the kinds of things people ask?).
+- **More repeats of the same question** = consistency (does it give the right answer every time?).
+
+### 1.4 How much is enough
+There is no magic number; it depends on how small a difference you want to detect. Rules of thumb: 10–20 questions with about 3 repeats each is a sensible start. With 20 questions × 3 repeats (60 runs), a 90% pass rate carries roughly ±8 points of uncertainty — enough to see big changes, not small ones. Detecting a 2-point improvement would take hundreds of runs, usually not worth it early.
+
+### 1.5 Terms that are easy to mix up
+- **Hallucination:** a kind of wrong answer (confident and made up).
+- **Drift:** behavior changing over time or after a change to a prompt, model or tool. Evals mainly catch this.
+- **Run-to-run variation:** the same question giving different answers on different runs.
+
+### 1.6 Controlling token cost (the account is prepaid, $5, no auto-reload)
+1. Test the tools without the model: checking that `get_cohorts` returns the right data is a plain, free, exact test. Only "does the model report it correctly?" needs the model.
+2. Run the full set only when something changes; run a small quick set otherwise.
+3. Log tokens and cost for every run so the real cost is known before scaling up.
+
+### 1.7 The learning exchange (preserved)
+**Explain-back question:** If the agent answers one question correctly once, why doesn't that prove it works?
+
+**Your answer:** Because that isn't enough of a data set response, statistically; you need more sample responses to confirm — more correct responses, more proof. LLMs are probability machines, which means they can hallucinate and or drift. I would imagine there is a minimum number of eval runs that would satisfy the eval statistically, while protecting against unnecessary token burn?
+
+**Assessment:** Correct. Refinements: hallucination and drift are different things (1.5); sample size has two dimensions (1.3); there is no single minimum, but there are practical rules of thumb (1.4) and cost controls (1.6).
+
+### 1.8 What was built (2026-10-11)
+`npm run evals` (`scripts/run-evals.mjs`): **Phase 1** runs each chat tool directly and compares its output with a plain database count (free, no model). **Phase 2** (only with `--model`, because it costs tokens) sends each question through the real chat handler, scores the reply against a right answer computed independently from the database, and reports pass rate and token use. The chat backend now returns a `usage` field (token counts) on every response. The model phase is opt-in and can be limited (`--only=`, `--repeats=`) to protect the prepaid balance.
+
+### 1.9 First results, and the lesson
+- Phase 1: all tool checks passed — the data handed to the model is correct.
+- Phase 2: **12 of 12 questions correct** (24 model calls, about 57,000 input tokens, 89,000 cache-read tokens, about 1,000 output tokens; roughly 20 cents at assumed Sonnet-class prices — check the real rates).
+- **A perfect score is not good news by itself.** It means this first set is too easy to separate a good agent from a bad one: every question is a simple count where the tool result already includes the exact number (a deliberate fix for the earlier miscount). An eval that can't fail can't tell you when something breaks. Weak evals give false confidence.
+- **Coverage should be by behavior, not just by question count.** Next set: (1) questions needing filter-and-tally over mixed data; (2) questions the agent should *decline* because no tool can answer them (e.g. a school-wide incident count); (3) write requests, which must produce a confirm card and never execute; (4) scheduling requests, which must navigate to the real screen; (5) role-restricted data; (6) paraphrased phrasings of the same question; (7) repeats to measure run-to-run variation.
 
 ---
 
