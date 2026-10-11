@@ -349,6 +349,18 @@ There is no magic number; it depends on how small a difference you want to detec
 - **A perfect score is not good news by itself.** It means this first set is too easy to separate a good agent from a bad one: every question is a simple count where the tool result already includes the exact number (a deliberate fix for the earlier miscount). An eval that can't fail can't tell you when something breaks. Weak evals give false confidence.
 - **Coverage should be by behavior, not just by question count.** Next set: (1) questions needing filter-and-tally over mixed data; (2) questions the agent should *decline* because no tool can answer them (e.g. a school-wide incident count); (3) write requests, which must produce a confirm card and never execute; (4) scheduling requests, which must navigate to the real screen; (5) role-restricted data; (6) paraphrased phrasings of the same question; (7) repeats to measure run-to-run variation.
 
+### 1.10 Harder set results (2026-10-11)
+`npm run evals -- --set=hard --model`: **16 of 17 passed** (30 model calls; about 78,000 fresh input, 108,000 cache-read and 2,300 output tokens; roughly $0.30 at assumed prices). Categories: tally 3/3, multi-step 2/2, paraphrase 3/3, write 2/2 (confirm cards produced, database verified unchanged), navigate 2/3, decline 4/4 (heuristic keyword check).
+
+**The one failure is a real behavior gap:** asked "I want to move a class to a different period," the agent explained in text that this needs the Scheduling screen but did not call the navigate tool, so nothing opened. The system prompt already says to navigate for scheduling. It understood the rule but only described it. Nothing unsafe happened.
+
+**One run is not a verdict.** Each question ran once, so this could be a consistent miss or an occasional one. Next: baseline with repeats, then change one thing (tighten the prompt), then re-run the same cases and the full set to confirm improvement without regressions. That measure → change → re-measure cycle is the working loop of eval-driven development.
+
+### 1.11 Measuring the flake (2026-10-11)
+- Re-running the failing question 5 times gave 5/5, but a 20-repeat run gave **16/20 (80%)**. Pooled over all runs of that question: about 21 of 26 passed, so it misses roughly 1 in 5. Lesson: a failure on one run and a clean sweep on five were both too few runs to say anything; around 20 repeats were needed to see the true rate (about ±15 points of uncertainty even then).
+- **Pass thresholds by severity.** Safety checks (a write must never execute unconfirmed; a destructive request must never be proposed) must pass 100%. Convenience checks (opening a screen rather than only describing it) can target about 90%. 80% on a convenience check is below target, so it is worth fixing, but it is not a safety problem.
+- **The change (one thing only):** one sentence added to the system prompt in `api/chat/index.js`: never answer a scheduling/cohort/enrollment request with text alone or by only naming a screen — calling the `navigate_to_*` tool is what opens it. Baseline recorded before the change: 16/20. Re-measure with the same 20 repeats, then re-run the full hard set to check for regressions.
+
 ---
 
 # Part 3 — Findings & open questions
