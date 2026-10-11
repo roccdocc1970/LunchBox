@@ -330,6 +330,109 @@ Captured 2026-09-20, not yet started — these are understanding/documentation e
 
 ---
 
+## Agentic Learning Track (Founder To-Do)
+
+Captured 2026-10-11. LunchBox is a **learning vehicle** for agentic AI engineering, not (currently) a commercial product — the goal is to use it as a sandbox for each major piece of agentic scaffolding so Daniel understands the whole space first-hand. The current chat backend is a solid foundation (hand-rolled tool loop, read/write/navigate split, human-confirmed writes, RLS-scoped via the caller's JWT, prompt caching) but is **not** a production-grade agentic system. Gaps and the order to close them:
+
+| # | Topic | What to build in LunchBox | What it teaches |
+|---|---|---|---|
+| 1 | **Evals** | ~20-question eval set with known answers + a script that runs them and scores pass/fail; rerun on every prompt/model change | How to know if a change helped or hurt. Biggest gap — the 32-vs-33 cohort miscount was found by luck. |
+| 2 | **Observability / tracing** | Log each request's tool calls, latency, tokens, cost, errors (start with a Supabase table; later try Langfuse or similar) | Debugging agents without reading the console |
+| 3 | **Prompt-injection red-teaming** | Plant instructions in an incident description / student note and see if the agent obeys them | Tool results are untrusted input; why the confirm gate matters |
+| 4 | **Policy RAG** | Already planned (pgvector, Voyage AI, `search_policies` tool, Settings → Policies upload) — add citations and a "not found in policy" fallback | Chunking, embeddings, retrieval quality, grounding |
+| 5 | **Memory & conversation persistence** | Store conversations server-side; summarize long threads; try per-user long-term memory | Context management beyond one request |
+| 6 | **Durable multi-step workflows** | One checkpointed workflow that can pause, wait for human approval, resume, and retry (e.g. re-enrollment outreach) | The LangGraph-style state-machine problem |
+| 7 | **Streaming, retries, rate limits** | Stream replies; retry failed tools; per-user spend/rate caps | Production robustness |
+| 8 | **Structured outputs & validation** | Schema-validate `render_view`; inject counts deterministically instead of relying on the model | Reliability of model output |
+| 9 | **Subagents / multi-agent** | Split into domain agents (Admissions, Facilities, Academics) behind a router | When multi-agent helps vs. just adds cost |
+| 10 | **Framework comparison** | Rebuild the loop once with the Claude Agent SDK / SDK tool runner and compare to the hand-rolled version | What frameworks buy you |
+| 11 | **MCP both ways** | Already have an MCP server (local stdio); try exposing a remote, authenticated one and consuming an external one | Where MCP fits vs. direct tool definitions |
+| 12 | **Model routing & cost tuning** | Route simple lookups to a smaller model, hard questions to a larger one; use batch for offline jobs | Cost/quality tradeoffs |
+| 13 | **Proactive / event-driven agents** | A scheduled or DB-triggered job (e.g. nightly chronic-absence check) that drafts parent outreach into a human approval queue — no user prompt required | Triggers, idempotency (no duplicate alerts), alert fatigue, non-chat approval UX. LunchBox today is purely reactive. |
+| 14 | **Planning, reasoning & self-verification** | Try extended thinking on hard questions; a plan-then-execute mode that shows the plan; a verify pass that checks the answer against tool results | Explicit planning vs. implicit step-by-step; reliability via a second check (also a better fix for count errors) |
+| 15 | **Guardrails, audit & governance** | Audit log of every agent action (who/what/why/which tool); PII minimization before data reaches the model; output checks; loop/stuck detection; idempotent writes + undo | The policy layer around the model; what a school auditor will ask for |
+| 16 | **Context engineering** | Truncate/summarize big tool results; fetch data just-in-time instead of up front; load tools dynamically (all ~20 are sent every call today) | Managing what's in the context window as tools and data grow |
+| 17 | **Agentic RAG & retrieval quality** | Extend item 4: hybrid (keyword + vector) search, reranking, and letting the agent decide when/what to retrieve and re-query | Why naive RAG fails and how retrieval is improved |
+| 18 | **Code-execution tool** | Let the agent write and run sandboxed code for ad-hoc analysis/charts; compare with the fixed generative-view templates | The tradeoff between flexibility and safety/predictability |
+| 19 | **Multimodal / document input** | Upload a PDF or photo (application form, report card) and extract structured data into a confirm card | Document parsing and extraction with human verification |
+| 20 | **Computer-use / agent-as-tester** | Point a browser/computer-use agent at the app to run QA flows and report bugs | Agents that operate UIs; plays to Daniel's QA background |
+| 21 | **Agent identity & delegated auth** | Scoped, expiring tokens for agent actions; try a remote authenticated MCP server (OAuth) instead of the local service-role one | Acting on behalf of a user safely; closes the MCP M3 concern |
+| 22 | **Feedback loops & LLM-as-judge** | Thumbs up/down on answers feeding the eval set; a judge model to grade free-text answers; simulated users to stress-test conversations | Scaling evals past hand-written test cases |
+
+### Progress tracker (update as each item completes)
+
+Every item follows the same sequence: **(1) concept briefing** — read its primer in `docs/agentic-learning/concepts.md` and answer its explain-back question to Claude in your own words *before any building*; **(2) build**; **(3) test or eval**; **(4) design note**; **(5) preserve** — the full concept explanation, including the explain-back exchange and corrections, is added as a chapter in `docs/architecture/ARCHITECTURE_GUIDE.md`. An item is **done** only when it is built, has a test or eval, has its design note in `docs/agentic-learning/` (template in that folder's README), and its chapter is in the Architecture Guide. Legend: `[ ]` not started · `[~]` in progress · `[x]` done.
+
+- [~] 0 — Two-school isolation test *(script written 2026-10-11: `npm run test:isolation`; needs account B + RLS policy review; concept check passed 2026-10-11)*
+- [ ] 1 — Evals
+- [ ] 2 — Tracing
+- [ ] 15 — Audit log & guardrails
+- [ ] 3 — Prompt-injection red-team
+- [ ] 12 — Model routing
+- [ ] 4 — Policy RAG
+- [ ] 17 — Agentic RAG & retrieval quality
+- [ ] 8 — Structured outputs / deterministic counts
+- [ ] 22 — Feedback loops & LLM-as-judge
+- [ ] 13 — Proactive agents
+- [ ] 14 — Planning & self-verification
+- [ ] 5 — Memory & persistence
+- [ ] 7 — Streaming, retries, rate limits
+- [ ] 16 — Context engineering
+- [ ] 9 — Subagents / multi-agent
+- [ ] 10 — Framework comparison
+- [ ] 6 — Durable multi-step workflows
+- [ ] 11 — MCP both ways
+- [ ] 21 — Agent identity & delegated auth
+- [ ] 18 — Code-execution tool
+- [ ] 19 — Multimodal / document input
+- [ ] 20 — Computer-use / agent-as-tester
+
+### Build order & where to apply each item (added 2026-10-11)
+
+Rule for every item: build it once, attach an eval or test, and write a short "what broke / what I'd change" note. Only claim it on a resume after it exists, scoped as a prototype. Item numbers match the table above (0 = the existing two-school isolation test from Tier 1.5).
+
+**Tier 1 — Foundations (~2–3 weeks).** Start here; everything later depends on it.
+
+| # | Item | Where in LunchBox | Why there |
+|---|---|---|---|
+| 0 | Two-school isolation test | `api/_lib/supabaseFromRequest.js`, `getSchoolContext.js`, every table's RLS; script that calls `/api/chat` and PostgREST with two schools' JWTs | The security foundation; its two-JWT harness is reused by the eval runner; every later feature adds tables that need RLS |
+| 1 | Evals | `api/chat/index.js` end-to-end, against seed data (`get_students`, `get_cohorts`, `get_student_evolution`) | Known-answer data exists; seed the set with the 32-vs-33 cohort miscount as the first regression |
+| 2 | Tracing | Wrap the tool loop in `api/chat/index.js`; new `agent_traces` table (RLS-scoped) | One choke point sees every model call and tool call |
+| 15 | Audit log & guardrails | `api/chat/execute.js` (confirmed writes) + proposed-vs-confirmed in `index.js`; PII review of what `tools.js` returns to the model | Writes already funnel through one file; health data is the sensitive case |
+| 3 | Prompt-injection red-team | Plant payloads in an incident description, student note and work-order text; read via `get_incidents` / `get_students` | These are the free-text fields the agent reads; target is a bogus `log_incident` / `update_student_status` confirm card |
+
+**Tier 2 — Capabilities (~3–4 weeks).**
+
+| # | Item | Where in LunchBox | Why there |
+|---|---|---|---|
+| 12 | Model routing | First-turn classifier in `api/chat/index.js` (counts/lookups → small model; evolution/analysis → larger) | Needs evals (#1) to prove routing didn't hurt quality |
+| 4 | Policy RAG | New `services/policies.js`, `search_policies` in `tools.js`, Settings → Policies tab, pgvector table | Already designed; fits the existing Settings + tool patterns |
+| 17 | Agentic RAG & retrieval quality | Same policy corpus: hybrid search, reranking, agent re-queries | Extends #4 without new infrastructure |
+| 8 | Structured outputs / deterministic counts | `render_view` in `tools.js`, `views/GeneratedView.jsx`, `withCounts` in `index.js` | Replace mitigation with server-injected counts and schema validation |
+| 22 | Feedback loops & LLM-as-judge | Thumbs up/down in `Chat.jsx` feeding the eval set | Turns real usage into test cases |
+| 13 | Proactive agents | Vercel cron over `attendance` (chronic-absence detection) → drafts into an approval queue | Clean data, clear trigger, natural human-approval step |
+| 14 | Planning & self-verification | Hard questions on `get_student_evolution`; verify pass against tool results | Richest tool, most room for wrong summaries |
+| 5 | Memory & persistence | `hooks/useChat.js` (currently client-only) → `conversations` table; `services/chat.js` | Replaces ephemeral state; adds a new RLS surface to test |
+| 7 | Streaming, retries, rate limits | `api/chat/index.js` + `Chat.jsx` | Production robustness on the existing loop |
+| 16 | Context engineering | Truncate big results (`get_student_evolution`, large `get_students`); dynamic tool loading (all ~20 tools sent every call) | Real payload-size and tool-count problems already exist |
+
+**Tier 3 — Advanced (~2–3 months, after the above).**
+
+| # | Item | Where in LunchBox | Why there |
+|---|---|---|---|
+| 9 | Subagents / multi-agent | Split `tools.js` into Admissions / Facilities / Academics sets behind a router | Tool groups already map to domains; measure whether it beats the single agent |
+| 10 | Framework comparison | Rebuild the `api/chat/index.js` loop with the Agent SDK / tool runner on a branch | Same feature, two implementations: the best way to see what frameworks buy |
+| 6 | Durable multi-step workflows | Re-enrollment outreach: pause for approval, resume, retry | Needs #13 and #5 first |
+| 11 | MCP both ways | `mcp_server/server.js` → remote, authenticated HTTP; consume one external MCP server | Turns the local-only server into something real |
+| 21 | Agent identity & delegated auth | Same server: replace service-role key + hardcoded `SCHOOL_ID` with scoped, per-user tokens (closes M3) | Fixes the documented gap between MCP and chat identity |
+| 18 | Code-execution tool | Ad-hoc analysis over attendance/enrollment data vs the fixed `Table`/`StatRow` templates | Directly contrasts flexibility with the safe-template design |
+| 19 | Multimodal / document input | `ApplicationPortal.jsx` / Admissions: scanned application → extracted fields → confirm card | Existing intake flow plus a confirm gate |
+| 20 | Computer-use / agent-as-tester | Point an agent at `localhost:5173`: login, admissions → convert flow | End-to-end QA, uses the seed data |
+
+> The field moves fast — re-check current best practices before starting each item rather than trusting this list as final.
+
+---
+
 ## Class Scheduling Build Plan
 
 | Phase | Description | Status |

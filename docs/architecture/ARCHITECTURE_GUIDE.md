@@ -1,0 +1,206 @@
+# LunchBox Architecture Guide (living document)
+
+Purpose: a long-form reference for understanding LunchBox's architecture and the agentic-AI concepts we work through in the Agentic Learning Track (see `ROADMAP.md`). Unlike `CLAUDE.md` (a briefing for the coding assistant) and `docs/agentic-learning/concepts.md` (short primers), this guide keeps the **full explanations** from each learning session, including questions, answers and corrections, so they can be re-read later.
+
+**How it grows:** Part 1 is the system overview and is updated when the architecture changes. Part 2 gets a new chapter each time we finish the concept discussion for a roadmap item. Part 3 collects findings and open questions. Part 4 is a glossary.
+
+Last updated: 2026-10-11.
+
+## Contents
+- Part 1 — System overview
+- Part 2 — Concept chapters
+  - Item 0 — Two-school isolation (written)
+  - Items 1–22 — added as we reach them (see ROADMAP progress tracker)
+- Part 3 — Findings & open questions
+- Part 4 — Glossary
+- Related documents
+
+---
+
+# Part 1 — System overview
+
+## 1.1 The pieces
+
+| Piece | What it is | Where it runs |
+|---|---|---|
+| Browser app | React + Vite single-page app (the school's admin/staff UI) | The user's browser |
+| Hosting | Vercel: serves the built app and runs `api/**.js` as serverless functions | Vercel |
+| Database + auth | Supabase: Postgres with Row Level Security (RLS), plus Supabase Auth (issues the login tokens) | Supabase |
+| Chat backend | `api/chat/index.js` (tool-calling loop) and `api/chat/execute.js` (confirmed writes) | Vercel functions |
+| Model | Anthropic Messages API | Anthropic |
+| MCP server | `mcp_server/server.js`, 27 tools for Claude Desktop | Developer's machine only |
+| Email | Resend | Resend |
+
+The ArchiMate Technology-layer model of these pieces is in [`lunchbox_technology_layer.xml`](lunchbox_technology_layer.xml) (Open Group Exchange Format; import into Archi via File → Import → Model Exchange File).
+
+## 1.2 Code layers (Feature-Sliced Design)
+
+Component (`src/*.jsx`, renders only) → Hook (`src/hooks`, UI state) → Domain (`src/domain`, pure rules) → Service (`src/services`, the only place that talks to Supabase; every function takes the `supabase` client as its first argument). The injected client is what lets one service function serve the browser (user token), the chat backend (user token) and the MCP server (service-role key).
+
+## 1.3 The three paths into the database
+
+1. **UI path.** Browser → Supabase directly, using the public (anon) key plus the logged-in user's token. RLS decides what rows come back.
+2. **Chat path.** Browser → `/api/chat` with the user's token → the backend builds a Supabase client from that same token → the model loops, calling tools → tools call service functions → Supabase applies RLS. Writes are never executed in the loop: the model can only *propose* one, the browser shows a confirm card, and `/api/chat/execute` runs it only after the human clicks Confirm.
+3. **MCP path.** Claude Desktop → local MCP server → Supabase using the **service-role key**, which bypasses RLS, for one hardcoded school (`SCHOOL_ID` in `.env.local`). Local-only; never internet-facing.
+
+```mermaid
+sequenceDiagram
+    participant U as Browser (user)
+    participant A as /api/chat (Vercel)
+    participant M as Anthropic model
+    participant D as Supabase (RLS)
+    U->>A: question + user's token
+    A->>D: who is this? (school + role)
+    loop up to 8 turns
+        A->>M: conversation + tool list
+        M-->>A: call tool X(args)
+        A->>D: query as the user (RLS enforced)
+        D-->>A: only rows this user may see
+    end
+    M-->>A: render_view / propose write / navigate
+    A-->>U: reply, view, or confirm card
+    U->>A: Confirm (writes only) via /api/chat/execute
+```
+
+## 1.4 Trust boundaries (where a rule must hold no matter what)
+
+- **Browser ↔ backend:** the backend never trusts the browser for identity beyond verifying the token.
+- **Backend ↔ database:** enforcement here is by RLS, keyed on the caller's token (Part 2, Item 0).
+- **Model ↔ everything:** the model is not trusted. It chooses tool arguments and reads untrusted text, so it can be wrong or manipulated. Its power is limited by what tools exist, what the database allows, and the confirm gate on writes.
+- **Public internet ↔ database:** the public application form reaches the database only through one function, `submit_public_inquiry`, designed to be callable without login.
+
+---
+
+# Part 2 — Concept chapters
+
+## Item 0 — Two-school isolation
+
+*Discussed 2026-10-11. Test script: `npm run test:isolation` (`scripts/isolation-test.mjs`). Test status: written; not yet run (needs a second school account).*
+
+### 0.1 The problem: multi-tenancy
+LunchBox is one application and one database serving many schools (tenants). The worst failure in this kind of system is a **cross-tenant leak**: School B seeing or changing School A's data. With student records this is also a legal and trust event (FERPA, and every school's willingness to buy). The architecture's central promise is that it cannot happen. A promise that has never been tested is only a design.
+
+### 0.2 How LunchBox keeps tenants apart
+- Nearly every table has a `school_id` column (for the `schools` table itself it's `user_id`) naming the owning school.
+- The database enforces **Row Level Security (RLS)**: rules attached to each table that decide, per request, which rows the caller may read or write.
+- Two kinds of caller exist, each with its own policy:
+  - **Admin:** `school_id = auth.uid()` (the admin's user id *is* the school id).
+  - **Staff:** `school_id = get_staff_school_id()`, a database function that looks up the staff member's school.
+- One **restrictive** policy additionally hides `status = 'Alumni'` students from staff.
+- The actual policies live only in Supabase (there are no SQL files in the repo). Reviewing them is part of this item.
+
+### 0.3 Identity: how the database knows who is asking
+- When a user logs in, Supabase Auth issues a signed token (JWT) that says who they are.
+- Requests carry that token. The database reads it and exposes the identity to policies as `auth.uid()`.
+- Two keys matter:
+  - **Anon (publishable) key:** safe to ship in the browser. By itself it grants almost nothing. Combined with a user's token, the request runs *as that user*, with RLS applied.
+  - **Service-role key:** a master key. Requests using it **bypass RLS completely**. It must never be in a browser or a shared backend.
+
+### 0.4 The chat path, step by step
+1. Browser sends the question to `/api/chat` with `Authorization: Bearer <user's token>`.
+2. `api/_lib/supabaseFromRequest.js` builds a Supabase client from the anon key plus that token. This is "the user's identity, forwarded."
+3. `api/_lib/getSchoolContext.js` asks the database who the user is: admin of a school, or staff member of a school with a role. It returns `schoolId`, `isStaff`, `role`.
+4. `api/chat/index.js` runs the model loop. Every tool call goes through the client from step 2, so every query is RLS-scoped exactly like the browser.
+5. Writes only happen in `execute.js`, after a human confirms.
+
+### 0.5 Why forward the user's token instead of a master key
+**Primary reason: school isolation.** The database, not application code, decides which school's rows come back. Application code can have bugs and the model can be manipulated; the database layer cannot be talked into anything.
+
+**Secondary benefit: identity.** Because the database knows who is calling, it can apply admin-vs-staff rules and the Alumni restriction.
+
+### 0.6 Where role enforcement actually lives (an important nuance)
+Role security in LunchBox is **split across two layers**:
+
+| Layer | What it enforces | Example |
+|---|---|---|
+| RLS (database) | Which school; admin vs staff; Alumni hidden from staff | Staff of School A can't see School B; staff can't see Alumni rows |
+| Tool code (`api/_lib/tools.js`) | Finer roles *within* a school | `get_student_health` returns full data for Principal/Admin/Counselor, only emergency contact + allergies for Teacher/Asst/Sub, nothing for Support/Facilities/Maintenance |
+
+RLS grants **all staff** full read access to health tables. The teacher-vs-counselor distinction is not in the database; it is replicated in the chat tool using the `role` from `getSchoolContext`. So the user's token alone does not stop a teacher from seeing a counselor's data — the tool's code does, for the tools that implement it.
+
+### 0.7 What breaks if the backend used a service-role key
+RLS would be bypassed, so isolation would depend on **every function remembering to filter by school**. Several tools take only a `studentId` and ignore the school: `get_incidents`, `get_grade_history`, `get_student_health`, `get_report_cards_for_student`, `get_class_enrollments_for_student`, `get_cohorts_for_student`, and the write `update_student_status`. With a master key, a manipulated or injected student id belonging to another school would return that school's data. With the user's token, the database returns nothing, whatever the code or model does.
+
+### 0.8 The principle
+**Enforce rules at the lowest layer you control — below anything that can be talked into a mistake.** The database does not "detect malicious data" or judge intent. It only checks who is asking and returns the rows that person's school owns. An attack on another school's record yields zero rows. Because the rule is structural rather than based on recognizing attacks, it also holds against attacks nobody anticipated. This same idea returns in the audit/guardrail item (15), prompt injection (3) and agent identity (21).
+
+### 0.9 Chat backend vs MCP server identity
+
+| | Chat backend | MCP server |
+|---|---|---|
+| Credential | Caller's own token + anon key | Service-role key |
+| RLS applied | Yes | No (bypassed) |
+| Tenant | Whoever is logged in | One hardcoded `SCHOOL_ID` |
+| Where it runs | Vercel (internet-facing) | Developer's machine only |
+| Acceptable because | RLS enforces isolation | Local, single-tenant, human-operated; documented as ROADMAP M3 |
+
+The MCP server does **not** act under a logged-in user's identity. Making it do so is item 21.
+
+### 0.10 The learning exchange (preserved)
+**Explain-back question:** Why does the chat backend forward the user's own token instead of using a powerful key, and what would break if it didn't?
+
+**Your answer:** It forwards the user's own token because there isn't only school-level security of data but also role-level security within each school; the concept behind the key is to ensure the correct school and role work together for data access; without a user-level token, a teacher could access administrator data they shouldn't, which could break security.
+
+**Assessment:** Partly right. The token carries identity, which is the core idea. Corrections: (1) the main reason is school isolation; (2) the database enforces school and admin-vs-staff, not teacher-vs-counselor — finer roles are enforced in tool code (0.6); (3) the sharper "what breaks" answer is that RLS would be bypassed and isolation would rest on every function filtering correctly (0.7).
+
+**Optional check:** Why does RLS protect you even if the model is tricked into calling `get_incidents` with another school's student id?
+
+**Your answer:** Because the database layer implements RLS, so even if calls were made with malicious data, the database would pick up that it shouldn't be allowed and stop it.
+
+**Assessment:** Correct, with one refinement: it doesn't detect malice, it filters by the caller's identity, which is why it works against unanticipated attacks (0.8).
+
+### 0.11 The test
+`npm run test:isolation` signs in as two real schools (credentials in the gitignored `.env.isolation.local`, never in chat or git), using the same client the real backend builds, and checks:
+1. **Table sweep:** every row B can read from every table belongs to B.
+2. **Anonymous:** with no login, nothing is visible.
+3. **Tools:** all chat read tools run as B, including with School A's id supplied in place of B's (a spoofed value), and with A's `studentId`; none may return A's data.
+4. **Writes:** A creates a throwaway ⚡ test work order; B tries to modify it, delete it and forge a row into A; A's row must be unchanged. A deletes the test row itself.
+
+Each check reports PASS, FAIL (a leak) or VACUOUS (School A has no rows there, so a pass proves nothing — seed data and re-run).
+
+### 0.12 Results log
+*(Fill in after the first run: date, counts of pass/fail/vacuous, what was fixed.)*
+
+### 0.13 Design-note questions to answer once the test has run
+- Which policies were too broad or missing?
+- Did any tool leak? Which?
+- What would I change to move the finer role rules (teacher vs counselor) from code into the database?
+
+---
+
+# Part 3 — Findings & open questions
+
+| # | Finding | Source | Status |
+|---|---|---|---|
+| F1 | Role enforcement is split: RLS handles school + admin/staff; finer roles live only in tool code. All staff have full health read at the database level. | Item 0 discussion | Open — consider moving tiers into RLS |
+| F2 | Seven tools take only `studentId` and ignore the school; they are protected solely by RLS. | `api/_lib/tools.js` | Covered by the isolation test |
+| F3 | MCP server uses the service-role key and a hardcoded `SCHOOL_ID`; does not act as the logged-in user. | `mcp_server/` | Open — item 21 / ROADMAP M3 |
+| F4 | RLS policies are not in the repository; they exist only in Supabase. | Item 0 | Open — export and review |
+| F5 | `submit_public_inquiry` is callable without login by design; it can create records in a school identified by its public id (spam / free-text injection vector). | CLAUDE.md schema notes | Open — consider rate limiting; relevant to prompt injection (item 3) |
+| F6 | Production chat is not live: `ANTHROPIC_API_KEY` is not set in Vercel. | ROADMAP | Open (founder to-do) |
+
+---
+
+# Part 4 — Glossary
+
+- **Tenant:** one customer (here, one school) sharing the same application and database with others.
+- **Multi-tenant isolation:** the guarantee that one tenant cannot access another's data.
+- **RLS (Row Level Security):** database rules that filter which rows a caller can read or write.
+- **JWT (token):** a signed credential saying who the caller is.
+- **Anon key:** public key; powerless alone, acts as the user when paired with their token.
+- **Service-role key:** master key that bypasses RLS; never for browsers or shared backends.
+- **`auth.uid()`:** the caller's user id, as seen by the database from their token.
+- **Restrictive policy:** an RLS rule that must also pass (narrows access) rather than adding access.
+- **`SECURITY DEFINER` function:** a database function that runs with its owner's rights, ignoring the caller's restrictions — a common source of accidental bypasses.
+- **Tool (agent):** a function the model may ask the backend to run.
+- **Trust boundary:** a line where data or authority crosses between parties with different levels of trust.
+
+---
+
+# Related documents
+- `CLAUDE.md` — project briefing and schema reference.
+- `ROADMAP.md` — roadmap, security findings, and the Agentic Learning Track progress tracker.
+- `docs/agentic-learning/concepts.md` — short primers for all 22 items.
+- `docs/agentic-learning/README.md` — design-note template.
+- `docs/architecture/lunchbox_technology_layer.xml` — ArchiMate Technology-layer model.
+- `LUNCHBOX_SPEC.docx` — original product specification (not reviewed for this guide).

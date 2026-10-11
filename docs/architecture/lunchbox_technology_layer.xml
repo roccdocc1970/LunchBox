@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.opengroup.org/xsd/archimate/3.0/ http://www.opengroup.org/xsd/archimate/3.0/archimate3_Model.xsd" identifier="id-lunchbox-tech-model">
+  <name xml:lang="en">LunchBox — Technology Layer</name>
+  <documentation xml:lang="en">Technology layer view of LunchBox as of 2026-09-20. Deliberately scoped to infrastructure/runtime elements only (Nodes, System Software, Artifacts, Technology Services) — application-level logic (services/hooks/components, the chat tool-calling loop) belongs in a separate Application layer model, realized on top of this one.</documentation>
+  <elements>
+    <element identifier="id-browser" xsi:type="Device">
+      <name xml:lang="en">User's Browser</name>
+      <documentation xml:lang="en">Runs the compiled React SPA. School admin/staff client device.</documentation>
+    </element>
+    <element identifier="id-vercel-node" xsi:type="Node">
+      <name xml:lang="en">Vercel Serverless Platform</name>
+      <documentation xml:lang="en">Hosts the static SPA build and the api/**.js serverless functions. Auto-deploys from GitHub on push.</documentation>
+    </element>
+    <element identifier="id-nodejs-runtime" xsi:type="SystemSoftware">
+      <name xml:lang="en">Node.js Runtime</name>
+      <documentation xml:lang="en">ESM-module runtime executing the api/ serverless functions.</documentation>
+    </element>
+    <element identifier="id-spa-artifact" xsi:type="Artifact">
+      <name xml:lang="en">LunchBox SPA Bundle</name>
+      <documentation xml:lang="en">Vite/React production build (npm run build), deployed as static assets.</documentation>
+    </element>
+    <element identifier="id-chat-index-artifact" xsi:type="Artifact">
+      <name xml:lang="en">api/chat/index.js (deployed function)</name>
+      <documentation xml:lang="en">The chat tool-calling loop endpoint.</documentation>
+    </element>
+    <element identifier="id-chat-execute-artifact" xsi:type="Artifact">
+      <name xml:lang="en">api/chat/execute.js (deployed function)</name>
+      <documentation xml:lang="en">The confirm-gated write-execution endpoint — the only place a chat-originated write actually happens.</documentation>
+    </element>
+    <element identifier="id-supabase-node" xsi:type="Node">
+      <name xml:lang="en">Supabase Platform</name>
+      <documentation xml:lang="en">Managed backend platform hosting Postgres, Auth, and Storage for LunchBox.</documentation>
+    </element>
+    <element identifier="id-postgres" xsi:type="SystemSoftware">
+      <name xml:lang="en">PostgreSQL (+ pgvector planned)</name>
+      <documentation xml:lang="en">Primary datastore. Row Level Security (RLS) is the multi-tenant isolation mechanism for every table. pgvector extension planned for the policy-document RAG feature.</documentation>
+    </element>
+    <element identifier="id-supabase-auth" xsi:type="SystemSoftware">
+      <name xml:lang="en">Supabase Auth (GoTrue)</name>
+      <documentation xml:lang="en">Issues the JWTs that both the browser client and the chat backend use — the chat backend forwards the caller's own JWT rather than using a service-role key, so RLS enforces tenant isolation identically for both.</documentation>
+    </element>
+    <element identifier="id-devmachine-node" xsi:type="Node">
+      <name xml:lang="en">Local Developer Machine</name>
+      <documentation xml:lang="en">Runs the MCP stdio server and the local dev-server.js Express shim (dev-only proxy for testing api/ functions before Vercel deployment).</documentation>
+    </element>
+    <element identifier="id-mcp-artifact" xsi:type="Artifact">
+      <name xml:lang="en">mcp_server/server.js</name>
+      <documentation xml:lang="en">Local-only stdio MCP server, 27 tools, connects to Claude Desktop. Single-tenant per process (hardcoded SCHOOL_ID) — never internet-facing.</documentation>
+    </element>
+    <element identifier="id-anthropic-service" xsi:type="TechnologyService">
+      <name xml:lang="en">Anthropic Messages API</name>
+      <documentation xml:lang="en">External. Powers the chat tool-calling loop and the future RAG answer synthesis. Billed separately (prepaid credits, no auto-reload).</documentation>
+    </element>
+    <element identifier="id-voyage-service" xsi:type="TechnologyService">
+      <name xml:lang="en">Voyage AI Embeddings API</name>
+      <documentation xml:lang="en">External — planned, not yet built. Text-to-vector conversion for the policy-document RAG feature; stateless, no storage on the vendor side.</documentation>
+    </element>
+    <element identifier="id-resend-service" xsi:type="TechnologyService">
+      <name xml:lang="en">Resend Email API</name>
+      <documentation xml:lang="en">External. Parent-communication email delivery.</documentation>
+    </element>
+  </elements>
+  <relationships>
+    <relationship identifier="id-rel-1" xsi:type="Assignment" source="id-vercel-node" target="id-nodejs-runtime"/>
+    <relationship identifier="id-rel-2" xsi:type="Assignment" source="id-vercel-node" target="id-spa-artifact"/>
+    <relationship identifier="id-rel-3" xsi:type="Assignment" source="id-nodejs-runtime" target="id-chat-index-artifact"/>
+    <relationship identifier="id-rel-4" xsi:type="Assignment" source="id-nodejs-runtime" target="id-chat-execute-artifact"/>
+    <relationship identifier="id-rel-5" xsi:type="Assignment" source="id-supabase-node" target="id-postgres"/>
+    <relationship identifier="id-rel-6" xsi:type="Assignment" source="id-supabase-node" target="id-supabase-auth"/>
+    <relationship identifier="id-rel-7" xsi:type="Assignment" source="id-devmachine-node" target="id-mcp-artifact"/>
+    <relationship identifier="id-rel-8" xsi:type="Serving" source="id-vercel-node" target="id-browser">
+      <documentation xml:lang="en">Serves the SPA bundle and API responses over HTTPS.</documentation>
+    </relationship>
+    <relationship identifier="id-rel-9" xsi:type="Serving" source="id-supabase-node" target="id-vercel-node">
+      <documentation xml:lang="en">Every query — browser-direct or via the chat backend — is scoped through the calling user's own JWT, never a service-role key, so RLS enforces tenant isolation identically for both paths.</documentation>
+    </relationship>
+    <relationship identifier="id-rel-10" xsi:type="Serving" source="id-supabase-node" target="id-devmachine-node">
+      <documentation xml:lang="en">MCP server uses the service-role key (bypasses RLS) — single-tenant per process, local-only, never internet-facing.</documentation>
+    </relationship>
+    <relationship identifier="id-rel-11" xsi:type="Serving" source="id-anthropic-service" target="id-vercel-node"/>
+    <relationship identifier="id-rel-12" xsi:type="Serving" source="id-anthropic-service" target="id-devmachine-node"/>
+    <relationship identifier="id-rel-13" xsi:type="Serving" source="id-resend-service" target="id-vercel-node"/>
+    <relationship identifier="id-rel-14" xsi:type="Serving" source="id-voyage-service" target="id-vercel-node">
+      <documentation xml:lang="en">Planned — RAG feature not yet built.</documentation>
+    </relationship>
+  </relationships>
+</model>
