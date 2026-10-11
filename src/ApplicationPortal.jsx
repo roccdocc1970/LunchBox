@@ -30,8 +30,9 @@ export default function ApplicationPortal({ schoolId }) {
 
   useEffect(() => {
     const fetchSchool = async () => {
-      const { data } = await supabase.from('schools').select('name, logo_url, primary_color, motto, divisions')
-        .eq('user_id', schoolId).maybeSingle()
+      // The schools table is no longer publicly readable; this database function returns only
+      // the five fields the form displays (db/migrations/002).
+      const { data } = await supabase.rpc('get_public_school_info', { p_school_id: schoolId })
       if (data) setSchool(data)
       else setNotFound(true)
       setLoadingSchool(false)
