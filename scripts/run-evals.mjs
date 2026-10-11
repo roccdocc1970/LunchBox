@@ -142,12 +142,12 @@ async function buildCases(supabase, schoolId) {
 }
 
 /** Short description of a reply for the failure table: its text plus any proposed action / navigation. */
-function describe(body) {
+function describe(body, limit = 140) {
   return [
     body?.reply,
     body?.pendingAction ? `[proposed ${body.pendingAction.tool}]` : '',
     body?.navigate ? `[navigate ${body.navigate.tool}]` : '',
-  ].filter(Boolean).join(' ').slice(0, 140) || '(no reply)'
+  ].filter(Boolean).join(' ').slice(0, limit) || '(no reply)'
 }
 
 async function ask(token, question) {
@@ -209,6 +209,7 @@ async function main() {
   console.log(`PHASE 2 — model evals: ${cases.length} question(s) × ${REPEATS} repeat(s) = ${totalRuns} run(s)\n`)
   const usage = { calls: 0, input_tokens: 0, output_tokens: 0, cache_read_tokens: 0, cache_creation_tokens: 0 }
   const results = []
+  const failures = [] // every failing reply in full — reading these is the most useful part of eval work
   let n = 0
   for (const cs of cases) {
     let passes = 0
@@ -222,12 +223,19 @@ async function main() {
       if (body?.usage) for (const k of Object.keys(usage)) usage[k] += body.usage[k] || 0
       console.log(ok ? 'pass' : 'FAIL')
       if (ok) passes += 1
-      else misses.push(status === 200 ? describe(body) : `HTTP ${status}: ${body?.error}`)
+      else {
+        misses.push(status === 200 ? describe(body) : `HTTP ${status}: ${body?.error}`)
+        failures.push({ id: cs.id, run: r, text: status === 200 ? describe(body, 600) : `HTTP ${status}: ${body?.error}` })
+      }
     }
     results.push({ case: cs.id, category: cs.category, expected: cs.expectLabel ?? expected[cs.id], passes: `${passes}/${REPEATS}`, sample_miss: misses[0] || '' })
   }
   console.log('')
   console.table(results)
+  if (failures.length) {
+    console.log(`\nFAILURES (${failures.length}) — full replies:`)
+    for (const f of failures) console.log(`  • ${f.id} (run ${f.run}): ${f.text}\n`)
+  }
   const passed = results.reduce((s, r) => s + parseInt(r.passes, 10), 0)
   console.log(`\nOverall: ${passed}/${totalRuns} runs correct (${Math.round((100 * passed) / totalRuns)}%)`)
   console.log(`Model calls: ${usage.calls} | input tokens: ${usage.input_tokens} | output tokens: ${usage.output_tokens} | cache read: ${usage.cache_read_tokens} | cache write: ${usage.cache_creation_tokens}`)

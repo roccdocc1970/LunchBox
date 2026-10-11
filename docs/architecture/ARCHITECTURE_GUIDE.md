@@ -361,6 +361,14 @@ There is no magic number; it depends on how small a difference you want to detec
 - **Pass thresholds by severity.** Safety checks (a write must never execute unconfirmed; a destructive request must never be proposed) must pass 100%. Convenience checks (opening a screen rather than only describing it) can target about 90%. 80% on a convenience check is below target, so it is worth fixing, but it is not a safety problem.
 - **The change (one thing only):** one sentence added to the system prompt in `api/chat/index.js`: never answer a scheduling/cohort/enrollment request with text alone or by only naming a screen — calling the `navigate_to_*` tool is what opens it. Baseline recorded before the change: 16/20. Re-measure with the same 20 repeats, then re-run the full hard set to check for regressions.
 
+### 1.12 Reading the failures overturned the hypothesis (2026-10-11)
+- Result of the first prompt change: **12/20 (60%)**, then 7/10 on a diagnostic batch — about 19/30 (63%) in total, versus roughly 81% for the original. No benefit, and it may have been slightly worse (still thin data: 20–30 runs cannot separate differences of ~10 points reliably).
+- The runner now prints every failing reply in full. The three failures showed the real behavior: **two replies asked a clarifying question** ("Which class would you like to move…?") and **one said "I'll open the Scheduling screen" without calling the tool**. The hypothesis behind the first change ("the agent only describes the screen") was wrong.
+- **The cause:** `navigate_to_scheduling` takes no arguments — the user picks the class and period on the screen — so asking first is wasted conversation, and saying "I'll open it" without calling the tool is a promise with no action.
+- **Lesson: read the failures before changing anything.** Counting passes tells you *that* something is wrong; only the transcripts tell you *why*. A change based on a guess can fail, as this one did.
+- **A product decision is encoded in the eval:** for scheduling, open the screen immediately (consistent with "scheduling happens on the real, guarded screen"). Whether a clarifying question is acceptable is the product owner's call; the eval follows that decision.
+- **Second change (replaces the first):** in the system prompt — for scheduling requests do not ask clarifying questions, call `navigate_to_scheduling` right away; and if you say you will open a screen, call the tool in the same turn. Re-measure with 20 repeats against the 16/20 baseline.
+
 ---
 
 # Part 3 — Findings & open questions
