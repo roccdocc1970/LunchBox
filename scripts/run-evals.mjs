@@ -16,6 +16,9 @@
  *   npm run evals                                   tool checks only (free)
  *   npm run evals -- --model --only=cohorts         one question, one run (cheapest model run)
  *   npm run evals -- --model --repeats=3            every question, 3 repeats each
+ *   npm run evals -- --set=hard --list              show the harder question set (free, no model)
+ *   npm run evals -- --set=hard --model --only=nav_cohort   run part of the harder set
+ * Sets: basic (default, simple counts) | hard (behavior categories) | all.
  *
  * Needs ISO_A_EMAIL / ISO_A_PASSWORD (.env.isolation.local) and, for --model, ANTHROPIC_API_KEY
  * (.env.local). Optional, to print a dollar estimate (check the Anthropic pricing page for your
@@ -31,6 +34,8 @@ import { supabaseFromRequest } from '../api/_lib/supabaseFromRequest.js'
 import { getSchoolContext } from '../api/_lib/getSchoolContext.js'
 import { READ_TOOLS } from '../api/_lib/tools.js'
 import handler from '../api/chat/index.js'
+import { matches } from './evals/shared.mjs'
+import { buildHardCases } from './evals/hard-cases.mjs'
 
 dotenv.config({ path: '.env.local' })
 dotenv.config({ path: '.env.isolation.local' })
@@ -42,6 +47,8 @@ const option = (name, fallback) => {
   return hit ? hit.split('=')[1] : fallback
 }
 const RUN_MODEL = flag('model')
+const LIST = flag('list')
+const SET = option('set', 'basic') // basic | hard | all
 const REPEATS = Math.max(1, parseInt(option('repeats', '1'), 10) || 1)
 const ONLY = option('only', '') ? option('only', '').split(',') : null
 
@@ -128,21 +135,19 @@ async function buildCases(supabase, schoolId) {
       truth: c('students', q => q.in('status', ['Applied', 'Enrolled', 'Waitlisted']).eq('grade', grade)),
       tool: 'get_students', fromTool: rows => rows.filter(r => r.grade === grade).length })
   }
-  return ONLY ? cases.filter(x => ONLY.includes(x.id)) : cases
+  for (const cs of cases) cs.category = cs.category || 'basic'
+  let selected = SET === 'hard' ? [] : cases
+  if (SET === 'hard' || SET === 'all') selected = selected.concat(await buildHardCases(supabase, schoolId))
+  return ONLY ? selected.filter(x => ONLY.includes(x.id)) : selected
 }
 
-const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
-  'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty']
-
-function matches(expected, reply) {
-  const text = String(reply ?? '')
-  if (typeof expected === 'number') {
-    const digits = new RegExp(`(^|[^\\d.])${expected}([^\\d]|$)`).test(text)
-    const word = expected <= 20 && new RegExp(`\\b${NUMBER_WORDS[expected]}\\b`, 'i').test(text)
-    const none = expected === 0 && /\b(no|none|nobody)\b/i.test(text)
-    return digits || word || none
-  }
-  return text.toLowerCase().includes(String(expected).toLowerCase())
+/** Short description of a reply for the failure table: its text plus any proposed action / navigation. */
+function describe(body) {
+  return [
+    body?.reply,
+    body?.pendingAction ? `[proposed ${body.pendingAction.tool}]` : '',
+    body?.navigate ? `[navigate ${body.navigate.tool}]` : '',
+  ].filter(Boolean).join(' ').slice(0, 140) || '(no reply)'
 }
 
 async function ask(token, question) {
@@ -166,11 +171,18 @@ async function main() {
   const cases = await buildCases(supabase, schoolId)
   console.log(`School ${schoolId} — ${cases.length} question(s)\n`)
 
+  const expected = {}
+  for (const cs of cases) expected[cs.id] = await cs.truth()
+
+  if (LIST) {
+    console.table(cases.map(cs => ({ id: cs.id, category: cs.category, question: cs.question, expected: cs.expectLabel ?? expected[cs.id] })))
+    console.log('(listing only — no model was called)')
+    process.exit(0)
+  }
+
   // Phase 1 — tool checks (no model)
   const toolRows = []
-  const expected = {}
   for (const cs of cases) {
-    expected[cs.id] = await cs.truth()
     if (!cs.tool) continue
     const tool = READ_TOOLS.find(t => t.name === cs.tool)
     try {
@@ -205,13 +217,14 @@ async function main() {
       n += 1
       process.stdout.write(`  [${n}/${totalRuns}] ${cs.id} ... `)
       const { status, body } = await ask(token, cs.question)
-      const ok = status === 200 && matches(expected[cs.id], body?.reply)
+      let ok = status === 200 && (cs.check ? cs.check(body) : matches(expected[cs.id], body?.reply))
+      if (ok && cs.after) ok = await cs.after() // e.g. confirm a "proposed" write changed nothing
       if (body?.usage) for (const k of Object.keys(usage)) usage[k] += body.usage[k] || 0
       console.log(ok ? 'pass' : 'FAIL')
       if (ok) passes += 1
-      else misses.push(status === 200 ? String(body?.reply ?? '(no reply)').slice(0, 120) : `HTTP ${status}: ${body?.error}`)
+      else misses.push(status === 200 ? describe(body) : `HTTP ${status}: ${body?.error}`)
     }
-    results.push({ case: cs.id, expected: expected[cs.id], passes: `${passes}/${REPEATS}`, sample_miss: misses[0] || '' })
+    results.push({ case: cs.id, category: cs.category, expected: cs.expectLabel ?? expected[cs.id], passes: `${passes}/${REPEATS}`, sample_miss: misses[0] || '' })
   }
   console.log('')
   console.table(results)
