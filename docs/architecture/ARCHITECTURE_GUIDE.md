@@ -6,7 +6,20 @@ Purpose: a long-form reference for understanding LunchBox's architecture and the
 
 Last updated: 2026-10-11.
 
+## Quick summaries (cheat sheet)
+One short summary per finished item — read this first; the chapters in Part 2 hold the full explanations.
+
+**Item 0 — Two-school isolation**
+- One database serves many schools. Database rules (RLS) make the database itself return only the caller's school's rows.
+- A token is an ID badge Supabase hands you at login. Every request shows the badge, and the database shows you only your school's rows.
+- The secret key is a master key that bypasses all those rules and never leaves the server.
+- Finer roles (teacher vs counselor) are enforced in code, not in the database.
+- The isolation test proves all this. *(Status: written, not yet run.)*
+
+*(Each later item adds its own 2–5 line summary here when its chapter is written.)*
+
 ## Contents
+- Quick summaries (cheat sheet, above)
 - Part 1 — System overview
 - Part 2 — Concept chapters
   - Item 0 — Two-school isolation (written)
@@ -77,6 +90,15 @@ sequenceDiagram
 
 *Discussed 2026-10-11. Test script: `npm run test:isolation` (`scripts/isolation-test.mjs`). Test status: written; not yet run (needs a second school account).*
 
+### In brief
+- One database serves many schools. RLS rules make the database itself return only the caller's school's rows.
+- A token is an ID badge Supabase hands you at login. Every request shows the badge, and the database shows you only your school's rows.
+- The secret key is a master key that bypasses all those rules and never leaves the server.
+- Finer roles (teacher vs counselor) are enforced in code, not in the database.
+- The isolation test proves it. *(Status: written, not yet run.)*
+
+*Full explanation follows.*
+
 ### 0.1 The problem: multi-tenancy
 LunchBox is one application and one database serving many schools (tenants). The worst failure in this kind of system is a **cross-tenant leak**: School B seeing or changing School A's data. With student records this is also a legal and trust event (FERPA, and every school's willingness to buy). The architecture's central promise is that it cannot happen. A promise that has never been tested is only a design.
 
@@ -89,12 +111,44 @@ LunchBox is one application and one database serving many schools (tenants). The
 - One **restrictive** policy additionally hides `status = 'Alumni'` students from staff.
 - The actual policies live only in Supabase (there are no SQL files in the repo). Reviewing them is part of this item.
 
+### 0.2a Reading the policy line `school_id = auth.uid()`
+*(From a follow-up question, 2026-10-11.)* This is a **comparison**, not a function: `=` compares the two sides and the result is true/false for each row.
+- **Left side, `school_id`:** a column in the table being queried; every row stores which school owns it.
+- **Right side, `auth.uid()`:** a function (supplied by Supabase, in the `auth` schema) that takes no arguments. It returns the user id of whoever is making the current request.
+- **Where `auth.uid()` gets its answer:** the request carries the signed token. Supabase's API layer verifies the signature first (so a caller can't forge an identity), then makes the token's contents available to the database session for that request. `auth.uid()` reads the user id from there. It isn't passed in by the app as an argument.
+- **What Postgres does with it:** for a user whose id is `abc`, `select * from incidents` is treated as if it said `select * from incidents where school_id = 'abc'`. Rows with any other `school_id` are never returned.
+- **Naming quirk specific to LunchBox:** the "school id" stored in other tables is **not** a separate id created when the school was set up. It is the admin's login id (`schools.user_id`, which equals the id Supabase Auth gave that admin at sign-up). The `schools` table also has its own `id`, but tenancy runs on `user_id`. So a school's identity *is* its admin account's identity. Staff reach the same school through `get_staff_school_id()`, which looks up the school from the staff table.
+
 ### 0.3 Identity: how the database knows who is asking
 - When a user logs in, Supabase Auth issues a signed token (JWT) that says who they are.
 - Requests carry that token. The database reads it and exposes the identity to policies as `auth.uid()`.
 - Two keys matter:
   - **Anon (publishable) key:** safe to ship in the browser. By itself it grants almost nothing. Combined with a user's token, the request runs *as that user*, with RLS applied.
   - **Service-role key:** a master key. Requests using it **bypass RLS completely**. It must never be in a browser or a shared backend.
+
+### 0.3a Keys and tokens in LunchBox (in depth)
+*(From a follow-up question, 2026-10-11.)*
+
+**Two different things are both called "keys."** Keep them apart:
+1. **Cryptographic key pairs** (public/private). A mathematically linked pair: the private key can *sign* something and only its holder can do that; the matching public key lets *anyone* verify the signature but not create one. This is how HTTPS works and how tokens can be proven genuine.
+2. **API keys** (Supabase's "publishable" and "secret" keys, formerly "anon" and "service-role"). These are not key pairs. They are project credentials: a public identifier that is safe to expose, and a secret that must never be exposed.
+
+**Token (JWT).** A signed note with three parts: a header, a payload of claims (the user id, a role, an expiry time), and a signature. The signature proves Supabase issued it and nobody altered it. Tokens are **readable, not encrypted** — never put secrets inside one. They are **bearer** credentials: whoever holds a valid token is treated as that user until it expires (typically an hour by default), so tokens must be protected like passwords. A separate long-lived refresh token gets a new access token.
+
+**In LunchBox, step by step:**
+1. **Login.** The browser sends email and password to Supabase Auth. If correct, Auth issues an access token (the signed note) and a refresh token. The browser library (`supabase-js`) stores them and renews automatically.
+2. **UI queries.** Each request carries the project's publishable key (which project) plus `Authorization: Bearer <access token>` (which user). Supabase verifies the signature and expiry, then policies see `auth.uid()` (0.2a).
+3. **Chat requests.** `src/services/chat.js` forwards the same access token to `/api/chat`. `supabaseFromRequest.js` builds a client with the publishable key plus that token. `getSchoolContext.js` calls `supabase.auth.getUser()`, which has Supabase validate the token. The backend never signs anything and never holds a private signing key; it only passes the user's token along ("forwarding"). It deliberately turns off session persistence and auto-refresh: the client lives for one request.
+4. **The secrets.** `SUPABASE_SERVICE_ROLE_KEY` (the secret key) is used only by the local MCP server and bypasses RLS. `ANTHROPIC_API_KEY` is a server-side secret that pays for model calls. Neither may ever reach the browser.
+
+**Why `VITE_` matters.** Vite bundles any environment variable whose name starts with `VITE_` into the browser code that every visitor downloads. `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are therefore public by design, which is fine because the publishable key is powerless without a user token plus RLS. A secret must never be given a `VITE_` name.
+
+**What can go wrong.**
+- **Leaked secret key** = total compromise of every school's data (RLS bypassed).
+- **Stolen user token** (for example through malicious script in the browser) = the attacker acts as that user until it expires.
+- **Weak or missing policies** = a perfectly valid token still sees too much. Tokens prove *who*; policies decide *what*. This is why the policies must be reviewed.
+
+**Note on the code.** The token handling in this repo is small and standard: the library does the cryptography and the code just forwards the token. Nobody should write their own token or crypto code, and none was written here. The risk is not in the token code; it is in policy correctness and secret handling. Because the same assistant wrote and now explains this code, it is not an independent check — the isolation test is.
 
 ### 0.4 The chat path, step by step
 1. Browser sends the question to `/api/chat` with `Authorization: Bearer <user's token>`.
@@ -175,9 +229,10 @@ Each check reports PASS, FAIL (a leak) or VACUOUS (School A has no rows there, s
 | F1 | Role enforcement is split: RLS handles school + admin/staff; finer roles live only in tool code. All staff have full health read at the database level. | Item 0 discussion | Open — consider moving tiers into RLS |
 | F2 | Seven tools take only `studentId` and ignore the school; they are protected solely by RLS. | `api/_lib/tools.js` | Covered by the isolation test |
 | F3 | MCP server uses the service-role key and a hardcoded `SCHOOL_ID`; does not act as the logged-in user. | `mcp_server/` | Open — item 21 / ROADMAP M3 |
-| F4 | RLS policies are not in the repository; they exist only in Supabase. | Item 0 | Open — export and review |
+| F4 | RLS policies — and the whole database schema (tables, functions) — are not in the repository; there are no migration files, so they exist only inside Supabase and aren't version-controlled or reproducible. | Item 0 | Open — export the schema and policies into the repo (e.g. Supabase CLI `db dump` / migrations) and review |
 | F5 | `submit_public_inquiry` is callable without login by design; it can create records in a school identified by its public id (spam / free-text injection vector). | CLAUDE.md schema notes | Open — consider rate limiting; relevant to prompt injection (item 3) |
 | F6 | Production chat is not live: `ANTHROPIC_API_KEY` is not set in Vercel. | ROADMAP | Open (founder to-do) |
+| F7 | A school's tenant id is its admin's login id (`schools.user_id`), not an independent school id. Ties tenancy to one admin account; worth understanding before adding multiple admins, ownership transfer, or account deletion. | Item 0 follow-up | Open — design question, not a bug |
 
 ---
 
@@ -186,11 +241,19 @@ Each check reports PASS, FAIL (a leak) or VACUOUS (School A has no rows there, s
 - **Tenant:** one customer (here, one school) sharing the same application and database with others.
 - **Multi-tenant isolation:** the guarantee that one tenant cannot access another's data.
 - **RLS (Row Level Security):** database rules that filter which rows a caller can read or write.
-- **JWT (token):** a signed credential saying who the caller is.
+- **JWT (token):** a signed credential saying who the caller is. Readable, not encrypted; expires; a bearer credential (whoever holds it acts as that user).
+- **Public/private key pair:** two linked keys; the private one signs, the public one verifies. Used by HTTPS and (depending on settings) token signing. Not the same thing as Supabase's publishable/secret API keys.
+- **Bearer token:** a credential accepted from whoever presents it, sent in the `Authorization: Bearer ...` header.
+- **Refresh token:** a longer-lived credential used to obtain new short-lived access tokens.
+- **Publishable key:** Supabase's public project key (formerly "anon"); safe in the browser; useless without a user token plus RLS.
+- **Secret key:** Supabase's master key (formerly "service-role"); bypasses RLS; server-side only.
 - **Anon key:** public key; powerless alone, acts as the user when paired with their token.
 - **Service-role key:** master key that bypasses RLS; never for browsers or shared backends.
 - **`auth.uid()`:** the caller's user id, as seen by the database from their token.
-- **Restrictive policy:** an RLS rule that must also pass (narrows access) rather than adding access.
+- **Repo (repository):** the git-tracked codebase (on your machine and GitHub). It does not contain the live database's structure or rules, which exist only inside Supabase.
+- **DDL (Data Definition Language):** SQL statements that define structure and rules (`CREATE TABLE`, `ALTER TABLE`, `CREATE POLICY`), as opposed to DML, which reads or changes rows.
+- **Policy (RLS policy):** a named rule on a table, created with the DDL statement `CREATE POLICY`. It has a `USING` condition (which existing rows the caller can see, update or delete) and a `WITH CHECK` condition (which new or changed rows the caller may write). Stored in the database (visible in `pg_policies`); Postgres adds the condition to every query automatically. Default-deny: with RLS enabled and no matching policy, nothing is returned; with RLS *not* enabled, the table is open to anyone holding a key.
+- **Restrictive policy:** an RLS rule that must also pass (narrows access) rather than adding access. Ordinary ("permissive") policies are OR-ed together; restrictive ones are AND-ed on top.
 - **`SECURITY DEFINER` function:** a database function that runs with its owner's rights, ignoring the caller's restrictions — a common source of accidental bypasses.
 - **Tool (agent):** a function the model may ask the backend to run.
 - **Trust boundary:** a line where data or authority crosses between parties with different levels of trust.

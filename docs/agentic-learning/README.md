@@ -2,7 +2,7 @@
 
 One short note per roadmap item, written when the item is finished (`NN-name.md`, e.g. `00-isolation-test.md`). The goal is architectural understanding, not syntax: each note should let you explain the item to a skeptical engineer for ten minutes, including how it fails.
 
-Before building any item, read its primer in [concepts.md](concepts.md) and answer its explain-back question to Claude in your own words. Concept first, then build. The full explanation from each concept session (with your answers and the corrections) is preserved as a chapter in [../architecture/ARCHITECTURE_GUIDE.md](../architecture/ARCHITECTURE_GUIDE.md).
+Before building any item, read its primer in [concepts.md](concepts.md) and answer its explain-back question to Claude in your own words. Concept first, then build. The full explanation from each concept session (with your answers and the corrections) is preserved as a chapter in [../architecture/ARCHITECTURE_GUIDE.md](../architecture/ARCHITECTURE_GUIDE.md), with a short "In brief" summary that also goes into the Guide's Quick summaries cheat sheet at the top.
 
 Keep each note to one page, using this template:
 
