@@ -4,7 +4,8 @@
  * One trace per request: the ordered steps (model calls, tool calls, the final action) with
  * timing, token counts and result sizes. It records METADATA, not payloads — never tool
  * results, never argument values (only argument names) — so student data stays out of
- * traces. The question text is kept only as a short truncated copy for debugging.
+ * traces. The question text is kept only as a short truncated copy for debugging, and it
+ * CAN contain a student's name; turn it off with TRACE_STORE_QUESTION=false.
  *
  * Written through the caller's own Supabase client, so the agent_traces RLS policies decide
  * where it lands (db/migrations/003). Tracing must never break a chat request: every failure
@@ -13,6 +14,9 @@
 
 const QUESTION_LIMIT = 200
 const ERROR_LIMIT = 300
+// A question can contain a student's name ("How is Marcus Johnson doing?"), so the text is the one
+// place personal data can reach a trace. Set TRACE_STORE_QUESTION=false to store only its length.
+const STORE_QUESTION = process.env.TRACE_STORE_QUESTION !== 'false'
 
 function lastUserText(messages) {
   const last = [...(messages || [])].reverse().find(m => m.role === 'user')
@@ -37,7 +41,7 @@ export function startTrace({ supabase, schoolId, userId, model, messages }) {
         const { error } = await supabase.from('agent_traces').insert({
           school_id: schoolId,
           user_id: userId,
-          question: question.slice(0, QUESTION_LIMIT),
+          question: STORE_QUESTION ? question.slice(0, QUESTION_LIMIT) : null,
           question_chars: question.length,
           outcome,
           model,

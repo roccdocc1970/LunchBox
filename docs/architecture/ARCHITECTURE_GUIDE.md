@@ -33,6 +33,12 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - The concepts are vendor-agnostic; API formats, caching, prices and which prompt wording works are vendor-specific. Evals are how you switch models safely.
 - A good score is not permanent: pin the exact model version, re-run the suite after every change, run a small scheduled canary set, and add a case for every production failure.
 
+**Item 2 — Tracing** *(built 2026-10-11; understanding check pending)*
+- A trace is the recorded story of one request: every model and tool call, with timing, tokens and result sizes.
+- An eval says *that* something went wrong; a trace shows *where*, and it is where cost per request comes from.
+- Compare the steps. The first traces showed the model calls were similar; what made one request expensive was the size of the tool result fed into the next call (33 rows vs 4).
+- Traces hold metadata, not payloads, and live in an RLS-protected table. The question text can still contain a student's name, so it has an off-switch.
+
 *(Each later item adds its own 2–5 line summary here when its chapter is written.)*
 
 ## Contents
@@ -421,6 +427,59 @@ A good score today is not permanent, because models are a black box and your own
 
 **Common practice:** pin the exact version; run the full suite before every release or change; run a small, cheap **canary** set on a schedule (daily or weekly) and alert if the pass rate drops; add a case for every production failure. How often providers silently change model behavior cannot be assumed to be never. A scheduled canary connects to later items: tracing (item 2) records results over time and proactive agents (item 13) are work that runs on a schedule without being asked.
 
+## Item 2 — Tracing
+
+*Concept discussed and built 2026-10-11. Primer: `docs/agentic-learning/concepts.md`. Design note: `docs/agentic-learning/02-tracing.md`.*
+
+### In brief
+- A trace is the recorded story of one request: every model call and tool call, in order, with timing, token counts and result sizes.
+- An eval says *that* something went wrong; a trace shows *where* — and it is where cost per request comes from.
+- Compare the steps: which took longest, how many model calls, how big each tool result was, anything failing or repeating.
+- Traces hold metadata, not payloads, and live in a database table protected by RLS like everything else.
+
+### 2.1 What it is and why
+It is application performance monitoring (the Dynatrace/Splunk idea) applied to an agent. An eval is a test run *before* or *between* releases against known questions; a trace is the record of a *real* request as it happens. Together: the eval finds the weak behavior, the trace explains it.
+
+### 2.2 What was built
+- **`agent_traces` table** (`db/migrations/003_agent_traces.sql`): one row per chat request — question (truncated), outcome, model, duration, token totals, and a `steps` list. Immutable (no update permission), no anonymous access, policies `to authenticated`. Admins read every trace for their school and may delete (retention); staff record and read only their own.
+- **`api/_lib/trace.js` and the chat handler:** every exit saves a trace first (even errors). Failures to save are swallowed and logged without data, so tracing can never break a chat request.
+- **`npm run traces`** (`scripts/traces.mjs`): recent requests, `--slowest`, `--steps`.
+- **The isolation test now covers `agent_traces`** (90 of 91 checks pass; the anonymous result is "denied", stronger than "0 rows").
+
+### 2.3 What the first traces showed (2026-10-11)
+| | Work orders | Cohorts |
+|---|---|---|
+| Tool result | 4 rows, 1,719 bytes | 33 rows, 8,307 bytes |
+| Model call 2, fresh input tokens | 958 | 4,447 |
+
+- **Tool result size drives the next call's input tokens:** more rows in, more tokens (cohorts rows were ~250 bytes each, work orders ~430; the cohort result was larger only because it had many more rows). The cohort tool reads one flat table — the cost is data volume, not relational complexity.
+- **Where the time goes:** tools took ~100 ms each; model calls ~900–1,200 ms each. About 95% of the 2.2 s was the model.
+- **Caching across requests:** the very first model call showed 0 cached tokens (cold); every later call, including the next request's first call, read ~3,800 tokens from the cache.
+- **Finding F12:** for "how many cohorts?" the model needed only the number 33 but received all 33 rows (~4,000 tokens). A school with 500 students would send 500 rows for any "how many students" question. Fix belongs to item 16 (context engineering): return the count, or only the fields needed.
+
+### 2.4 Privacy decisions
+- **Metadata, not payloads:** tool *results* and argument *values* are never stored — only argument names, row counts and byte sizes.
+- **The question text is the one place personal data can leak** (it can contain a student's name). It is truncated to 200 characters and can be switched off with `TRACE_STORE_QUESTION=false` (stores only its length).
+- **Immutability and retention:** no update permission; admins may delete rows, but automatic retention (for example, delete after 90 days) is not built yet (finding F13).
+- **Admin visibility:** an admin can read every trace in their school, including staff questions; staff see only their own.
+
+### 2.5 Baseline vs target
+| Area | Baseline (LunchBox today) | Target (best practice) | Decision |
+|---|---|---|---|
+| Recording | Per-request trace with steps, tokens, sizes | Same, plus links to eval runs and user feedback | Later (item 22) |
+| Cost | Tokens stored; dollars estimated by the viewer if prices are set in env | Dollars calculated and stored per request from current price tables | Later |
+| Retention | Manual delete by admin | Automatic expiry (for example 90 days) | Open (F13) |
+| Question text | Stored truncated unless switched off | Off by default, or redacted of names | Decide before real schools use it |
+| Viewing | Command-line viewer | Dashboard with filters, trends and alerts | Later |
+| Coverage | Chat requests only; auth failures and bad requests are not traced | All entry points, including failures | Later |
+| Alerts | None | Alert on slow, expensive or failing requests; scheduled canary (see 1.17) | Later (items 13) |
+
+### 2.6 The four review questions applied to tracing
+1. *What is it for?* Seeing where time and tokens go in each real request, and diagnosing wrong, slow or expensive answers.
+2. *What can it touch?* It writes one row per request to `agent_traces` through the caller's own database client; it never reads other tables or stores tool results.
+3. *What happens when it fails?* Nothing visible: a failed save is swallowed so a chat request is never broken; the cost is a missing trace.
+4. *How would you know it works?* Run a request, then `npm run traces -- --steps`; and `npm run test:isolation` confirms schools cannot see each other's traces.
+
 ---
 
 # Part 3 — Findings & open questions
@@ -434,6 +493,8 @@ A good score today is not permanent, because models are a black box and your own
 | F5 | `submit_public_inquiry` is callable without login by design; it can create records in a school identified by its public id (spam / free-text injection vector). Definition reviewed 2026-10-11: no rate limit and no input length limits; it attaches the new student to an existing parent when the email matches, so someone who knows a parent's email can add fake records under that family; the free-text `notes` flows into records the chat agent later reads. | CLAUDE.md schema notes | Open — consider rate limiting; relevant to prompt injection (item 3) |
 | F6 | Production chat is not live: `ANTHROPIC_API_KEY` is not set in Vercel. | ROADMAP | Open (founder to-do) |
 | F9 | **Suspected, unverified.** The `staff_update_own` policy lets a staff member update their own staff row with no column limits (condition and check are only `email = auth.email()`). If it works, a staff member could change their own `role` or `school_id`, escalating privileges or reaching another school. Function definition reviewed 2026-10-11: `get_staff_school_id()` returns the school from the caller's own staff row (`select school_id from staff where auth_user_id = auth.uid()`), so rewriting that row's `school_id` would redirect all of their staff access. Chained with F8 (school ids are public) and open self-signup (any customer admin can create a staff row with their own email), this would let any customer read any school. **CONFIRMED exploitable on 2026-10-11** by `npm run test:staff-escalation`: school B rewrote its own staff row to point at school A, `get_staff_school_id()` then returned school A, and B read A's students. Fix prepared in `db/migrations/001_fix_staff_self_update.sql`: a narrow `link_staff_account()` function that can only set `auth_user_id`, a trigger that forbids changing `school_id` on staff rows, and removal of `staff_update_own`; plus the matching change in `useSchool.js`. | Policy review + test | **Fixed and verified 2026-10-11:** SQL applied; retest says blocked (database error "staff.school_id cannot be changed"). Code change in `useSchool.js` committed, push pending. |
+| F12 | **Found by the first traces.** For a "how many" question the model receives every row of the tool result (33 cohort rows, ~4,000 tokens) though it needs only the count; it scales with school size. Fix belongs to item 16: return the count or only the needed fields. | Item 2 traces | Open — item 16 |
+| F13 | Traces can contain a student's name in the stored question text, and retention is manual (admins can delete). Off-switch added (`TRACE_STORE_QUESTION=false`); automatic retention not built. | Item 2 | Open — decide before real schools use it |
 | F10 | Policies are granted to role `public` instead of `authenticated`; safe only because `auth.uid()` is empty for anonymous callers. | Policy review | Open — hygiene |
 | F11 | Staff can read `campaigns` (fundraising); probably unintended. | Policy review | Open — low |
 | F8 | **Found by the first isolation run.** The `schools` table can be read by anyone without logging in (3 rows returned). This is almost certainly deliberate: the public application form (`ApplicationPortal.jsx`) reads the school's name, logo, colour, motto and divisions. But row-level rules can't limit *columns*, so the same access likely exposes every column of every school (address, phone, principal, capacity) plus each school's tenant id (which is its admin's login id). **Confirmed by the policy review** (rule "Public can read schools": role `anon`, command SELECT, condition `true`). Likely fix: remove public read on the table and have the form call a small database function that returns only the five fields for one school. Related to F5 (public form as an attack surface). | Isolation test run | **Fix prepared** (`db/migrations/002_close_public_schools_read.sql` + `ApplicationPortal.jsx`): a function returns only the 5 displayed fields for one school; the public table read is removed. **Applied, pushed and verified 2026-10-11** (isolation test: 88 passed, 0 failed). |
