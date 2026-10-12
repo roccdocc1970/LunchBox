@@ -37,6 +37,7 @@ const TABLES = [
   ['cohorts', 'school_id'], ['cohort_students', 'school_id'], ['cohort_classes', 'school_id'],
   ['periods', 'school_id'], ['classes', 'school_id'], ['class_sections', 'school_id'],
   ['class_enrollments', 'school_id'], ['agent_traces', 'school_id'],
+  ['audit_log', 'school_id'],
 ]
 
 const results = []

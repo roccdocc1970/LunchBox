@@ -25,6 +25,21 @@ export default async function handler(req, res) {
 
   try {
     const result = await tool.run(supabase, schoolId, input || {})
+
+    // Accountability: record that a human approved this agent-proposed change. The database
+    // trigger separately records what actually changed. Only ids and enum values go in the
+    // summary — never free text such as an incident description. Never blocks the action.
+    try {
+      const safe = {}
+      for (const key of ['status', 'type']) if (input?.[key]) safe[key] = input[key]
+      const { error: auditError } = await supabase.rpc('record_agent_approval', {
+        p_tool: toolName, p_target: input?.studentId || null, p_summary: safe,
+      })
+      if (auditError) console.error('audit approval not recorded:', auditError.message)
+    } catch (auditErr) {
+      console.error('audit approval not recorded:', auditErr.message)
+    }
+
     return res.status(200).json({ ok: true, result })
   } catch (err) {
     return res.status(500).json({ error: err.message })
