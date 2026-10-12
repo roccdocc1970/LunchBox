@@ -36,7 +36,7 @@ const TABLES = [
   ['work_orders', 'school_id'], ['rooms', 'school_id'], ['buildings', 'school_id'],
   ['cohorts', 'school_id'], ['cohort_students', 'school_id'], ['cohort_classes', 'school_id'],
   ['periods', 'school_id'], ['classes', 'school_id'], ['class_sections', 'school_id'],
-  ['class_enrollments', 'school_id'],
+  ['class_enrollments', 'school_id'], ['agent_traces', 'school_id'],
 ]
 
 const results = []

@@ -13,6 +13,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { supabaseFromRequest } from '../_lib/supabaseFromRequest.js'
 import { getSchoolContext } from '../_lib/getSchoolContext.js'
 import { READ_TOOLS, WRITE_TOOLS, NAVIGATE_TOOLS, allToolSchemas } from '../_lib/tools.js'
+import { startTrace } from '../_lib/trace.js'
 
 // Built lazily (inside the handler, not here at module load) so it reads
 // ANTHROPIC_API_KEY at request time. In local dev, ES module imports are
@@ -67,6 +68,7 @@ function addUsage(total, u = {}) {
 }
 
 const MAX_TURNS = 8
+const MODEL = 'claude-sonnet-5'
 
 // The system prompt and tool definitions are identical on every call in the
 // loop (and across separate messages in the same session) — marking them
@@ -84,10 +86,10 @@ function cachedTools() {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  let supabase, schoolId, isStaff, role
+  let supabase, userId, schoolId, isStaff, role
   try {
     supabase = supabaseFromRequest(req)
-    ;({ schoolId, isStaff, role } = await getSchoolContext(supabase))
+    ;({ userId, schoolId, isStaff, role } = await getSchoolContext(supabase))
   } catch (err) {
     return res.status(err.status || 500).json({ error: err.message })
   }
@@ -102,10 +104,19 @@ export default async function handler(req, res) {
   const conversation = [...messages]
   const usage = { calls: 0, input_tokens: 0, output_tokens: 0, cache_read_tokens: 0, cache_creation_tokens: 0 }
 
+  // One trace per request (metadata only — see api/_lib/trace.js). It is saved just before
+  // every response, so even failed requests leave a record.
+  const trace = startTrace({ supabase, schoolId, userId, model: MODEL, messages })
+  const respond = async (status, body, outcome, errorMessage) => {
+    await trace.save(outcome, usage, errorMessage)
+    return res.status(status).json(body)
+  }
+
   try {
     for (let turn = 0; turn < MAX_TURNS; turn++) {
+      const modelStart = Date.now()
       const response = await getAnthropicClient().messages.create({
-        model: 'claude-sonnet-5',
+        model: MODEL,
         max_tokens: 1500,
         system: CACHED_SYSTEM,
         tools: cachedTools(),
@@ -113,12 +124,17 @@ export default async function handler(req, res) {
       })
 
       addUsage(usage, response.usage)
+      trace.step({
+        type: 'model', turn: turn + 1, ms: Date.now() - modelStart, stop_reason: response.stop_reason,
+        input_tokens: response.usage?.input_tokens || 0, output_tokens: response.usage?.output_tokens || 0,
+        cache_read_tokens: response.usage?.cache_read_input_tokens || 0, cache_write_tokens: response.usage?.cache_creation_input_tokens || 0,
+      })
 
       const toolUses = response.content.filter(b => b.type === 'tool_use')
 
       if (toolUses.length === 0) {
         const text = response.content.filter(b => b.type === 'text').map(b => b.text).join('\n')
-        return res.status(200).json({ reply: text, view: null, usage })
+        return respond(200, { reply: text, view: null, usage }, 'reply')
       }
 
       const shortCircuit = toolUses.find(tu =>
@@ -128,41 +144,53 @@ export default async function handler(req, res) {
       )
 
       if (shortCircuit) {
+        trace.step({ type: 'final', name: shortCircuit.name })
         if (shortCircuit.name === 'render_view') {
           const { reply, template, data } = shortCircuit.input
-          return res.status(200).json({ reply, view: template && template !== 'none' ? { template, data } : null, usage })
+          return respond(200, { reply, view: template && template !== 'none' ? { template, data } : null, usage }, 'view')
         }
         if (WRITE_TOOLS.some(t => t.name === shortCircuit.name)) {
-          return res.status(200).json({
+          return respond(200, {
             reply: `I'd like to ${shortCircuit.name.replace(/_/g, ' ')} — take a look and confirm.`,
             pendingAction: { tool: shortCircuit.name, input: shortCircuit.input },
             usage,
-          })
+          }, 'pending_action')
         }
-        return res.status(200).json({
+        return respond(200, {
           reply: `Opening that for you.`,
           navigate: { tool: shortCircuit.name, input: shortCircuit.input },
           usage,
-        })
+        }, 'navigate')
       }
 
       conversation.push({ role: 'assistant', content: response.content })
       const toolResults = await Promise.all(toolUses.map(async (tu) => {
         const tool = readByName[tu.name]
-        if (!tool) return { type: 'tool_result', tool_use_id: tu.id, content: 'Unknown tool', is_error: true }
+        const toolStart = Date.now()
+        const argNames = Object.keys(tu.input || {}) // names only — values may identify a student
+        if (!tool) {
+          trace.step({ type: 'tool', name: tu.name, ms: 0, args: argNames, error: true })
+          return { type: 'tool_result', tool_use_id: tu.id, content: 'Unknown tool', is_error: true }
+        }
         try {
           const result = await tool.run(supabase, schoolId, tu.input, ctx)
           const payload = withCounts(result)
-          return { type: 'tool_result', tool_use_id: tu.id, content: JSON.stringify(payload) }
+          const content = JSON.stringify(payload)
+          trace.step({
+            type: 'tool', name: tu.name, ms: Date.now() - toolStart, args: argNames,
+            result_rows: Array.isArray(result) ? result.length : null, result_bytes: content.length,
+          })
+          return { type: 'tool_result', tool_use_id: tu.id, content }
         } catch (err) {
+          trace.step({ type: 'tool', name: tu.name, ms: Date.now() - toolStart, args: argNames, error: true })
           return { type: 'tool_result', tool_use_id: tu.id, content: err.message, is_error: true }
         }
       }))
       conversation.push({ role: 'user', content: toolResults })
     }
 
-    return res.status(200).json({ reply: "I wasn't able to finish that — try rephrasing or asking something narrower.", view: null, usage })
+    return respond(200, { reply: "I wasn't able to finish that — try rephrasing or asking something narrower.", view: null, usage }, 'max_turns')
   } catch (err) {
-    return res.status(500).json({ error: err.message })
+    return respond(500, { error: err.message }, 'error', err.message)
   }
 }
