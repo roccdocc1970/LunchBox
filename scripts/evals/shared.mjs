@@ -20,4 +20,4 @@ export function matches(expected, reply) {
  * understanding — it can be fooled either way. A better grader (a model judging the reply against a
  * rubric) is roadmap item 22.
  */
-export const DECLINE = /(can't|cannot|can not|unable|don't have|do not have|no (tool|data|information|access|way)|not (able|available|something i|designed|supported)|isn't (something|available|supported)|outside (of )?(what|my|the)|sorry|don't (support|offer|track)|doesn't (support|offer)|can only|only (able|support)|(isn't|aren't|is not|are not) (data|part of|something|available|included|supported)|not part of)/i
+export const DECLINE = /(can't|cannot|can not|unable|don't have|do not have|no (tool|data|information|access|way)|not (able|available|something i|designed|supported)|isn't (something|available|supported)|outside (of )?(what|my|the)|sorry|don't (support|offer|track)|doesn't (support|offer)|can only|only (able|support)|(isn't|aren't|is not|are not) (data|part of|something|available|included|supported)|not part of|couldn't find|could not find|no [a-z ]{0,25}(data|information) (is|are)? ?(available|on file))/i
