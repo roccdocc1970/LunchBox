@@ -39,6 +39,12 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - Compare the steps. The first traces showed the model calls were similar; what made one request expensive was the size of the tool result fed into the next call (33 rows vs 4).
 - Traces hold metadata, not payloads, and live in an RLS-protected table. The question text can still contain a student's name, so it has an off-switch.
 
+**Item 15 — Audit log and guardrails** *(built 2026-10-11; understanding check pending)*
+- An audit log is a permanent record of who changed what and who approved agent-proposed changes — for accountability, not debugging; a trace cannot do this job.
+- Two layers: database triggers on sensitive tables (every change, any path) and an approval record written at the confirm endpoint (the "why").
+- Append-only is enforced inside the database; nobody writes it through the API; only the school's admin reads it.
+- Audit only high-risk tables — logging everything is noisy, slow and a second copy of the database. Reads are not audited yet (F17).
+
 *(Each later item adds its own 2–5 line summary here when its chapter is written.)*
 
 ## Contents
@@ -498,6 +504,59 @@ It is application performance monitoring (the Dynatrace/Splunk idea) applied to 
 
 **OpenTelemetry** is a vendor-neutral industry standard for tracing that many AI-observability tools build on; the custom `agent_traces` table is simpler but not that standard. Whether to adopt it depends on how much tooling will be plugged in later — check current options first.
 
+## Item 15 — Audit log and guardrails
+
+*Concept discussed and built 2026-10-11. Primer: `docs/agentic-learning/concepts.md`. Design note: `docs/agentic-learning/15-audit-log.md`.*
+
+### In brief
+- An audit log is a permanent record of who changed what, and which agent-proposed changes a human approved. Its readers are admins, auditors and regulators — it is for accountability, not debugging.
+- Two layers: database triggers on sensitive tables (every change, from any path: screens, chat, MCP) and an approval record written when a human confirms an agent proposal (the "why").
+- The log is append-only enforced inside the database, nobody can write it through the API, and only a school's admin can read it.
+- Only high-risk tables are audited: logging everything is noisy, slow, and makes a second copy of the whole database.
+
+### 15.1 Why a trace cannot do this job
+A parent asks, "Who moved my child to the waitlist last week?" A trace cannot answer: it holds metadata for engineers, has no before/after values, never sees the approval click (that goes to a different endpoint, `execute.js`, which tracing does not cover), and traces can be deleted or have their question text switched off. An accountability record can be none of those.
+
+### 15.2 The design decision: where to capture
+Not every change goes through chat: an admin editing a student in the normal screens writes straight to the database. So there are two layers, and both were built:
+- **B — database triggers:** record *what changed and who did it*, for every path, with old and new values. Changes with no signed-in user (MCP server, SQL editor) are marked "service".
+- **A — agent approval record:** `record_agent_approval()` is called by the confirm endpoint after a human approves an agent-proposed change, recording *why* (this was proposed by the agent and approved by this person). The actor and school come from the caller's own login on the server side, so an entry cannot be written in another's name; the summary carries only ids and enum values, never free text.
+
+### 15.3 What was built
+`db/migrations/004_audit_log.sql`: the `audit_log` table (no foreign keys, so deleting a user or school never deletes history; admin-only read; no INSERT/UPDATE/DELETE privilege for any API role); a trigger that blocks UPDATE, DELETE and TRUNCATE even for the table owner; the row-change function (SECURITY DEFINER with a pinned search_path); triggers on students, parents, staff, incidents, student_health, student_health_entries, report_cards and donations; and `record_agent_approval()`. Plus `npm run audit` (viewer) and `npm run test:audit`.
+
+### 15.4 Why not every table
+1. **Volume and noise:** attendance is written daily and bulk enrollments write hundreds of rows; auditors cannot find the important events in a flood.
+2. **A second copy of the database:** the log stores old and new values; logging every table duplicates all the data into something that also needs protecting and retaining.
+3. **Performance:** every audited write adds a write; bulk operations like the auto-scheduler would slow noticeably.
+4. **Risk tiers:** status, roles, health, grades and money are the "who changed this?" tables; room names and schedule slots rarely are. To audit another table later: add its name to the list in the migration and re-run that block (it needs `id` and `school_id`).
+
+### 15.5 Results (2026-10-11)
+- `npm run test:audit`: **13 of 13 passed** — insert, update and delete each recorded with the right actor and old/new values; school B cannot read school A's log; direct insert, edit and delete of log entries are refused; agent-approval entries are always attributed to the caller and their own school.
+- `npm run test:isolation`: **92 passed, 0 failed, 1 vacuous** (`report_cards` has no rows in school A), now covering both `agent_traces` and `audit_log`.
+
+### 15.6 Trade-offs and limits
+- **The log holds sensitive data** (old/new values, and the trigger copies whole rows on insert/delete, including free text such as incident descriptions), so it is protected like the tables it watches: admin-only, append-only, no foreign keys. Retention is not defined yet (finding F15).
+- **It fails closed:** the trigger runs inside the audited write, so a bug in it would block writes to those tables (accepted; tested; no alerting yet — F16).
+- **Reads are not audited:** it records changes, not who *viewed* a record (for example a health record). Some regulations expect access logging for health data (F17).
+
+### 15.7 Baseline vs target
+| Area | Baseline (LunchBox today) | Target (best practice) | Decision |
+|---|---|---|---|
+| Coverage | 8 sensitive tables, all paths | Tables chosen by risk review; reviewed regularly | Extend as needed |
+| Reads | Not recorded | Access logging for health and other highly sensitive data | Open (F17) |
+| Retention | Not defined (append-only blocks deletion) | Defined period per legal requirements, with a deliberate expiry procedure | Open (F15) |
+| Tamper resistance | Append-only enforced in the database; admin cannot edit | Plus export or hash-chaining to protect against a database owner | Later |
+| Failure handling | Fails closed; no alert | Alert on audit failures | Open (F16) |
+| Who can read | School admin only | Admin plus a named auditor role | Later |
+| Agent link | Approval record for confirmed chat writes | Link each approval to the trace of the request that proposed it | Later |
+
+### 15.8 The four review questions applied to the audit log
+1. *What is it for?* Answering "who changed what, when, and who approved the agent's proposal."
+2. *What can it touch?* It reads every change to eight tables (including old and new values of sensitive fields) and writes only to its own table.
+3. *What happens when it fails?* It fails closed: the audited write is refused. The cost of a bug is blocked updates, not silent loss of history.
+4. *How would you know it works?* `npm run test:audit` (13 checks), plus `npm run audit` after a real change on screen.
+
 ---
 
 # Part 3 — Findings & open questions
@@ -511,6 +570,9 @@ It is application performance monitoring (the Dynatrace/Splunk idea) applied to 
 | F5 | `submit_public_inquiry` is callable without login by design; it can create records in a school identified by its public id (spam / free-text injection vector). Definition reviewed 2026-10-11: no rate limit and no input length limits; it attaches the new student to an existing parent when the email matches, so someone who knows a parent's email can add fake records under that family; the free-text `notes` flows into records the chat agent later reads. | CLAUDE.md schema notes | Open — consider rate limiting; relevant to prompt injection (item 3) |
 | F6 | Production chat is not live: `ANTHROPIC_API_KEY` is not set in Vercel. | ROADMAP | Open (founder to-do) |
 | F9 | **Suspected, unverified.** The `staff_update_own` policy lets a staff member update their own staff row with no column limits (condition and check are only `email = auth.email()`). If it works, a staff member could change their own `role` or `school_id`, escalating privileges or reaching another school. Function definition reviewed 2026-10-11: `get_staff_school_id()` returns the school from the caller's own staff row (`select school_id from staff where auth_user_id = auth.uid()`), so rewriting that row's `school_id` would redirect all of their staff access. Chained with F8 (school ids are public) and open self-signup (any customer admin can create a staff row with their own email), this would let any customer read any school. **CONFIRMED exploitable on 2026-10-11** by `npm run test:staff-escalation`: school B rewrote its own staff row to point at school A, `get_staff_school_id()` then returned school A, and B read A's students. Fix prepared in `db/migrations/001_fix_staff_self_update.sql`: a narrow `link_staff_account()` function that can only set `auth_user_id`, a trigger that forbids changing `school_id` on staff rows, and removal of `staff_update_own`; plus the matching change in `useSchool.js`. | Policy review + test | **Fixed and verified 2026-10-11:** SQL applied; retest says blocked (database error "staff.school_id cannot be changed"). Code change in `useSchool.js` committed, push pending. |
+| F15 | The audit log is append-only (deletion is blocked even for the owner) and has no retention procedure; legal retention periods vary. Needs a deliberate, controlled expiry procedure before it grows unbounded or real schools use it. | Item 15 | Open |
+| F16 | The audit trigger runs inside every write to the eight audited tables and fails closed: a bug would block those writes, and nothing alerts on audit failures. | Item 15 | Open — accepted trade-off; add alerting later |
+| F17 | Reads are not audited — only changes. Who *viewed* a health record is not recorded, and at the database level every staff member can read health data (F1). Some regulations expect access logging for health data. | Item 15 | Open |
 | F14 | The model call is made directly with the Anthropic SDK inside the chat handler, so evals and tracing are tied to one vendor at that seam (token field names, stop reasons, cache accounting). A small adapter returning one common shape would make both portable. | Evals/tracing discussion | Open — design, not urgent |
 | F12 | **Found by the first traces.** For a "how many" question the model receives every row of the tool result (33 cohort rows, ~4,000 tokens) though it needs only the count; it scales with school size. Fix belongs to item 16: return the count or only the needed fields. | Item 2 traces | Open — item 16 |
 | F13 | Traces can contain a student's name in the stored question text, and retention is manual (admins can delete). Off-switch added (`TRACE_STORE_QUESTION=false`); automatic retention not built. | Item 2 | Open — decide before real schools use it |
