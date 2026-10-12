@@ -39,7 +39,7 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - Compare the steps. The first traces showed the model calls were similar; what made one request expensive was the size of the tool result fed into the next call (33 rows vs 4).
 - Traces hold metadata, not payloads, and live in an RLS-protected table. The question text can still contain a student's name, so it has an off-switch.
 
-**Item 15 — Audit log and guardrails** *(built 2026-10-11; understanding check passed; on-screen edit check pending)*
+**Item 15 — Audit log and guardrails** *(done 2026-10-11)*
 - An audit log is a permanent record of who changed what and who approved agent-proposed changes — for accountability, not debugging; a trace cannot do this job.
 - Two layers: database triggers on sensitive tables (every change, any path) and an approval record written at the confirm endpoint (the "why").
 - Append-only is enforced inside the database; nobody writes it through the API; only the school's admin reads it.
@@ -556,6 +556,9 @@ Not every change goes through chat: an admin editing a student in the normal scr
 2. *What can it touch?* It reads every change to eight tables (including old and new values of sensitive fields) and writes only to its own table.
 3. *What happens when it fails?* It fails closed: the audited write is refused. The cost of a bug is blocked updates, not silent loss of history.
 4. *How would you know it works?* `npm run test:audit` (13 checks), plus `npm run audit` after a real change on screen.
+
+### 15.8a On-screen verification (2026-10-11)
+After the test script, a change made through the normal app screens (an incident created at 9:03 PM by the admin login, with no matching agent-approval entry) appeared in `npm run audit` as an INSERT on `incidents` — confirming the triggers capture screen changes, not only scripted ones. The log also kept the earlier test sequence (INSERT, UPDATE with `status: "Open" → "Resolved"`, DELETE) in order.
 
 ### 15.9 The understanding check (preserved)
 1. *Why both layers?* — **Your answer:** the trigger records what occurred when an action is taken on the defined tables; the approval captures the authorization for auditing — the first answers what, the second who. **Assessment:** right idea; one correction: the trigger answers *what changed and who did it* (it records the signed-in user and the old/new values); the approval record adds the *origin* — "the agent proposed this and this person authorized it." Without it, a change made by confirming an agent proposal looks identical to the same person editing by hand; without the trigger, every change made on screen would be missed.
