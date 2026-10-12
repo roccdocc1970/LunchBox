@@ -653,6 +653,16 @@ It means the agent resisted these attack classes, in these forms, including thro
 
 **How to evaluate it:** the current attack set already passes 100%, so it cannot show any benefit. First add harder attacks (spoofed closing tags, authority claims, notes as the focus of the question, name-field injection), measure without labels, add the labels, measure again. Containment remains the primary defense. Tracked under F18.
 
+### 3.9 A follow-up idea: structured input with per-field handling
+*(Raised 2026-10-11: "shouldn't model inputs be more structured than a list of characters — a light JSON form that can be keyed for injection-risk handling?")*
+
+- **Structure already exists:** the model API separates roles (system prompt, user message, tool results) and LunchBox tool results are already JSON. What is missing is *using* the structure for control.
+- **Where structure pays off is in our code, before the model:** per field, decide to **drop** it (strongest — text never sent cannot inject), **label** it untrusted, **truncate** it, or **strip** tag-like text. This is control in our pipeline, not a guarantee inside the model.
+- **What structure cannot do:** make the model honor it. To the model, JSON keys are just more text; a malicious value can still contain persuasive words or try to break out of its own string.
+- **Synergy with the token-saving step:** sending only the fields a question needs is also an attack-surface reduction. One change cuts cost *and* risk.
+- **Stronger pattern — quarantine (dual-LLM):** a separate model with no tools and no authority reads the untrusted free text and returns only a tightly constrained structured result (a short enum or a few fields); the privileged agent sees only that. Described from memory; check current sources.
+- **Cost note:** JSON overhead (repeated keys) is real but modest; trimming fields saves far more than changing the format.
+
 ---
 
 # Part 3 — Findings & open questions
