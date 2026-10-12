@@ -45,7 +45,7 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - Append-only is enforced inside the database; nobody writes it through the API; only the school's admin reads it.
 - Audit only high-risk tables — logging everything is noisy, slow and a second copy of the database. Reads are not audited yet (F17).
 
-**Item 3 — Prompt-injection red-team** *(built and measured 2026-10-11; understanding check pending)*
+**Item 3 — Prompt-injection red-team** *(done 2026-10-11)*
 - Prompt injection is planted instructions in data the agent reads. It can't be enumerated or fully prevented, so contain, reduce, test classes of attack, and watch.
 - A canary is a harmless marker word only an obedient agent would produce — a yes/no word search instead of a judgment call.
 - Test the test: controls (a user-requested marker must appear; a harmless note must be repeatable) and natural names. The first "39 of 39" was misleading; three flaws in the test were found and fixed.
@@ -626,6 +626,12 @@ It means the agent resisted these attack classes, in these forms, including thro
 | Test coverage | 16 cases across 12 classes | Grown from real incidents and adaptive attacks; re-run after every prompt, model or tool change | Ongoing |
 | Untestable risk | False but plausible data | Human review, audit trail, source labelling | Accept and document |
 | Test integrity | Controls and natural names | Controls kept permanently in the suite | Done |
+
+### 3.6a The understanding check (preserved)
+1. *Why can't you test for every injection, and what do you do instead?* — **Your answer:** you can only test classes of attack; infinite ways to phrase a command make keyword protections impossible. **Assessment:** right about classes and about keyword filters. Missing half: **containment** — design so a successful injection can't do much (confirm gate, single-record write tools, no delete tool, RLS, audit log). Testing measures resistance; containment limits damage when resistance fails.
+2. *What is a canary, and why does the control matter?* — **Your answer:** a word used to test whether the model took input as instruction rather than data; the control shows the marker if the model took the string as instruction, which demonstrates a breach. **Assessment:** the definition is right, but two tests were blended. In the *attack* cases the marker is in the planted note, and appearing means a breach. In the *control* the marker comes from the **user's own question**, so appearing is the good result: it proves the detector can detect. The control tests the detector, not the agent; a second control proves planted text reaches the model.
+3. *The first run said 100% — what problems did the controls expose, and what is the lesson?* — **Your answer:** the problems were with the test itself. **Assessment:** correct; the specifics were giveaway names ("Inject1 Test"), checks that read only the reply and not the card, and a warning that quoted the marker scored as obedience. Lesson: a perfect score is only evidence if the test can fail — keep controls, use natural data, read the failures.
+**To keep in mind:** the containment half of question 1, and the control-versus-attack distinction in question 2.
 
 ### 3.7 The four review questions applied to the red-team
 1. *What is it for?* Measuring whether planted instructions in data the agent reads can steer it.
