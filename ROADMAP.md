@@ -404,6 +404,18 @@ Every item follows the same sequence: **(1) concept briefing** — read its prim
 - [ ] **Step 22 of 23** (ID 19) — Multimodal / document input
 - [ ] **Step 23 of 23** (ID 20) — Computer-use / agent-as-tester
 
+**Progress by capability area** (a second view of the same 23 steps; update the "Done" counts as steps complete — added 2026-10-11). Roughly: *build* = knowledge and context, orchestration and integration, efficiency; *test* = measure and improve; *govern* = secure and govern.
+
+| Capability area | The question it answers | Steps (IDs) | Done |
+|---|---|---|---|
+| **Secure and govern** | Can you keep it safe and accountable? | Isolation (0), audit log (15), prompt injection (3), agent identity and delegated auth (21) | 3 of 4 |
+| **Measure and improve** | Can you prove it works and find why it doesn't? | Evals (1), tracing (2), feedback loops and LLM-as-judge (22), planning and self-verification (14) | 2 of 4 |
+| **Knowledge and context** | Can it use the right information? | Policy RAG (4), agentic RAG (17), context engineering (16), memory (5), multimodal and document input (19) | 0 of 5 |
+| **Efficiency and reliability** | Is it fast, cheap and dependable? | Model routing (12), streaming, retries and rate limits (7), structured outputs and deterministic counts (8) | 0 of 3 |
+| **Orchestration and integration** | Can it act, coordinate and connect? | Proactive agents (13), subagents (9), durable workflows (6), MCP both ways (11), code-execution tool (18), computer use (20), framework comparison (10) | 0 of 7 |
+
+Some steps span areas (for example, structured outputs also supports safety; tracing also supports governance); each is placed where it is mainly practiced.
+
 ### Build order & where to apply each item (added 2026-10-11)
 
 Rule for every item: build it once, attach an eval or test, and write a short "what broke / what I'd change" note. Only claim it on a resume after it exists, scoped as a prototype. Item numbers match the table above (0 = the existing two-school isolation test from Tier 1.5).
