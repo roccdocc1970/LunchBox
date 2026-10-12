@@ -33,7 +33,7 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - The concepts are vendor-agnostic; API formats, caching, prices and which prompt wording works are vendor-specific. Evals are how you switch models safely.
 - A good score is not permanent: pin the exact model version, re-run the suite after every change, run a small scheduled canary set, and add a case for every production failure.
 
-**Item 2 — Tracing** *(built 2026-10-11; understanding check pending)*
+**Item 2 — Tracing** *(done 2026-10-11)*
 - A trace is the recorded story of one request: every model and tool call, with timing, tokens and result sizes.
 - An eval says *that* something went wrong; a trace shows *where*, and it is where cost per request comes from.
 - Compare the steps. The first traces showed the model calls were similar; what made one request expensive was the size of the tool result fed into the next call (33 rows vs 4).
@@ -479,6 +479,11 @@ It is application performance monitoring (the Dynatrace/Splunk idea) applied to 
 2. *What can it touch?* It writes one row per request to `agent_traces` through the caller's own database client; it never reads other tables or stores tool results.
 3. *What happens when it fails?* Nothing visible: a failed save is swallowed so a chat request is never broken; the cost is a missing trace.
 4. *How would you know it works?* Run a request, then `npm run traces -- --steps`; and `npm run test:isolation` confirms schools cannot see each other's traces.
+
+### 2.7 The understanding check (preserved)
+1. *How is a trace different from an eval, and when would you use each?* — **Your answer:** a trace records time and cost, an eval logs what went wrong; they complement each other for different responses. **Assessment:** the core idea is right. Corrections: a trace records the full story of every real request (steps, timing, tokens, tool calls, errors), not only time and cost; an eval is a deliberate test with known answers scored for correctness, run before and after changes. An eval tells you *that* something is wrong; a trace tells you *where*.
+2. *Why store argument names and result sizes but not the data?* — **Your answer:** to secure the data. **Assessment:** right. Fuller reason: data never stored cannot leak; traces holding results would be a second copy of student records needing the same protections and retention, and debugging doesn't need the data — sizes and counts tell what happened.
+3. *What made the cohort question's second call expensive, and how would you reduce it?* — **Your answer:** it returned all the data for every row; include only enough to identify the row. **Assessment:** correct. Refinement: for list questions, only the needed fields; for a count question, just the number. The fix lives in the tool's result shaping (item 16), not in the model.
 
 ---
 
