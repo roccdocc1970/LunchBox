@@ -663,6 +663,10 @@ It means the agent resisted these attack classes, in these forms, including thro
 - **Stronger pattern — quarantine (dual-LLM):** a separate model with no tools and no authority reads the untrusted free text and returns only a tightly constrained structured result (a short enum or a few fields); the privileged agent sees only that. Described from memory; check current sources.
 - **Cost note:** JSON overhead (repeated keys) is real but modest; trimming fields saves far more than changing the format.
 
+### 3.10 A follow-up idea: a middleware layer between the tools and the model
+*(Raised 2026-10-11: "a middleware layer that strips out the unneeded stuff before the model ever sees it.")*
+This is the right shape — a *mediation layer* or "data firewall", and LunchBox already has the spot: `withCounts` in `api/chat/index.js` is a one-line version. A proper **result shaper** would: (1) apply **default-deny field lists** per tool (an allow-list is safer than a block-list); (2) do counts and filters **in the database**, not in the model; (3) **cap rows and truncate** long text; (4) **label and neutralize** untrusted text (envelope, strip tag-like text); (5) apply **role-aware trimming** (the health tiers in `get_student_health` are an early example). Benefits: one auditable choke point; plain code, so it is testable offline with no model and no cost; it reduces tokens, attack surface and privacy exposure together. Limits: a list that is too tight can leave the agent unable to answer (the evals are the safety net); pattern-stripping can be bypassed, so minimizing fields comes first; it is one layer, and containment stays primary. Its output-side twin (a guard on links or content going to the screen) is lower priority because the view templates are fixed.
+
 ---
 
 # Part 3 — Findings & open questions
