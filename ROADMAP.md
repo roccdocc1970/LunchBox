@@ -361,31 +361,33 @@ Captured 2026-10-11. LunchBox is a **learning vehicle** for agentic AI engineeri
 
 ### Progress tracker (update as each item completes)
 
+**Numbering:** **Step n of 23** is the *build order* — what to do next. **(ID k)** is the original concept number used in the primers (`concepts.md`), the Architecture Guide chapters and the design notes (there are 22 concepts plus the isolation test as ID 0, so 23 steps). Always go by the Step number for "what's next."
+
 Every item follows the same sequence: **(1) concept briefing** — read its primer in `docs/agentic-learning/concepts.md` and answer its explain-back question to Claude in your own words *before any building*; **(2) build**; **(3) test or eval**; **(4) design note**; **(5) preserve** — the full concept explanation, including the explain-back exchange and corrections, is added as a chapter in `docs/architecture/ARCHITECTURE_GUIDE.md`, together with a 2–5 line "In brief" summary that is also added to the Quick summaries cheat sheet at the top of that Guide. An item is **done** only when it is built, has a test or eval, has its design note in `docs/agentic-learning/` (template in that folder's README), and its chapter is in the Architecture Guide. Legend: `[ ]` not started · `[~]` in progress · `[x]` done.
 
-- [x] 0 — Two-school isolation test **DONE 2026-10-11** (88 pass / 0 fail / 1 vacuous; F8 and F9 found, fixed, re-tested; design note `docs/agentic-learning/00-isolation-test.md`; open findings carried forward: F1, F4, F5, F7, F10, F11). History: *(concept check passed 2026-10-11; first run 2026-10-11 via `npm run test:isolation`: 87 pass / 1 fail / 1 vacuous. **F9 staff-row escalation was confirmed, then fixed and retested as blocked 2026-10-11** (`db/migrations/001_fix_staff_self_update.sql`; `useSchool.js` push pending). Open: public read of `schools` (F8); re-run both tests after fixes; A→B direction; report_cards seed data; design note)*
-- [x] 1 — Evals **DONE 2026-10-11** (29 cases in 7 behavior categories; full suite 57/58, the one miss a grader error; scheduling behavior 80% → 20/20 after a targeted prompt fix; per-category pass targets; design note `docs/agentic-learning/01-evals.md`; deferred to later items: model-based grader (22), tracing/cost logging (2), staff-role cases). History: *(concept done 2026-10-11; `npm run evals` built: tool checks + model phase; basic set 12/12 (too easy); hard set 16/17 — one real gap: agent explained the Scheduling screen but did not open it (nav_scheduling). Next: baseline with repeats, tighten prompt, re-run, design note)*
-- [x] 2 — Tracing **DONE 2026-10-11** (per-request traces in an RLS-protected table, `npm run traces`, isolation test 90/91, design note `docs/agentic-learning/02-tracing.md`; open: F12 count questions receive all rows → item 16, F13 question text may contain names / manual retention). History: *(built and verified 2026-10-11: `agent_traces` table + handler tracing + `npm run traces`; isolation test 90/91; design note `docs/agentic-learning/02-tracing.md`; understanding check pending; findings F12 (count questions receive all rows → item 16) and F13 (question text may contain names; retention manual))*
-- [x] 15 — Audit log & guardrails **DONE 2026-10-11** (append-only `audit_log`; triggers on 8 sensitive tables record every path incl. an on-screen change; agent-approval record; audit test 13/13; isolation 92/93; understanding check passed; design note `docs/agentic-learning/15-audit-log.md`; open: F15 retention, F16 fail-closed/no alerting, F17 reads not audited). History: *(built and tested 2026-10-11: append-only `audit_log`, triggers on 8 sensitive tables, agent-approval record, `npm run audit` / `test:audit`; audit test 13/13, isolation 92/93; design note `docs/agentic-learning/15-audit-log.md`; pending: understanding check and a real on-screen edit check; open findings F15 retention, F16 fail-closed/no alerting, F17 reads not audited)*
-- [ ] 3 — Prompt-injection red-team
-- [ ] 12 — Model routing
-- [ ] 4 — Policy RAG
-- [ ] 17 — Agentic RAG & retrieval quality
-- [ ] 8 — Structured outputs / deterministic counts
-- [ ] 22 — Feedback loops & LLM-as-judge
-- [ ] 13 — Proactive agents
-- [ ] 14 — Planning & self-verification
-- [ ] 5 — Memory & persistence
-- [ ] 7 — Streaming, retries, rate limits
-- [ ] 16 — Context engineering
-- [ ] 9 — Subagents / multi-agent
-- [ ] 10 — Framework comparison
-- [ ] 6 — Durable multi-step workflows
-- [ ] 11 — MCP both ways
-- [ ] 21 — Agent identity & delegated auth
-- [ ] 18 — Code-execution tool
-- [ ] 19 — Multimodal / document input
-- [ ] 20 — Computer-use / agent-as-tester
+- [x] **Step 1 of 23** (ID 0) — Two-school isolation test **DONE 2026-10-11** (88 pass / 0 fail / 1 vacuous; F8 and F9 found, fixed, re-tested; design note `docs/agentic-learning/00-isolation-test.md`; open findings carried forward: F1, F4, F5, F7, F10, F11). History: *(concept check passed 2026-10-11; first run 2026-10-11 via `npm run test:isolation`: 87 pass / 1 fail / 1 vacuous. **F9 staff-row escalation was confirmed, then fixed and retested as blocked 2026-10-11** (`db/migrations/001_fix_staff_self_update.sql`; `useSchool.js` push pending). Open: public read of `schools` (F8); re-run both tests after fixes; A→B direction; report_cards seed data; design note)*
+- [x] **Step 2 of 23** (ID 1) — Evals **DONE 2026-10-11** (29 cases in 7 behavior categories; full suite 57/58, the one miss a grader error; scheduling behavior 80% → 20/20 after a targeted prompt fix; per-category pass targets; design note `docs/agentic-learning/01-evals.md`; deferred to later items: model-based grader (22), tracing/cost logging (2), staff-role cases). History: *(concept done 2026-10-11; `npm run evals` built: tool checks + model phase; basic set 12/12 (too easy); hard set 16/17 — one real gap: agent explained the Scheduling screen but did not open it (nav_scheduling). Next: baseline with repeats, tighten prompt, re-run, design note)*
+- [x] **Step 3 of 23** (ID 2) — Tracing **DONE 2026-10-11** (per-request traces in an RLS-protected table, `npm run traces`, isolation test 90/91, design note `docs/agentic-learning/02-tracing.md`; open: F12 count questions receive all rows → item 16, F13 question text may contain names / manual retention). History: *(built and verified 2026-10-11: `agent_traces` table + handler tracing + `npm run traces`; isolation test 90/91; design note `docs/agentic-learning/02-tracing.md`; understanding check pending; findings F12 (count questions receive all rows → item 16) and F13 (question text may contain names; retention manual))*
+- [x] **Step 4 of 23** (ID 15) — Audit log & guardrails **DONE 2026-10-11** (append-only `audit_log`; triggers on 8 sensitive tables record every path incl. an on-screen change; agent-approval record; audit test 13/13; isolation 92/93; understanding check passed; design note `docs/agentic-learning/15-audit-log.md`; open: F15 retention, F16 fail-closed/no alerting, F17 reads not audited). History: *(built and tested 2026-10-11: append-only `audit_log`, triggers on 8 sensitive tables, agent-approval record, `npm run audit` / `test:audit`; audit test 13/13, isolation 92/93; design note `docs/agentic-learning/15-audit-log.md`; pending: understanding check and a real on-screen edit check; open findings F15 retention, F16 fail-closed/no alerting, F17 reads not audited)*
+- [ ] **Step 5 of 23** (ID 3) — Prompt-injection red-team
+- [ ] **Step 6 of 23** (ID 12) — Model routing
+- [ ] **Step 7 of 23** (ID 4) — Policy RAG
+- [ ] **Step 8 of 23** (ID 17) — Agentic RAG & retrieval quality
+- [ ] **Step 9 of 23** (ID 8) — Structured outputs / deterministic counts
+- [ ] **Step 10 of 23** (ID 22) — Feedback loops & LLM-as-judge
+- [ ] **Step 11 of 23** (ID 13) — Proactive agents
+- [ ] **Step 12 of 23** (ID 14) — Planning & self-verification
+- [ ] **Step 13 of 23** (ID 5) — Memory & persistence
+- [ ] **Step 14 of 23** (ID 7) — Streaming, retries, rate limits
+- [ ] **Step 15 of 23** (ID 16) — Context engineering
+- [ ] **Step 16 of 23** (ID 9) — Subagents / multi-agent
+- [ ] **Step 17 of 23** (ID 10) — Framework comparison
+- [ ] **Step 18 of 23** (ID 6) — Durable multi-step workflows
+- [ ] **Step 19 of 23** (ID 11) — MCP both ways
+- [ ] **Step 20 of 23** (ID 21) — Agent identity & delegated auth
+- [ ] **Step 21 of 23** (ID 18) — Code-execution tool
+- [ ] **Step 22 of 23** (ID 19) — Multimodal / document input
+- [ ] **Step 23 of 23** (ID 20) — Computer-use / agent-as-tester
 
 ### Build order & where to apply each item (added 2026-10-11)
 
