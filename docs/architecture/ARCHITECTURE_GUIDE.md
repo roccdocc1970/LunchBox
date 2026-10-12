@@ -20,12 +20,16 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - The isolation test proves all this. *(Status: done 2026-10-11 — testing found two real holes, both fixed and re-tested; 88 of 89 checks pass, 1 not yet meaningful.)*
 - A green test only covers what it tests: the serious hole (a staff member redirecting their own record to another school) sat in a path the first test never exercised.
 
-**Item 1 — Evals** *(concept done; first 12-question set built, 12/12 pass — too easy to be meaningful; harder set next)*
+**Item 1 — Evals** *(built and measured 2026-10-11; understanding check pending)*
 - An eval is a test for AI answers: questions with known right answers, run automatically, scored as a pass rate.
 - Answers vary run to run, so one pass proves nothing. You need enough different questions and enough repeats.
 - The first evals check facts with exact answers (counts, names), where the right answer comes from a plain database query.
 - Test the tools without the model (free, exact) and the model's reporting with the model (costs tokens).
 - A perfect score on an easy set means the set is too weak, not that the agent is perfect. Cover behaviors (decline, confirm-gated writes, navigation, restricted data), not just more questions.
+- Read the failures before changing a prompt: counting passes says *that* something is wrong; only the transcripts say *why*. A guess-based prompt change did no good; a targeted one took an ~80% behavior to 20/20.
+- Set pass targets by severity (safety checks 100%, convenience about 90%), and re-run the whole suite after any prompt change to catch regressions.
+- Graders can be wrong too: one "failure" was a correct refusal that the keyword check could not recognize.
+- One run proves little: roughly 20 repeats were needed to see an 80% behavior.
 
 *(Each later item adds its own 2–5 line summary here when its chapter is written.)*
 
@@ -368,6 +372,29 @@ There is no magic number; it depends on how small a difference you want to detec
 - **Lesson: read the failures before changing anything.** Counting passes tells you *that* something is wrong; only the transcripts tell you *why*. A change based on a guess can fail, as this one did.
 - **A product decision is encoded in the eval:** for scheduling, open the screen immediately (consistent with "scheduling happens on the real, guarded screen"). Whether a clarifying question is acceptable is the product owner's call; the eval follows that decision.
 - **Second change (replaces the first):** in the system prompt — for scheduling requests do not ask clarifying questions, call `navigate_to_scheduling` right away; and if you say you will open a screen, call the tool in the same turn. Re-measure with 20 repeats against the 16/20 baseline.
+
+### 1.13 Result of the fix, regression check, and a grader that was wrong (2026-10-11)
+- **After the targeted fix: 20/20** on the same 20-repeat test (before: 16/20). If the true rate had still been 80%, 20 passes in a row would happen about 1% of the time, so this is very unlikely to be chance; it also makes mechanical sense (each run used one model call: the agent opened the screen immediately).
+- **Regression check** — the whole suite, basic and hard, 2 repeats (58 runs, 108 model calls): **57/58 correct**. A prompt change can quietly break other behavior, which is why the full suite is re-run after any edit.
+- **The single failure was a false failure.** The agent said "This isn't data I have access to — school budget figures aren't part of the information available through LunchBox's tools…" — a correct refusal. The keyword check did not recognize those words. Graders can be wrong too; the detector was widened with general negation patterns as a stopgap, and a model-based grader against a rubric (item 22) is the real fix. Beware of tuning a grader to each sample it misses (overfitting the grader).
+- **Pass targets by severity are now in the runner:** write and decline categories must reach 100%; everything else 90%. The runner prints a per-category table and exits with a failure if a category is below target.
+
+### 1.14 Baseline vs target
+| Area | Baseline (LunchBox today) | Target (best practice) | Decision |
+|---|---|---|---|
+| Cases | 29 (12 simple counts + 17 across 6 behavior categories), built from live data | Hundreds, curated from real conversations and user feedback | Later (item 22) |
+| Repeats | Chosen by hand (1–20) | Enough per case to detect a meaningful change, set by risk | Partial |
+| Grading | Exact for numbers, actions and database state; keyword heuristic for refusals | Model-graded rubric calibrated against human grades | Planned (item 22) |
+| When run | By hand | Small smoke set on every change; full set nightly or before release | Later |
+| Cost visibility | Tokens printed; dollars worked out by hand from the console balance | Logged per run and attributed per case | Planned (item 2) |
+| Role-restricted behavior | Not tested (needs a staff login) | Cases run as each role | Later |
+| Test data | One school's seed data | Several fixture schools with edge cases (empty tables, ties, duplicate names) | Later |
+
+### 1.15 The four review questions applied to evals
+1. *What is it for?* Measuring whether the agent's behavior got better or worse after any change.
+2. *What can it touch?* It reads the database as a school admin and calls the real chat handler and the model API (spending a prepaid balance); it must not change data (a "proposed" write is verified to change nothing).
+3. *What happens when it fails?* A failing eval can mean a real agent problem, a weak eval, or a wrong grader — read the full replies to tell which. It fails safe: results never alter production data.
+4. *How would you know it works?* Known-answer cases plus ones that must fail (a deliberately wrong answer must score as a failure; checked offline for the scoring helpers).
 
 ---
 
