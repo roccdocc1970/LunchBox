@@ -51,6 +51,17 @@ const option = (name, fallback) => {
 const RUN_MODEL = flag('model')
 const LIST = flag('list')
 const SET = option('set', 'basic') // basic | hard | all
+// --chat-model=<id> runs the whole suite against a different chat model (default: the app's own, claude-sonnet-5).
+if (option('chat-model', '')) process.env.CHAT_MODEL = option('chat-model', '')
+
+// Built-in prices, $ per million tokens, from Anthropic's published pricing (as of 2026-10-06). Cache read = 0.1x and
+// cache write = 1.25x the input price (the standard ratios — verify against the pricing page). Override any run with the
+// EVAL_PRICE_* environment variables. A run on Sonnet 5 priced this way matched the real console cost ($0.21).
+const PRICES = {
+  'claude-sonnet-5': { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 },
+  'claude-sonnet-5-5': { input: 2, output: 10, cacheRead: 0.2, cacheWrite: 2.5 },
+  'claude-haiku-5-5': { input: 0.1, output: 0.5, cacheRead: 0.01, cacheWrite: 0.125 },
+}
 const REPEATS = Math.max(1, parseInt(option('repeats', '1'), 10) || 1)
 const ONLY = option('only', '') ? option('only', '').split(',') : null
 
@@ -164,16 +175,20 @@ async function ask(token, question) {
 
 function priceEstimate(u) {
   const p = n => parseFloat(process.env[n])
-  const inP = p('EVAL_PRICE_INPUT_PER_MTOK'), outP = p('EVAL_PRICE_OUTPUT_PER_MTOK')
-  if (!(inP >= 0) || !(outP >= 0)) return null
-  const readP = p('EVAL_PRICE_CACHE_READ_PER_MTOK') || 0, writeP = p('EVAL_PRICE_CACHE_WRITE_PER_MTOK') || 0
+  let inP = p('EVAL_PRICE_INPUT_PER_MTOK'), outP = p('EVAL_PRICE_OUTPUT_PER_MTOK')
+  let readP = p('EVAL_PRICE_CACHE_READ_PER_MTOK') || 0, writeP = p('EVAL_PRICE_CACHE_WRITE_PER_MTOK') || 0
+  if (!(inP >= 0) || !(outP >= 0)) {
+    const table = PRICES[process.env.CHAT_MODEL || 'claude-sonnet-5']
+    if (!table) return null
+    ;({ input: inP, output: outP, cacheRead: readP, cacheWrite: writeP } = table)
+  }
   return (u.input_tokens * inP + u.output_tokens * outP + u.cache_read_tokens * readP + u.cache_creation_tokens * writeP) / 1e6
 }
 
 async function main() {
   const { token, supabase, schoolId, ctx } = await login()
   const cases = await buildCases(supabase, schoolId)
-  console.log(`School ${schoolId} — ${cases.length} question(s)\n`)
+  console.log(`School ${schoolId} — ${cases.length} question(s) — chat model: ${process.env.CHAT_MODEL || 'claude-sonnet-5 (default)'}\n`)
 
   const expected = {}
   for (const cs of cases) expected[cs.id] = await cs.truth()

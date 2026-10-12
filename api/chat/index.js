@@ -68,7 +68,10 @@ function addUsage(total, u = {}) {
 }
 
 const MAX_TURNS = 8
-const MODEL = 'claude-sonnet-5'
+const DEFAULT_MODEL = 'claude-sonnet-5'
+// Experiments (the eval runner) can pick another model with CHAT_MODEL; production uses the default.
+// The model is chosen ONCE per request and never switched mid-loop (thinking blocks are bound to the model that wrote them).
+const modelId = () => process.env.CHAT_MODEL || DEFAULT_MODEL
 
 // The system prompt and tool definitions are identical on every call in the
 // loop (and across separate messages in the same session) — marking them
@@ -106,7 +109,8 @@ export default async function handler(req, res) {
 
   // One trace per request (metadata only — see api/_lib/trace.js). It is saved just before
   // every response, so even failed requests leave a record.
-  const trace = startTrace({ supabase, schoolId, userId, model: MODEL, messages })
+  const model = modelId()
+  const trace = startTrace({ supabase, schoolId, userId, model, messages })
   const respond = async (status, body, outcome, errorMessage) => {
     await trace.save(outcome, usage, errorMessage)
     return res.status(status).json(body)
@@ -116,7 +120,7 @@ export default async function handler(req, res) {
     for (let turn = 0; turn < MAX_TURNS; turn++) {
       const modelStart = Date.now()
       const response = await getAnthropicClient().messages.create({
-        model: MODEL,
+        model,
         max_tokens: 1500,
         system: CACHED_SYSTEM,
         tools: cachedTools(),
