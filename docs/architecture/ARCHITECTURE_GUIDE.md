@@ -20,7 +20,7 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - The isolation test proves all this. *(Status: done 2026-10-11 — testing found two real holes, both fixed and re-tested; 88 of 89 checks pass, 1 not yet meaningful.)*
 - A green test only covers what it tests: the serious hole (a staff member redirecting their own record to another school) sat in a path the first test never exercised.
 
-**Item 1 — Evals** *(built and measured 2026-10-11; understanding check pending)*
+**Item 1 — Evals** *(done 2026-10-11)*
 - An eval is a test for AI answers: questions with known right answers, run automatically, scored as a pass rate.
 - Answers vary run to run, so one pass proves nothing. You need enough different questions and enough repeats.
 - The first evals check facts with exact answers (counts, names), where the right answer comes from a plain database query.
@@ -389,6 +389,11 @@ There is no magic number; it depends on how small a difference you want to detec
 | Cost visibility | Tokens printed; dollars worked out by hand from the console balance | Logged per run and attributed per case | Planned (item 2) |
 | Role-restricted behavior | Not tested (needs a staff login) | Cases run as each role | Later |
 | Test data | One school's seed data | Several fixture schools with edge cases (empty tables, ties, duplicate names) | Later |
+
+### 1.14a The understanding check (preserved)
+1. *Why did the first prompt change fail, and what was different the second time?* — **Your answer:** it assumed a fix that didn't match the real root cause; the right move is to read each response first, then make the correct change if any ("don't assume"). **Assessment:** correct. Refinement: forming a hypothesis is necessary; the mistake was acting on it before checking it against the actual replies.
+2. *Why 100% for some categories and 90% for others?* — **Your answer:** 100% for critical things, 90% for convenience experiences. **Assessment:** right in spirit; the precise rule is that the target follows the **severity of the consequence** of failure (unsafe or irreversible → 100%; inconvenient → ~90%), not "quality of response."
+3. *What does a "failure" on a correct answer tell you about trusting an eval's score?* — **Your answer:** the grading method can be wrong too; the response was fine but the grading card wasn't. **Assessment:** correct. Always ask whether the agent or the grader is wrong by reading the full reply, and avoid tuning the grader to every sample it misses.
 
 ### 1.15 The four review questions applied to evals
 1. *What is it for?* Measuring whether the agent's behavior got better or worse after any change.
