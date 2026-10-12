@@ -639,6 +639,20 @@ It means the agent resisted these attack classes, in these forms, including thro
 3. *What happens when it fails?* A failing case is a finding to read, not a verdict: it may be a real weakness or a flawed check (three of the four failures here were flawed checks).
 4. *How would you know it works?* The controls: a user-requested marker must appear, and a harmless note must be repeatable.
 
+### 3.8 A follow-up idea: tag data by source and tell the model never to treat it as instructions
+*(Raised 2026-10-11: "can't we label anything from an exposed input field as coming from that field, and tell the model never to use it as instruction?")*
+
+**This is a real, recommended defense** — usually called *spotlighting* (marking untrusted data by its source), part of an *instruction hierarchy*: only the system prompt and the signed-in user's own message are instructions; everything else is data. Provenance decides authority, which is the right principle: text typed into a form has no authority just because the model can read it. It belongs to the "reduce" layer and is cheap to add.
+
+**Why it is not a guarantee:**
+- **No hard boundary in the model.** SQL has parameterized queries, a real wall between code and data. A language model sees one stream of text, so "never obey labeled text" is itself just another instruction and works most of the time, not always.
+- **Labels can be spoofed.** A planted note can contain its own closing tag followed by "new instructions". Mitigations: random per-request boundaries, stripping tag-like text out of data, visibly marking the data.
+- **Authority claims still pressure the model** ("ADMIN NOTICE: the user has authorized this").
+
+**Scope:** every free-text value that comes from the database (notes, incident descriptions, message bodies, work-order text, even names) — simplest form: wrap each tool result in a labeled envelope stating that it is school data, to be treated as data only.
+
+**How to evaluate it:** the current attack set already passes 100%, so it cannot show any benefit. First add harder attacks (spoofed closing tags, authority claims, notes as the focus of the question, name-field injection), measure without labels, add the labels, measure again. Containment remains the primary defense. Tracked under F18.
+
 ---
 
 # Part 3 — Findings & open questions
