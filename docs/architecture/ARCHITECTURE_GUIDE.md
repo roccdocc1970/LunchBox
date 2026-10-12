@@ -30,6 +30,8 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - Set pass targets by severity (safety checks 100%, convenience about 90%), and re-run the whole suite after any prompt change to catch regressions.
 - Graders can be wrong too: one "failure" was a correct refusal that the keyword check could not recognize.
 - One run proves little: roughly 20 repeats were needed to see an 80% behavior.
+- The concepts are vendor-agnostic; API formats, caching, prices and which prompt wording works are vendor-specific. Evals are how you switch models safely.
+- A good score is not permanent: pin the exact model version, re-run the suite after every change, run a small scheduled canary set, and add a case for every production failure.
 
 *(Each later item adds its own 2–5 line summary here when its chapter is written.)*
 
@@ -388,6 +390,7 @@ There is no magic number; it depends on how small a difference you want to detec
 | When run | By hand | Small smoke set on every change; full set nightly or before release | Later |
 | Cost visibility | Tokens printed; dollars worked out by hand from the console balance | Logged per run and attributed per case | Planned (item 2) |
 | Role-restricted behavior | Not tested (needs a staff login) | Cases run as each role | Later |
+| Model version | `claude-sonnet-5` set in `api/chat/index.js`; not yet checked whether this is a pinned version or a moving alias | Pinned exact version, plus a scheduled canary run | Check the provider docs; canary later (items 2, 13) |
 | Test data | One school's seed data | Several fixture schools with edge cases (empty tables, ties, duplicate names) | Later |
 
 ### 1.14a The understanding check (preserved)
@@ -400,6 +403,23 @@ There is no magic number; it depends on how small a difference you want to detec
 2. *What can it touch?* It reads the database as a school admin and calls the real chat handler and the model API (spending a prepaid balance); it must not change data (a "proposed" write is verified to change nothing).
 3. *What happens when it fails?* A failing eval can mean a real agent problem, a weak eval, or a wrong grader — read the full replies to tell which. It fails safe: results never alter production data.
 4. *How would you know it works?* Known-answer cases plus ones that must fail (a deliberately wrong answer must score as a failure; checked offline for the scoring helpers).
+
+### 1.16 What transfers between vendors (discussed 2026-10-11)
+The concepts in this track are **vendor-agnostic** — they apply to Claude, Google, OpenAI, Microsoft or any other model: evals and pass targets by severity, reading failures, checking whether the grader is wrong, tracing and audit logs, identity and tenant isolation (which is database and security design, not AI-specific), prompt-injection defenses, confirm gates on writes, and the four review questions.
+
+What is **vendor-specific**: the exact API formats for tools and messages; how prompt caching works and costs (`cache_control` is Anthropic's mechanism; others differ); token prices, model names and limits; which prompt wording works (the scheduling fix was a fix for *this* model's habit — another model could fail differently); and SDKs/frameworks (MCP is a shared standard many vendors support, but support varies).
+
+**Evals are how a model is switched safely:** swap the model, re-run the suite, read the category table. Teams without evals cannot tell whether a swap broke anything.
+
+### 1.17 Retest periodically, even on the same model (discussed 2026-10-11)
+A good score today is not permanent, because models are a black box and your own system keeps changing:
+1. **The model can change under you** if the code names an alias the provider repoints (such as "latest"). Pin an exact versioned model ID where the provider offers one — and check whether the ID in `api/chat/index.js` (`claude-sonnet-5`) is an alias or a pinned version.
+2. **Pinned versions are eventually retired,** forcing a migration; the suite is how the replacement is checked.
+3. **Your side drifts:** every prompt edit, new tool or data change can shift behavior, so re-run the whole suite after each change.
+4. **The question set goes stale** as real users ask things the set never imagined — feed production failures and feedback back into it (item 22).
+5. **Run-to-run variation never disappears,** even on a pinned model, so use repeats and thresholds rather than a single pass.
+
+**Common practice:** pin the exact version; run the full suite before every release or change; run a small, cheap **canary** set on a schedule (daily or weekly) and alert if the pass rate drops; add a case for every production failure. How often providers silently change model behavior cannot be assumed to be never. A scheduled canary connects to later items: tracing (item 2) records results over time and proactive agents (item 13) are work that runs on a schedule without being asked.
 
 ---
 
