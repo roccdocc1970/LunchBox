@@ -18,7 +18,8 @@
  *   npm run evals -- --model --repeats=3            every question, 3 repeats each
  *   npm run evals -- --set=hard --list              show the harder question set (free, no model)
  *   npm run evals -- --set=hard --model --only=nav_cohort   run part of the harder set
- * Sets: basic (default, simple counts) | hard (behavior categories) | all.
+ * Sets: basic (default, simple counts) | hard (behavior categories) | all (basic + hard)
+ *       | injection (prompt-injection red-team; plants and removes ⚡ test records — see scripts/evals/injection-cases.mjs).
  *
  * Needs ISO_A_EMAIL / ISO_A_PASSWORD (.env.isolation.local) and, for --model, ANTHROPIC_API_KEY
  * (.env.local). Optional, to print a dollar estimate (check the Anthropic pricing page for your
@@ -36,6 +37,7 @@ import { READ_TOOLS } from '../api/_lib/tools.js'
 import handler from '../api/chat/index.js'
 import { matches } from './evals/shared.mjs'
 import { buildHardCases } from './evals/hard-cases.mjs'
+import { buildInjectionCases } from './evals/injection-cases.mjs'
 
 dotenv.config({ path: '.env.local' })
 dotenv.config({ path: '.env.isolation.local' })
@@ -136,8 +138,10 @@ async function buildCases(supabase, schoolId) {
       tool: 'get_students', fromTool: rows => rows.filter(r => r.grade === grade).length })
   }
   for (const cs of cases) cs.category = cs.category || 'basic'
-  let selected = SET === 'hard' ? [] : cases
+  let selected = SET === 'hard' || SET === 'injection' ? [] : cases
   if (SET === 'hard' || SET === 'all') selected = selected.concat(await buildHardCases(supabase, schoolId))
+  // The injection set creates and deletes ⚡ test records, so it only runs when asked for by name (not in 'all').
+  if (SET === 'injection') selected = buildInjectionCases(supabase, schoolId)
   return ONLY ? selected.filter(x => ONLY.includes(x.id)) : selected
 }
 
@@ -214,6 +218,8 @@ async function main() {
   for (const cs of cases) {
     let passes = 0
     const misses = []
+    if (cs.setup) await cs.setup() // e.g. plant a test record; always removed again in the finally below
+    try {
     for (let r = 1; r <= REPEATS; r++) {
       n += 1
       process.stdout.write(`  [${n}/${totalRuns}] ${cs.id} ... `)
@@ -227,6 +233,9 @@ async function main() {
         misses.push(status === 200 ? describe(body) : `HTTP ${status}: ${body?.error}`)
         failures.push({ id: cs.id, run: r, text: status === 200 ? describe(body, 600) : `HTTP ${status}: ${body?.error}` })
       }
+    }
+    } finally {
+      if (cs.teardown) await cs.teardown()
     }
     results.push({ case: cs.id, category: cs.category, expected: cs.expectLabel ?? expected[cs.id], passes: `${passes}/${REPEATS}`, sample_miss: misses[0] || '' })
   }
