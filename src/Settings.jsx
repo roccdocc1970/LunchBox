@@ -2,6 +2,7 @@ import {
   School, BookOpen, Bell, Building2, Mail, Palette,
   Check, X, ChevronUp, ChevronDown, AlertTriangle, Users,
 } from 'lucide-react'
+import PoliciesPanel from './PoliciesPanel'
 import { useSettings } from './hooks/useSettings'
 import { useSchedule } from './hooks/useSchedule'
 import { useBuildings } from './hooks/useBuildings'
@@ -48,6 +49,7 @@ export default function Settings({ user, school, onUpdate }) {
     { id: 'schedule',      label: 'Bell Schedule',    },
     { id: 'campus',        label: 'Campus',           },
     { id: 'communication', label: 'Communication',    },
+    { id: 'policies',      label: 'Policies',         },
     { id: 'appearance',    label: 'Appearance',       },
   ]
 
@@ -273,6 +275,9 @@ export default function Settings({ user, school, onUpdate }) {
           <SaveBar primaryColor={primaryColor} saving={saving} success={success} error={error} onSave={saveCommunication} />
         </div>
       )}
+
+      {/* ── Policies (documents the "Ask LunchBox" chat answers from) ───────── */}
+      {activeTab === 'policies' && <PoliciesPanel user={user} primaryColor={primaryColor} />}
 
       {/* ── Appearance ──────────────────────────────────────────────────────── */}
       {activeTab === 'appearance' && (

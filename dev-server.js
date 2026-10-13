@@ -11,9 +11,10 @@ dotenv.config({ path: '.env.local' })
 import express from 'express'
 import chatHandler from './api/chat/index.js'
 import chatExecuteHandler from './api/chat/execute.js'
+import policyIngestHandler from './api/policies/ingest.js'
 
 const app = express()
-app.use(express.json())
+app.use(express.json({ limit: '1mb' })) // policy documents can be up to 300,000 characters
 
 const wrap = (handler) => (req, res) => {
   Promise.resolve(handler(req, res)).catch((err) => {
@@ -24,6 +25,7 @@ const wrap = (handler) => (req, res) => {
 
 app.post('/api/chat', wrap(chatHandler))
 app.post('/api/chat/execute', wrap(chatExecuteHandler))
+app.post('/api/policies/ingest', wrap(policyIngestHandler))
 
 const port = process.env.API_DEV_PORT || 3001
 app.listen(port, () => console.log(`API dev server listening on http://localhost:${port}`))

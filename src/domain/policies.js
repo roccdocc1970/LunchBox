@@ -102,3 +102,28 @@ export function chunkMarkdown(text, { maxChars = 1100, overlapChars = 120, title
     content: c.heading ? `${c.heading}\n\n${c.body}` : c.body,
   }))
 }
+
+// ── Upload rules (shared by the Settings screen and the server endpoint) ────────
+
+export const POLICY_MAX_CHARS = 300000
+export const POLICY_MAX_TITLE = 120
+export const POLICY_FILE_EXTENSIONS = ['.md', '.markdown', '.txt']
+
+/** Returns an error message for an unacceptable policy upload, or null when it is fine. */
+export function validatePolicyInput({ title, text, filename } = {}) {
+  const cleanTitle = String(title ?? '').trim()
+  if (!cleanTitle) return 'Give the document a title.'
+  if (cleanTitle.length > POLICY_MAX_TITLE) return `The title is too long (${POLICY_MAX_TITLE} characters at most).`
+  if (!String(text ?? '').trim()) return 'The document is empty.'
+  if (String(text).length > POLICY_MAX_CHARS) return `The document is too long (${POLICY_MAX_CHARS.toLocaleString('en-US')} characters at most).`
+  if (filename && !POLICY_FILE_EXTENSIONS.some(ext => String(filename).toLowerCase().endsWith(ext))) {
+    return 'Only Markdown (.md) and plain text (.txt) files are supported for now.'
+  }
+  return null
+}
+
+/** "parent-handbook_2026.md" → "Parent handbook 2026" */
+export function titleFromFilename(filename) {
+  const base = String(filename ?? '').replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').trim()
+  return base ? base.charAt(0).toUpperCase() + base.slice(1) : ''
+}
