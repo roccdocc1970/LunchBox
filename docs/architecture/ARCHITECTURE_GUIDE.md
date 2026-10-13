@@ -913,6 +913,18 @@ Typical example: invoice processing — an email arrives, the agent extracts the
 3. *What happens when it fails?* A wrong passage can produce a confident wrong answer; a stale document can mislead; a poisoned document can carry instructions. Mitigations: retrieval tested separately, document dates in citations, "not covered" behavior, containment on actions.
 4. *How would you know it works?* `npm run test:policies` (retrieval and isolation, free), `npm run test:isolation`, and `npm run evals -- --set=policy --model`.
 
+### 4.8 The upload screen (feature work outside the 23 steps, 2026-10-12)
+**What was built:** a **Policies** tab in Settings where a school admin chooses a Markdown or text file (or pastes text), gives it a title, and uploads it; a list of documents on file (title, date, sections) with Remove. Uploading the same title replaces the earlier version. It follows the project's layers: shared validation rules (`src/domain/policies.js`), a browser upload service (`src/services/policyUpload.js`), a hook (`src/hooks/usePolicies.js`), the component (`src/PoliciesPanel.jsx`), and a server endpoint (`api/policies/ingest.js`) that acts as the logged-in admin under RLS, refuses staff and anonymous callers, enforces the size and file-type limits, and stores the new version fully before removing the old. `npm run test:policies-endpoint` tests the endpoint.
+**Verified end to end by the admin:** uploaded a sample field-trip policy, asked the chat when permission slips are due, and got "at least 3 school days before the trip," with the document and section named.
+
+**A real debugging example — locating which link failed.** The first attempt answered "the policies on file don't cover field trip permission slips." Three quick checks localized it, instead of guessing:
+1. *Was the document stored?* `npm run policies -- --list` showed only the Emerson handbook — the upload had never been stored.
+2. *Would retrieval have found it?* An offline ranking of the new file's chunks against the Emerson chunks put the right passage first for all three test questions (0.83 against 0.49 for the next best) — retrieval was fine.
+3. *Did the model behave?* Yes: with nothing on file about field trips it correctly said so instead of inventing an answer — the "not covered" behavior working as designed.
+**Cause:** the local API server (`npm run dev:api`) loads its routes once at start-up and had been started before the upload route was added, so the Upload click reached nothing. Restarting it fixed it. **Lessons:** restart `dev:api` after any change under `api/` or to `dev-server.js` (now noted in `CLAUDE.md`); localize a RAG failure by link (stored → retrieved → answered) before touching anything; and the diagnostic `npm run policies -- --search="…"` now shows exactly what the chat search would return.
+
+**Limits:** works in local development only, because the local embedding model cannot run on Vercel's serverless hosting (finding F20, until a hosted embedding service is chosen); the staff-refused path is a single check in the handler and is untested without a staff account; there is no rate limit on uploads (embedding is CPU-heavy — Step 14); PDFs and scans are Step 22.
+
 ---
 
 # Part 3 — Findings & open questions

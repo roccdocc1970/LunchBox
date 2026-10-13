@@ -64,7 +64,7 @@ SCHOOL_ID=41beb9b7-ec0c-45f3-9a71-8f94cdd98078  # schools.user_id (NOT schools.i
 ANTHROPIC_API_KEY=sk-ant-...   # AI chat backend only (api/) — prepaid Anthropic Console credits, no auto-reload
 ```
 
-> **Local dev note for the AI chat feature:** `api/**.js` are Vercel serverless functions — `vite dev` alone doesn't run them. `npm run dev:api` runs `dev-server.js`, a local Express shim that mounts the same handler files on `localhost:3001`; `vite.config.js` proxies `/api/*` to it. This file is dev-only — production deploys `api/**.js` directly as Vercel functions and never touches `dev-server.js`.
+> **Local dev note for the AI chat feature:** `api/**.js` are Vercel serverless functions — `vite dev` alone doesn't run them. `npm run dev:api` runs `dev-server.js`, a local Express shim that mounts the same handler files on `localhost:3001`; `vite.config.js` proxies `/api/*` to it. This file is dev-only — production deploys `api/**.js` directly as Vercel functions and never touches `dev-server.js`. **Restart `npm run dev:api` after any change under `api/` or to `dev-server.js` — it loads its routes once, at start-up.**
 
 ---
 
@@ -945,6 +945,22 @@ const DIVISION_COLORS = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#8b5cf6', 
 ```
 
 **Report chart colors by tab:** Enrollment/Staff = primaryColor · Incidents = `#ef4444` · Communications = `#8b5cf6` · Fundraising = `#10b981` · Facilities = `#0ea5e9`
+
+---
+
+## Agentic Learning Track additions (2026-10-11/12)
+
+A structured build-out of agentic practices on this codebase. **Source of truth:** the progress tracker in `ROADMAP.md`, the long-form `docs/architecture/ARCHITECTURE_GUIDE.md` (concepts, findings F1–F21, glossary), and one design note per step in `docs/agentic-learning/`. Database changes are versioned in `db/migrations/` (001–005) and are applied by hand in the Supabase SQL editor.
+
+**New database objects:** `agent_traces` (per-request traces, metadata only), `audit_log` (append-only; triggers on students, parents, staff, incidents, student_health, student_health_entries, report_cards, donations, policy_documents), `policy_documents` and `policy_chunks` (RAG; `vector(384)` embeddings), and functions `link_staff_account()`, `get_public_school_info()`, `record_agent_approval()`, `match_policy_chunks()` (SECURITY INVOKER). The old `staff_update_own` policy and the public read of `schools` were removed (security fixes found by the isolation tests).
+
+**Backend (`api/`):** `_lib/trace.js` (traces), `_lib/router.js` (rule-based model routing: cheap model for routine lookups, strong model for analysis, writes and destructive requests; **off by default**, enabled with `CHAT_ROUTING=on`), `_lib/embed.js` (local embeddings behind one function), `policies/ingest.js` (admin-only policy upload), a `search_policies` chat tool, new system-prompt rules (policies, delete/bulk requests), and every chat response now carries `usage` and `model`.
+
+**Frontend:** Settings → **Policies** tab (`PoliciesPanel.jsx`, `hooks/usePolicies.js`, `services/policyUpload.js`, `services/policies.js`, `domain/policies.js`).
+
+**Scripts (credentials for them live in the gitignored `.env.isolation.local`):** `npm run test:isolation`, `test:staff-escalation`, `test:audit`, `test:router`, `test:policies`, `test:policies-endpoint`, `evals` (flags: `--set=basic|hard|injection|policy|all`, `--model`, `--repeats=`, `--only=`, `--list`, `--chat-model=`, `--routing`; prints 95% confidence ranges and cost), `traces`, `audit`, `policies` (ingest/list/delete/--search). Eval cases live in `scripts/evals/`.
+
+**Extra environment variables:** `CHAT_MODEL` (force one model), `CHAT_ROUTING=on`, `TRACE_STORE_QUESTION=false` (don't store question text in traces), `EVAL_PRICE_*` (override the built-in price table).
 
 ---
 
