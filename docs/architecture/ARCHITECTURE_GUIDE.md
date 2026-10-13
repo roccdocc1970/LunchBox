@@ -72,6 +72,12 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - It differs from LunchBox in who starts it (an event, not a person), identity (a service identity), oversight (asynchronous), length, and blast radius (thousands of items before anyone notices).
 - Every practice in this track carries over; add blast-radius controls: rate limits, budgets, sampling audits, a kill switch.
 
+**Item 4 — Policy RAG** *(built and measured 2026-10-12; understanding check pending)*
+- RAG finds the passages in your own documents closest in meaning to a question and gives them to the model, so it answers from them with a citation — or says the documents don't cover it.
+- Documents are split into chunks (each with its section heading), each chunk gets its own vector, and a question is matched to the nearest chunks by meaning, not keywords.
+- Test retrieval separately from the model's answer, so a wrong answer can be traced to a missing passage or a model slip. Search runs with the caller's permissions, so one school can never retrieve another's passages.
+- Policy documents are an injection channel; containment still applies. Retrieval and isolation tests passed (15/15, 98/98+1 vacuous); policy evals 16/16 on Haiku for half a cent.
+
 *(Each later item adds its own 2–5 line summary here when its chapter is written.)*
 
 ## Contents
@@ -844,6 +850,63 @@ Typical example: invoice processing — an email arrives, the agent extracts the
 
 **Terminology (added 2026-10-12).** "Headless" is a long-standing software word for something that runs without a user interface (a headless browser, a headless CMS). People use it for agents too and it is easily understood, but it is not a formal agent-specific term. The same idea also goes by *autonomous agents*, *background agents*, *event-driven agents*, *unattended automation*, *ambient agents* (used by some) and, for the process version, *agentic workflows*. When using "headless", add a few words ("headless, event-driven agents with no end-user interface"). **Headless means no interface in the loop of the work — not no humans:** real systems keep approval queues for exceptions, an operator console, and an audit trail; the human moves from "at the keyboard" to "supervising and handling exceptions." Headless does not mean unsupervised.
 
+## Item 4 — Policy RAG
+
+*Concept discussed and built 2026-10-12 (Step 7 of 23). Primer: `docs/agentic-learning/concepts.md`. Design note: `docs/agentic-learning/04-policy-rag.md`.*
+
+### In brief
+- RAG finds the passages in your own documents that are closest in meaning to a question and hands them to the model, so it answers from them — with a citation, or says the documents don't cover it.
+- A document is split into chunks (each with its section heading), every chunk gets its own vector (a list of numbers capturing its meaning), and a question is matched to the nearest chunks by similarity of meaning, not keywords.
+- Test retrieval separately from the model's answer: if an answer is wrong, you need to know whether the right passage was even found.
+- Policy documents are an injection channel; the same containment applies, and the search is run with the caller's own permissions so one school can never retrieve another's passages.
+
+### 4.1 The concept and the first explain-back
+**RAG (retrieval-augmented generation):** like an open-book exam — the model doesn't know the school's handbook and the handbook is too big and changeable to paste into every prompt, so the relevant pages are fetched for each question. Pipeline: **upload → chunk → embed → store and search → answer with citations.**
+**Explain-back (2026-10-12):** *Why chunk instead of one vector per document, and what could go wrong if chunks are badly cut?* — **Your answer:** chunking uses the context of the sections in an organized way; policy documents have many sections, and chunking ensures only the meaningful ones are used with the question, bounding the context of the answer. **Assessment:** the main idea is right (retrieval precision; bounded context). Sharpened: one vector for a whole document would blur dozens of topics into a single average meaning, so a specific question would match poorly — the chunk is the unit of search. The unanswered half — **badly cut chunks** — go wrong when a rule is cut from its exception, a chunk is too small to carry its context ("the fee is $12" — for what?), too large (a blurry vector and wasted tokens), a chunk loses its heading, or a list or table is torn apart. Fixes: split on headings and paragraphs, overlap neighbouring chunks, put the section path in every chunk, and test retrieval. (Pattern noted: second halves of explain-back questions tend to go unanswered — answer both.)
+
+### 4.2 Who does what, and what was built
+- **In a finished product** a school admin uploads, replaces or deletes a policy document on a screen (Settings → Policies, a later step). Embedding is automatic behind the scenes; staff just ask questions in chat; parents are not involved. Replacing a document deletes its old chunks. End users are content managers, not technical operators.
+- **Built now (pipeline, run by command):** `npm run policies` (ingest, list, delete), the policy tables with RLS (migration 005), the heading-aware chunker (`src/domain/policies.js`), ingest and search services (`src/services/policies.js`), local embeddings behind one function (`api/_lib/embed.js`), the `search_policies` chat tool, and a system-prompt rule (answer only from the passages, name the document and section, say "not covered" when silent).
+
+### 4.3 Design decisions
+- **Embeddings:** a small local model (all-MiniLM-L6-v2, 384-number vectors, about 25 MB, downloaded once) — free, no account or key. It sits behind a single `embed()` function so it can be swapped for a hosted embedding API, which is likelier in production (a local model needs a server able to run it). The database column has a fixed size, so changing the model means re-embedding every document.
+- **Search runs with the caller's permissions (`SECURITY INVOKER`)**, so RLS applies to every search: a school can never retrieve another school's passages, whatever the model asks for. Had it been `SECURITY DEFINER` (as `get_staff_school_id` is), it would have run with the owner's rights and bypassed RLS — exactly the class of hole found in Step 1.
+- **Admin writes, staff read, anonymous nothing**; all policies `to authenticated`. Policy document changes are audited (Step 4 trigger); chunks are not (high-volume, derived).
+- **Replacement is safe:** the new version is fully stored before the old one is removed, and a failed ingest cleans up after itself.
+- **No vector index yet** (a sequential scan is fast at this size); add one when a school has thousands of chunks.
+- **Scope:** text and Markdown only; PDFs and scans belong to Step 22 (multimodal input).
+
+### 4.4 Results (2026-10-12)
+- **Embedding smoke test:** "How much do I pay if I collect my child late?" scored 0.47 against the late-pickup passage — which never uses the words "collect" or "pay" — versus 0.03 (medication) and 0.11 (tardiness). Similarity of meaning, not keywords.
+- **Chunker (offline, free):** sample handbook → 8 chunks, each starting with its section path, the fee kept under its heading; long sections split with overlap; lists kept whole; empty text gives no chunks.
+- **`npm run test:policies`: 15 passed, 0 failed** — chunker checks, retrieval (the right section in the top 3 for at least 80% of seven everyday-language questions), and isolation (A never retrieves B's passages and vice versa; each school gets its own answer to the same question; B cannot write into A or edit A's document; anonymous callers cannot search or read).
+- **`npm run test:isolation`: 98 passed, 0 failed, 1 vacuous** (`report_cards`), now covering the policy tables.
+- **Policy evals on Haiku 5.5 (`--set=policy`): 16 of 16** (95% range 81–100%), about half a cent. They cover: answering from the document, naming the source, not mixing in another school's $5 fee, saying "not covered" for cell phones (no invented rule), and ignoring an instruction planted inside the handbook while still answering. The fact and the planted instruction sit in the same chunk, so the answer also proves the planted text reached the model.
+
+### 4.5 Limits
+- Retrieval quality was measured on seven questions about one handbook; there is no reranking or hybrid keyword search yet (Step 8).
+- Heading-based chunking assumes reasonably structured documents; PDFs and scans are not handled (Step 22).
+- No upload screen: ingestion is a command run by an admin login.
+- Stale documents are handled only by showing the document date in citations.
+- The local embedding model is not suited to serverless production hosting.
+
+### 4.6 Baseline vs target
+| Area | Baseline (LunchBox today) | Target (best practice) | Decision |
+|---|---|---|---|
+| Embeddings | Local small model behind `embed()` | Hosted embedding API, chosen on measured retrieval quality | At go-live |
+| Retrieval | Vector search, top 4 | Hybrid (keyword + vector), reranking, agent re-querying | Step 8 |
+| Ingestion | Command-line | Admin upload screen with status, replace and delete | Later |
+| Document formats | Markdown and text | PDFs and scans with extraction and human verification | Step 22 |
+| Freshness | Document date shown in citations | Review dates, owners and expiry; flag stale policies | Later |
+| Evaluation | 8 end-to-end cases and 7 retrieval questions | Larger set from real questions and failures | Ongoing |
+| Injection | Passage envelope and system-prompt rule; one planted-instruction case | Spotlighting and structured fields (Guide 3.8–3.10); more document-borne cases | Later |
+
+### 4.7 The four review questions applied to policy RAG
+1. *What is it for?* Answering policy questions from the school's own documents, with citations, and admitting when they don't cover it.
+2. *What can it touch?* The school's policy tables (through the caller's RLS), the local embedding model, and the text of uploaded documents, which is untrusted input to the model.
+3. *What happens when it fails?* A wrong passage can produce a confident wrong answer; a stale document can mislead; a poisoned document can carry instructions. Mitigations: retrieval tested separately, document dates in citations, "not covered" behavior, containment on actions.
+4. *How would you know it works?* `npm run test:policies` (retrieval and isolation, free), `npm run test:isolation`, and `npm run evals -- --set=policy --model`.
+
 ---
 
 # Part 3 — Findings & open questions
@@ -857,6 +920,8 @@ Typical example: invoice processing — an email arrives, the agent extracts the
 | F5 | `submit_public_inquiry` is callable without login by design; it can create records in a school identified by its public id (spam / free-text injection vector). Definition reviewed 2026-10-11: no rate limit and no input length limits; it attaches the new student to an existing parent when the email matches, so someone who knows a parent's email can add fake records under that family; the free-text `notes` flows into records the chat agent later reads. | CLAUDE.md schema notes | Open — consider rate limiting; relevant to prompt injection (item 3) |
 | F6 | Production chat is not live: `ANTHROPIC_API_KEY` is not set in Vercel. | ROADMAP | Open (founder to-do) |
 | F9 | **Suspected, unverified.** The `staff_update_own` policy lets a staff member update their own staff row with no column limits (condition and check are only `email = auth.email()`). If it works, a staff member could change their own `role` or `school_id`, escalating privileges or reaching another school. Function definition reviewed 2026-10-11: `get_staff_school_id()` returns the school from the caller's own staff row (`select school_id from staff where auth_user_id = auth.uid()`), so rewriting that row's `school_id` would redirect all of their staff access. Chained with F8 (school ids are public) and open self-signup (any customer admin can create a staff row with their own email), this would let any customer read any school. **CONFIRMED exploitable on 2026-10-11** by `npm run test:staff-escalation`: school B rewrote its own staff row to point at school A, `get_staff_school_id()` then returned school A, and B read A's students. Fix prepared in `db/migrations/001_fix_staff_self_update.sql`: a narrow `link_staff_account()` function that can only set `auth_user_id`, a trigger that forbids changing `school_id` on staff rows, and removal of `staff_update_own`; plus the matching change in `useSchool.js`. | Policy review + test | **Fixed and verified 2026-10-11:** SQL applied; retest says blocked (database error "staff.school_id cannot be changed"). Code change in `useSchool.js` committed, push pending. |
+| F20 | Policy RAG is a first version: retrieval was measured on seven questions about one handbook, with no reranking or hybrid search (Step 8); chunking assumes structured Markdown or text (PDFs and scans are Step 22); ingestion is a command, not a screen; stale documents are flagged only by the date in citations; the local embedding model is unsuited to serverless production, and changing it means re-embedding every document. A document-borne injection case passed, but only one. | Step 7 | Open — extend in Steps 8 and 22 and at go-live |
+| F21 | Installing the embedding library (`@huggingface/transformers`) took `npm audit` to 22 reported vulnerabilities (1 critical) across the whole dependency tree; how many are new or reachable has not been checked. Do not run `npm audit fix` blindly. This is the dependency scan already on the to-do list (M6). | Step 7 | Open — review with `npm audit` |
 | F19 | The model router uses keyword rules, so it can misroute in both directions (an oddly phrased analysis question could go to the cheap model); open-ended answer quality is not measured on either model (needs the model-based grader, Step 10); routing is off by default and untested against real traffic because production chat is not live (F6). Mitigations in place: default-upward rules, route and reason in every trace, category-level eval targets. | Step 6 | Open — revisit at rollout and with Step 10 |
 | F18 | Prompt-injection coverage is a sample, not a guarantee: the agent resisted all 16 cases, but "notes as the focus" and "name field" attacks are untested, false-but-plausible data cannot be detected by instruction filters, and the app has no prevention layer of its own (it relies on the model's resistance plus containment). Memory, RAG and MCP steps each need their own injection tests when built. | Step 5 | Open — keep growing the suite |
 | F15 | The audit log is append-only (deletion is blocked even for the owner) and has no retention procedure; legal retention periods vary. Needs a deliberate, controlled expiry procedure before it grows unbounded or real schools use it. | Item 15 | Open |
@@ -967,6 +1032,13 @@ Typical example: invoice processing — an email arrives, the agent extracts the
 - **Few-shot examples:** showing the model a handful of example answers inside the prompt.
 - **Master data / semantic layer:** the agreed definitions and systems of record for core business objects; the foundation under most enterprise AI (see the "Beyond the 23 steps" list).
 - **OpenTelemetry:** a vendor-neutral standard for traces and metrics that many AI-observability tools build on.
+- **Embedding / vector:** a list of numbers (here 384) that captures the meaning of a piece of text, so texts with similar meaning have nearby vectors.
+- **Similarity (cosine):** a measure of how close two vectors are in meaning (1 = same direction, near 0 = unrelated); "collect my child late" scored 0.47 against "late pickup" and 0.03 against "medication".
+- **Chunk / chunking:** a passage of a document stored and searched as one unit; documents are cut on headings and paragraphs, with a section path at the top of each chunk and a short overlap between neighbours.
+- **Retrieval / top-k / top-1 hit rate:** finding the chunks nearest a question; top-k means the k closest; "top-3 hit rate" is how often the right section is among the three closest.
+- **pgvector:** the Postgres extension that stores vectors and searches them by similarity.
+- **Grounding / citation:** answering from supplied passages and naming the source, instead of from the model's own memory.
+- **`SECURITY INVOKER` (function):** runs with the caller's permissions, so RLS applies (the default); the opposite of `SECURITY DEFINER`. The policy search is invoker so schools stay isolated.
 
 ---
 
