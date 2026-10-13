@@ -72,7 +72,7 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - It differs from LunchBox in who starts it (an event, not a person), identity (a service identity), oversight (asynchronous), length, and blast radius (thousands of items before anyone notices).
 - Every practice in this track carries over; add blast-radius controls: rate limits, budgets, sampling audits, a kill switch.
 
-**Item 4 — Policy RAG** *(built and measured 2026-10-12; understanding check pending)*
+**Item 4 — Policy RAG** *(done 2026-10-12)*
 - RAG finds the passages in your own documents closest in meaning to a question and gives them to the model, so it answers from them with a citation — or says the documents don't cover it.
 - Documents are split into chunks (each with its section heading), each chunk gets its own vector, and a question is matched to the nearest chunks by meaning, not keywords.
 - Test retrieval separately from the model's answer, so a wrong answer can be traced to a missing passage or a model slip. Search runs with the caller's permissions, so one school can never retrieve another's passages.
@@ -900,6 +900,12 @@ Typical example: invoice processing — an email arrives, the agent extracts the
 | Freshness | Document date shown in citations | Review dates, owners and expiry; flag stale policies | Later |
 | Evaluation | 8 end-to-end cases and 7 retrieval questions | Larger set from real questions and failures | Ongoing |
 | Injection | Passage envelope and system-prompt rule; one planted-instruction case | Spotlighting and structured fields (Guide 3.8–3.10); more document-borne cases | Later |
+
+### 4.6a The understanding check (preserved)
+1. *What does retrieval do, and why test it separately from the model's answer?* — **Your answer:** retrieval gets the relevant chunks and supplies them with the question; test it separately to QA the response independently without influencing the answer, which lets us diagnose the quality, correctness and hopefully completeness of the answer. **Assessment:** the definition is right; the reason needs adjusting. The pipeline has **two links** — find the passage, then use it. When a final answer is wrong, testing retrieval separately tells you **which link broke**: the right passage was never found (retrieval), or it was found and misused (the model). Retrieval tests are also fast, free and deterministic — the same pattern as testing tools apart from the model in Step 2.
+2. *Why does the policy search run with the caller's permissions, and what could go wrong otherwise?* — **Your answer:** it protects isolation between schools; otherwise policy responses would be shared across schools, violating isolation (RLS). **Assessment:** correct. Sharpened: with the owner's rights (`SECURITY DEFINER`) any school's question would match the nearest passages across **all** schools and the model could quote another school's private policies — the same class of hole as the staff-record bug found in Step 1.
+3. *Why is a document an injection channel, and what protects us besides the model's own resistance?* — **Your answer:** it is text data and can be a vector of attack like any input field, with the same risks; we are protected by the architecture, designed with intent, not just letting the model catch it. **Assessment:** correct. Add the document-specific protections: only admins can upload (limiting who can plant text), passages are labelled as data, the prompt says never to follow instructions inside them, and a planted-instruction case is tested. An admin-uploaded document is more trusted than a public form but can still contain text pasted from outside sources.
+**To keep in mind:** the real purpose of separating retrieval tests from answer tests is locating which link failed.
 
 ### 4.7 The four review questions applied to policy RAG
 1. *What is it for?* Answering policy questions from the school's own documents, with citations, and admitting when they don't cover it.
