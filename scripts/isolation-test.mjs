@@ -38,6 +38,7 @@ const TABLES = [
   ['periods', 'school_id'], ['classes', 'school_id'], ['class_sections', 'school_id'],
   ['class_enrollments', 'school_id'], ['agent_traces', 'school_id'],
   ['audit_log', 'school_id'],
+  ['policy_documents', 'school_id'], ['policy_chunks', 'school_id'],
 ]
 
 const results = []

@@ -21,6 +21,7 @@
  *   npm run evals -- --set=hard --list              show the harder question set (free, no model)
  *   npm run evals -- --set=hard --model --only=nav_cohort   run part of the harder set
  * Sets: basic (default, simple counts) | hard (behavior categories) | all (basic + hard)
+ *       | policy (policy RAG — needs the sample handbooks ingested: npm run test:policies)
  *       | injection (prompt-injection red-team; plants and removes ⚡ test records — see scripts/evals/injection-cases.mjs).
  *
  * Needs ISO_A_EMAIL / ISO_A_PASSWORD (.env.isolation.local) and, for --model, ANTHROPIC_API_KEY
@@ -40,6 +41,7 @@ import handler from '../api/chat/index.js'
 import { matches, wilson } from './evals/shared.mjs'
 import { buildHardCases } from './evals/hard-cases.mjs'
 import { buildInjectionCases } from './evals/injection-cases.mjs'
+import { buildPolicyCases } from './evals/policy-cases.mjs'
 
 dotenv.config({ path: '.env.local' })
 dotenv.config({ path: '.env.isolation.local' })
@@ -157,10 +159,12 @@ async function buildCases(supabase, schoolId) {
       tool: 'get_students', fromTool: rows => rows.filter(r => r.grade === grade).length })
   }
   for (const cs of cases) cs.category = cs.category || 'basic'
-  let selected = SET === 'hard' || SET === 'injection' ? [] : cases
+  let selected = SET === 'hard' || SET === 'injection' || SET === 'policy' ? [] : cases
   if (SET === 'hard' || SET === 'all') selected = selected.concat(await buildHardCases(supabase, schoolId))
   // The injection set creates and deletes ⚡ test records, so it only runs when asked for by name (not in 'all').
   if (SET === 'injection') selected = buildInjectionCases(supabase, schoolId)
+  // Policy cases test the whole RAG chain against the sample handbooks (ingest them first: npm run test:policies).
+  if (SET === 'policy') selected = await buildPolicyCases(supabase)
   return ONLY ? selected.filter(x => ONLY.includes(x.id)) : selected
 }
 
