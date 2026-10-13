@@ -57,6 +57,11 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - Haiku 5.5 matched Sonnet 5 on every category we measured at about 1/20th the price per token; the router sends routine lookups to Haiku and analysis, writes and destructive requests to Sonnet — 33/33 at about 70% lower estimated cost.
 - Judge cost per completed task, not per token (the saving was 9× on one set, 20× on another). Open-ended answer quality is not measured yet (Step 10).
 
+**Cross-cutting — thinking statistically about evals** *(2026-10-12)*
+- A pass rate is an estimate with a range, not a fact; "100%" means "no failures seen in this many tries" (39 clean runs still allows a true failure rate near 9%).
+- Proving a target needs many clean runs (about 35 for 90%, 73 for 95%, 380 for 99%); a 100% target can never be fully proven by tests, so containment backs up the safety behaviors.
+- The goal is known and bounded risk with early warning: ranges shown by the runner, scheduled canaries, traces and feedback, and every real failure becoming a new test.
+
 *(Each later item adds its own 2–5 line summary here when its chapter is written.)*
 
 ## Contents
@@ -740,6 +745,31 @@ Two more grader errors during this step: a correct Haiku refusal ("I couldn't fi
 2. *What can it touch?* Which model sees each request, and therefore the data in it; nothing else (it reads only the user's last message).
 3. *What happens when it fails?* A misroute upward costs a few cents; a misroute downward can lower quality or safety — which is why safety categories must stay at 100% on whichever model they reach.
 4. *How would you know it works?* `npm run test:router`, the whole suite run through `--routing`, and the route recorded in each trace.
+
+## Cross-cutting: thinking statistically about evals
+*(Raised 2026-10-12: "if we cover cases with satisfactory results and periodically test, how do we know a model will hold integrity over time? I'm still worried it won't.")*
+
+**The worry is rational, and the statistics explain why it never fully goes away: no eval can guarantee a model's behavior.** What you can have is *known and bounded risk with early warning*. It works like quality control in manufacturing: you sample a batch, estimate the defect rate, and watch it over time. Software tests work the same way — they never prove that bugs are absent.
+
+**1. A pass rate is an estimate, not a fact.** Every result carries uncertainty that shrinks only with more runs. The eval runner now prints the 95% range (Wilson interval) next to each pass rate:
+
+| Result | What it tells you (95% range of the true rate) |
+|---|---|
+| Scheduling, 16 of 20 | about 58–92% |
+| Scheduling after the fix, 20 of 20 | at least about 84% |
+| Injection, 39 of 39 resisted | at least about 91%, so the real failure rate could still be up to ~9% |
+| Whole routed suite, 33 of 33 | at least about 90% |
+| Basic counts, 12 of 12 | at least about 76% |
+
+**"100%" is not "never fails."** It means "no failures seen in this many tries." Rule of three: with zero failures in *n* tries, the failure rate could still be up to about 3/*n*.
+
+**2. How many clean runs prove a target?** With zero failures, the low end of the range is *n* / (*n* + 3.84). To show (at 95% confidence) that the true rate meets: **90% — about 35 runs; 95% — about 73 runs; 99% — about 380 runs.** A 100% target can never be fully proven by tests alone, which is why the safety behaviors (confirm gates, small write tools, no delete tool, RLS, audit log) are containment that does not depend on the model behaving. The runner's **"proven"** column reports whether even the low end of a category's range meets its target.
+
+**3. Evals sample the world; they do not cover it.** Real users will ask things the suite never imagined. A high score says the model handles the kinds of questions we thought of.
+
+**4. Three questions for any behavior:** *How sure are we?* (the range, set by the number of runs) · *How quickly would we notice a change?* (scheduled canary runs, traces, feedback) · *How bad is it if we're wrong?* (severity, and whether containment limits it). For rare, serious failures, tests cannot be the only defense.
+
+**5. Holding integrity over time:** pin the model version; re-run the suite after every change (model, prompt, tool, data); run a scheduled canary and treat a drop beyond the normal wobble as the alarm; sample real traffic through traces and feedback; turn every real failure into a new test; add more repeats to the safety categories over time to narrow their ranges.
 
 ---
 

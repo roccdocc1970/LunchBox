@@ -37,7 +37,7 @@ import { supabaseFromRequest } from '../api/_lib/supabaseFromRequest.js'
 import { getSchoolContext } from '../api/_lib/getSchoolContext.js'
 import { READ_TOOLS } from '../api/_lib/tools.js'
 import handler from '../api/chat/index.js'
-import { matches } from './evals/shared.mjs'
+import { matches, wilson } from './evals/shared.mjs'
 import { buildHardCases } from './evals/hard-cases.mjs'
 import { buildInjectionCases } from './evals/injection-cases.mjs'
 
@@ -276,7 +276,8 @@ async function main() {
     for (const f of failures) console.log(`  • ${f.id} (run ${f.run}): ${f.text}\n`)
   }
   const passed = results.reduce((s, r) => s + parseInt(r.passes, 10), 0)
-  console.log(`\nOverall: ${passed}/${totalRuns} runs correct (${Math.round((100 * passed) / totalRuns)}%)`)
+  const overall = wilson(passed, totalRuns)
+  console.log(`\nOverall: ${passed}/${totalRuns} runs correct (${Math.round((100 * passed) / totalRuns)}%; 95% range ${Math.round(overall.low * 100)}–${Math.round(overall.high * 100)}%)`)
   console.log(`Model calls: ${usage.calls} | input tokens: ${usage.input_tokens} | output tokens: ${usage.output_tokens} | cache read: ${usage.cache_read_tokens} | cache write: ${usage.cache_creation_tokens}`)
   console.log(`Requests handled by model: ${Object.entries(routed).map(([m, n]) => `${m} × ${n}`).join(', ')}`)
   const perModel = Object.entries(usageByModel).map(([m, u]) => [m, priceEstimate(u, m)])
@@ -297,9 +298,16 @@ async function main() {
   const categoryRows = Object.entries(byCategory).map(([category, c]) => {
     const target = TARGETS[category] ?? 0.9
     const rate = c.passed / c.total
-    return { category, passed: `${c.passed}/${c.total}`, rate: `${Math.round(rate * 100)}%`, target: `${Math.round(target * 100)}%`, status: rate >= target ? 'OK' : 'BELOW TARGET' }
+    const range = wilson(c.passed, c.total)
+    return {
+      category, passed: `${c.passed}/${c.total}`, rate: `${Math.round(rate * 100)}%`,
+      range95: `${Math.round(range.low * 100)}–${Math.round(range.high * 100)}%`,
+      target: `${Math.round(target * 100)}%`, status: rate >= target ? 'OK' : 'BELOW TARGET',
+      proven: range.low >= target ? 'yes' : 'not yet', // 'yes' only when even the low end of the range meets the target
+    }
   })
   console.log('\nBy category (targets: write and decline 100%, everything else 90%)')
+  console.log('range95 = the 95% confidence range of the true pass rate; "proven" = even its low end meets the target (needs many runs: ~35 clean runs to prove 90%, and a 100% target can never be fully proven by tests alone — containment backs it up).')
   console.table(categoryRows)
   const belowTarget = categoryRows.some(r => r.status !== 'OK')
   process.exit(toolFails || belowTarget ? 1 : 0)
