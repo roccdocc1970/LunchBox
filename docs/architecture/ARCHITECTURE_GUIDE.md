@@ -62,6 +62,11 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - Proving a target needs many clean runs (about 35 for 90%, 73 for 95%, 380 for 99%); a 100% target can never be fully proven by tests, so containment backs up the safety behaviors.
 - The goal is known and bounded risk with early warning: ranges shown by the runner, scheduled canaries, traces and feedback, and every real failure becoming a new test.
 
+**Cross-cutting — mental model: LLMs as the promise of expert systems** *(2026-10-12)*
+- LLMs deliver the promise of an accessible domain expert that rule-based expert systems never could (no hand-written rules, handles plain language), but they give up determinism and auditability.
+- So good designs are hybrids: the model for language and judgment, plain code and rules for facts, permissions and constraints.
+- Evals measure how expert the system is on your tasks and guard against decline; they don't make it perfect. Manage the AI like a capable but fallible new hire: test, give references, limit access, require sign-off, keep records, check it can't be fooled, review periodically.
+
 *(Each later item adds its own 2–5 line summary here when its chapter is written.)*
 
 ## Contents
@@ -770,6 +775,32 @@ Two more grader errors during this step: a correct Haiku refusal ("I couldn't fi
 **4. Three questions for any behavior:** *How sure are we?* (the range, set by the number of runs) · *How quickly would we notice a change?* (scheduled canary runs, traces, feedback) · *How bad is it if we're wrong?* (severity, and whether containment limits it). For rare, serious failures, tests cannot be the only defense.
 
 **5. Holding integrity over time:** pin the model version; re-run the suite after every change (model, prompt, tool, data); run a scheduled canary and treat a drop beyond the normal wobble as the alarm; sample real traffic through traces and feedback; turn every real failure into a new test; add more repeats to the safety categories over time to narrow their ranges.
+
+## Cross-cutting: a mental model — LLMs as the promise of expert systems, and managing a fallible expert
+*(Discussed 2026-10-12: "LLMs realize the promise of expert systems in a way if-else code never could; evals try to make that expert system as good as it can be, though it's not perfect. Is that the way to think about it?")*
+
+**Yes — with two refinements.**
+
+**What's right.** Classic expert systems (1980s) encoded an expert's knowledge as hand-written if-then rules. They hit two walls: extracting and writing the rules took enormous effort (the "knowledge acquisition bottleneck"), and they were brittle — they could not handle ambiguity or plain-language questions. LLMs remove both walls: they arrive with broad knowledge and work with ordinary language. So it is fair to say they deliver the *promise* of an accessible domain expert in a way rule systems never could. (Whether they are "true" expert systems in the classical sense is a matter of definition; the intuition is useful.)
+
+**Refinement 1 — LLMs also give up something expert systems had.** Classic systems were deterministic, auditable, and followed their rules exactly. An LLM is none of those: it can be wrong with confidence and cannot fully explain itself. That is why good designs are **hybrids**: the model handles language and judgment, while plain code and rules handle facts, permissions and constraints. In LunchBox, counts come from the database, RLS decides who sees what, and writes need a confirm click. "Use plain code wherever code does the job perfectly" is the hybrid idea.
+
+**Refinement 2 — what evals do and don't do.** Evals do not make the system as good as it can be. They *measure* how good it is on your tasks and guard against it getting worse. Improvement comes from changes (prompts, tools, retrieval, model choice, fine-tuning), and evals tell you whether a change helped. They bound the risk; they never remove it (see "thinking statistically about evals").
+
+**The mental model: manage the AI like a capable but fallible new hire with expert-level knowledge.**
+
+| Managing a human expert | What we built |
+|---|---|
+| Test them on real tasks | Evals (Step 2) |
+| Give them reference books | RAG (Step 7, coming) |
+| Limit what they can access | RLS and the isolation tests (Step 1) |
+| Require sign-off on big decisions | Confirm gates |
+| Keep records of what they did | Traces (Step 3) and the audit log (Step 4) |
+| Check they can't be fooled | Prompt-injection testing (Step 5) |
+| Review their work periodically | Canary runs and re-testing |
+| Use the right person for the job | Model routing (Step 6) |
+
+This is an easy way to explain the whole discipline to a non-technical executive. It is also the opening frame planned for the end-of-track practice checklist and interview walkthrough.
 
 ---
 
