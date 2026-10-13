@@ -842,6 +842,8 @@ Typical example: invoice processing — an email arrives, the agent extracts the
 
 **LunchBox already points in this direction.** The chat is one *interface* over a core of tools and services; the MCP server is a headless interface to the same core; and the proactive-agent step (Step 11) and durable-workflow step (Step 18) are the bridge — a nightly job that checks attendance and drafts parent messages into an approval queue *is* a headless agent.
 
+**Terminology (added 2026-10-12).** "Headless" is a long-standing software word for something that runs without a user interface (a headless browser, a headless CMS). People use it for agents too and it is easily understood, but it is not a formal agent-specific term. The same idea also goes by *autonomous agents*, *background agents*, *event-driven agents*, *unattended automation*, *ambient agents* (used by some) and, for the process version, *agentic workflows*. When using "headless", add a few words ("headless, event-driven agents with no end-user interface"). **Headless means no interface in the loop of the work — not no humans:** real systems keep approval queues for exceptions, an operator console, and an audit trail; the human moves from "at the keyboard" to "supervising and handling exceptions." Headless does not mean unsupervised.
+
 ---
 
 # Part 3 — Findings & open questions
@@ -891,6 +893,80 @@ Typical example: invoice processing — an email arrives, the agent extracts the
 - **`SECURITY DEFINER` function:** a database function that runs with its owner's rights, ignoring the caller's restrictions — a common source of accidental bypasses.
 - **Tool (agent):** a function the model may ask the backend to run.
 - **Trust boundary:** a line where data or authority crosses between parties with different levels of trust.
+
+*The glossary was brought up to date on 2026-10-12 (it had stopped at Step 1). Add new terms when each step finishes.*
+
+#### Agents and models
+- **Token (model):** the unit of text a language model reads and writes (roughly three-quarters of a word); pricing and limits are counted in tokens. Not the same as a login token (JWT) above.
+- **Context window:** the amount of text (in tokens) a model can consider in one request.
+- **System prompt:** the standing instructions given to the model at the start of every request; plain English stored in code (`SYSTEM_PROMPT` in `api/chat/index.js`).
+- **Agent loop:** the cycle in which the model asks for a tool, the backend runs it and returns the result, and the model continues until it gives a final answer (capped at 8 turns here).
+- **Tool call / tool result:** the model's request to run a tool, and the data returned to it.
+- **Prompt caching:** reusing the unchanged start of a prompt at a steep discount; cache reads are far cheaper than fresh input, cache writes cost slightly more.
+- **Hallucination:** a confident but made-up answer.
+- **Drift:** behavior changing over time or after a change to a prompt, model or tool.
+- **Run-to-run variation:** the same question getting different answers on different runs.
+- **Expert system:** a 1980s approach encoding an expert's knowledge as hand-written if-then rules; deterministic and auditable but brittle. LLMs deliver its promise differently (see the mental-model section).
+- **Hybrid design:** the model for language and judgment, plain code and rules for facts, permissions and constraints.
+- **Headless / autonomous / ambient agent:** an agent triggered by events or schedules, with no end-user interface in the loop of the work (not "no humans" — see the headless section).
+- **Trigger (workflow):** the event or schedule that starts a headless run. (Different from a *database trigger* below.)
+- **Workflow runner:** the component that executes a run's steps, saves its state, and retries.
+- **Human-in-the-loop / approval queue:** people reviewing or approving agent actions, interactively (a confirm card) or later (a queue).
+- **Ops console:** the screen operators use to watch runs, failures, cost and the audit trail.
+- **Blast radius:** how much damage one mistake or compromise can cause; limited with rate limits, budgets, sampling audits and a kill switch.
+- **Kill switch:** a way to stop an automated process immediately.
+- **MCP (Model Context Protocol):** a standard way for AI clients to use tools exposed by a server; LunchBox's `mcp_server/` is a local one.
+- **Adapter (model adapter):** a thin layer that translates each vendor's model API into one common shape so evals and tracing stay vendor-neutral (finding F14).
+
+#### Testing and measurement
+- **Eval:** a test for AI answers: questions with known right answers, run automatically and scored as a pass rate.
+- **Ground truth:** the known-correct answer, computed independently of the system being tested (here, straight from the database).
+- **Repeat:** running the same case several times, because answers vary.
+- **Pass target by severity:** the required pass rate depends on how bad a failure is (safety behaviors 100%, convenience about 90%).
+- **Control (positive control):** a test built so the *opposite* outcome is the correct one, proving the detector and the test setup work (for example, a user-requested marker word must appear).
+- **Canary (marker word):** a harmless made-up word that only an obedient agent would produce, turning "did it get tricked?" into a word search.
+- **Canary run:** a small, cheap set of evals run on a schedule to catch drift early (also "canary release": a new version sent to a few users first).
+- **Grader:** the method that decides whether a reply passed. Can be exact, a keyword heuristic, or a model judging against a rubric (LLM-as-judge). Graders can be wrong too.
+- **Regression:** something that used to work and now doesn't, caught by re-running the suite after every change.
+- **Vacuous (check):** a check that passes but proves nothing, usually because there was nothing to test (for example, a table with no rows).
+- **Confidence range (95%, Wilson interval):** the range the true pass rate probably lies in, given the runs; narrows with more runs.
+- **Rule of three:** with zero failures in *n* tries, the true failure rate could still be up to about 3/*n*.
+- **"Proven" (runner column):** yes only when even the low end of the confidence range meets the target.
+- **Cost per completed task:** judging cost by what a whole task consumes, not by price per token.
+
+#### Observability and governance
+- **Trace:** the recorded story of one request: each model and tool call with timing, tokens and sizes.
+- **Audit log:** a permanent, append-only record of who changed what and which agent proposals a human approved; for accountability, unlike a trace.
+- **Append-only:** records can be added but never edited or deleted (enforced inside the database here).
+- **Database trigger:** a rule that runs automatically inside the database on a table change; used to write audit entries.
+- **Migration:** a versioned file of database changes kept in the repo (`db/migrations/`).
+- **Metadata vs payload:** what happened (timing, sizes, names) versus the data itself; traces keep metadata only.
+- **Data minimization:** sending, storing and exposing only the data a purpose needs.
+- **Retention:** how long records are kept before deletion; not yet defined for traces or the audit log (F13, F15).
+- **Least privilege:** giving a person or agent only the access its job needs.
+- **Containment:** designing so a successful attack or mistake can do little damage (confirm gates, single-record write tools, no delete tool, RLS, audit log).
+- **Defense in depth:** layering several independent protections so no single failure is fatal.
+- **Confused deputy:** a more-privileged party tricked into using its power for a less-privileged party's request (for example, an admin's agent acting on text a low-privilege user planted).
+- **Baseline vs target (gap analysis):** the architecture as it is today, the best-practice version, and the decision about the gap (TOGAF; ArchiMate plateaus and gaps).
+- **Four review questions:** what is it for, what can it touch, what happens when it fails, how would you know it works.
+
+#### Prompt injection and safety
+- **Prompt injection (direct / indirect):** instructions planted in input the model reads; direct = typed by the user, indirect = hidden in data the agent fetches (notes, emails, documents).
+- **Exfiltration:** getting data out of a system, for example through a link in a reply.
+- **Spotlighting / instruction hierarchy:** marking untrusted data by source and telling the model only the system prompt and the user's own message are instructions.
+- **Mediation layer ("data firewall") / result shaper:** code between the tools and the model that drops, trims, labels or neutralizes data before the model sees it.
+- **Quarantine (dual-LLM) pattern:** a separate no-tools model reads untrusted text and returns only a constrained result to the privileged agent.
+- **OWASP Top 10 for LLM Applications / MITRE ATLAS:** public catalogs of risks and attack techniques for AI systems (check current versions).
+
+#### Efficiency and knowledge
+- **Model routing:** sending each request to the cheapest model that handles it well; ways: rules, a cheap classifier, or a cascade (try cheap, escalate on failure).
+- **Misroute up / down:** a simple request sent to the strong model (costs cents) versus a hard or risky one sent to the weak model (costs quality or safety); hence "default upward".
+- **RAG (retrieval-augmented generation):** finding relevant passages in your own documents and giving them to the model with the question, so it answers from them (Step 7, coming).
+- **Fine-tuning:** extra training on your own input-to-ideal-output examples, changing the model slightly (often via small adapter weights such as LoRA); good for style, format and narrow skills, poor for new facts.
+- **Distillation:** teaching a smaller model to imitate a larger one on a narrow task, often with data the larger model drafted.
+- **Few-shot examples:** showing the model a handful of example answers inside the prompt.
+- **Master data / semantic layer:** the agreed definitions and systems of record for core business objects; the foundation under most enterprise AI (see the "Beyond the 23 steps" list).
+- **OpenTelemetry:** a vendor-neutral standard for traces and metrics that many AI-observability tools build on.
 
 ---
 

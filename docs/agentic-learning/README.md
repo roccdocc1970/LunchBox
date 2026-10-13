@@ -4,7 +4,7 @@ One short note per roadmap item, written when the item is finished (`NN-name.md`
 
 **Numbering:** the numbers in this folder (concept primers, design notes `NN-name.md`) and in the Architecture Guide are concept **IDs**, assigned when the list was first written. The build **order** is the "Step n of 23" numbering in the ROADMAP progress tracker — go by that for what's next.
 
-Before building any item, read its primer in [concepts.md](concepts.md) and answer its explain-back question to Claude in your own words. Concept first, then build. The full explanation from each concept session (with your answers and the corrections) is preserved as a chapter in [../architecture/ARCHITECTURE_GUIDE.md](../architecture/ARCHITECTURE_GUIDE.md), with a short "In brief" summary that also goes into the Guide's Quick summaries cheat sheet at the top.
+Before building any item, read its primer in [concepts.md](concepts.md) and answer its explain-back question to Claude in your own words. Concept first, then build. When a step finishes, add any new terms to the glossary in Part 4 of the Guide. The full explanation from each concept session (with your answers and the corrections) is preserved as a chapter in [../architecture/ARCHITECTURE_GUIDE.md](../architecture/ARCHITECTURE_GUIDE.md), with a short "In brief" summary that also goes into the Guide's Quick summaries cheat sheet at the top.
 
 Keep each note to one page, using this template:
 
