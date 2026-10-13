@@ -51,6 +51,12 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - Test the test: controls (a user-requested marker must appear; a harmless note must be repeatable) and natural names. The first "39 of 39" was misleading; three flaws in the test were found and fixed.
 - The agent resisted all 16 cases and sometimes warned the user — "resists these," not "is safe." False-but-plausible data can't be tested for.
 
+**Item 12 — Model routing** *(built and measured 2026-10-12; understanding check pending)*
+- Routing sends each request to the cheapest model that can handle it well; the risk is a hard or risky request quietly landing on a weak model.
+- Measure the simplest alternative first (one cheap model for everything); route only where the cheap model falls short. Evals, by category, decide.
+- Haiku 5.5 matched Sonnet 5 on every category we measured at about 1/20th the price per token; the router sends routine lookups to Haiku and analysis, writes and destructive requests to Sonnet — 33/33 at about 70% lower estimated cost.
+- Judge cost per completed task, not per token (the saving was 9× on one set, 20× on another). Open-ended answer quality is not measured yet (Step 10).
+
 *(Each later item adds its own 2–5 line summary here when its chapter is written.)*
 
 ## Contents
@@ -667,6 +673,68 @@ It means the agent resisted these attack classes, in these forms, including thro
 *(Raised 2026-10-11: "a middleware layer that strips out the unneeded stuff before the model ever sees it.")*
 This is the right shape — a *mediation layer* or "data firewall", and LunchBox already has the spot: `withCounts` in `api/chat/index.js` is a one-line version. A proper **result shaper** would: (1) apply **default-deny field lists** per tool (an allow-list is safer than a block-list); (2) do counts and filters **in the database**, not in the model; (3) **cap rows and truncate** long text; (4) **label and neutralize** untrusted text (envelope, strip tag-like text); (5) apply **role-aware trimming** (the health tiers in `get_student_health` are an early example). Benefits: one auditable choke point; plain code, so it is testable offline with no model and no cost; it reduces tokens, attack surface and privacy exposure together. Limits: a list that is too tight can leave the agent unable to answer (the evals are the safety net); pattern-stripping can be bypassed, so minimizing fields comes first; it is one layer, and containment stays primary. Its output-side twin (a guard on links or content going to the screen) is lower priority because the view templates are fixed.
 
+## Item 12 — Model routing
+
+*Concept discussed and built 2026-10-12 (Step 6 of 23). Primer: `docs/agentic-learning/concepts.md`. Design note: `docs/agentic-learning/12-model-routing.md`.*
+
+### In brief
+- Routing sends each request to the cheapest model that can handle it well. The risk is a hard or risky request landing on a weak model and quietly getting worse.
+- Evals make it safe: measure the cheaper model against the same suite, category by category, and route only where its pass targets hold.
+- Measure the simplest alternative first (one cheap model for everything) — a router is worth building only where the cheap model falls short.
+- Result: Haiku 5.5 matched Sonnet 5 on every category we measured at about 1/20th the price per token; a rule-based router sending routine lookups to Haiku and analysis, writes and destructive requests to Sonnet scored 33/33 at about 70% lower estimated cost.
+
+### 12.1 The concept (see the primer)
+Like support tiers: routine questions to the first line, hard ones to a specialist. Three ways to route — rules, a cheap classifier model, or a cascade (try cheap, escalate on failure). Risks: a hard question misrouted to the weak model; the router costing more than it saves; different models failing in different ways, so a prompt fix tuned to one may not carry over.
+**Explain-back (first half answered, 2026-10-12):** *What could go wrong if a hard question is routed to the cheap model, and how would you notice?* — **Your answer:** it could give an inferior or wrong answer, or worse, it could degrade. **Assessment:** right; add that it can look perfectly reasonable, that safety (not just quality) can slip, and that cost can rise through retries or escalations. The unanswered half — *how you would notice* — is: before launch, per-category pass rates from the eval suite on the cheap model; after launch, traces recording which model handled what (now implemented), thumbs-down feedback, a scheduled canary run, and the escalation rate.
+
+### 12.2 The method: measure the simple alternative first
+Before building a router, run the whole suite on the cheaper model alone. Current prices (per million tokens, checked from the reference 2026-10-06): Sonnet 5 $2 input / $10 output; Haiku 5.5 $0.10 / $0.50. The Haiku runs of the whole suite cost a few cents in total.
+
+### 12.3 What the measurements showed (2026-10-12)
+| Suite | Sonnet 5 | Haiku 5.5 |
+|---|---|---|
+| Basic counts | 12/12 | 12/12 |
+| Hard set (tally, multi-step, paraphrase, write, navigate) | passing | passing |
+| Declines | one real miss on Haiku (opened a page for "delete all students"), fixed by a prompt rule; after the fix 15/15 on both | 15/15 |
+| Injection attacks and controls | all resisted | 28/28 and 4/4 |
+| Analysis fact-lookups | 9/9 once the grader was fixed | 9/9 |
+| Cost of the analysis run | $0.31 | $0.016 |
+
+### 12.4 What was built
+- **`api/_lib/router.js`:** plain rules, no model call, deterministic. Routine lookups and counts go to the cheap model; analysis-style questions, write or destructive intent, bulk scope and long questions go to the strong model; when unsure the rules pick the strong model (a misroute upward costs a few cents; a misroute downward can cost quality or safety). Precedence: `CHAT_MODEL` (forced, for experiments) > `CHAT_ROUTING=on` > the default model (Sonnet 5). **Off by default.**
+- **The model is chosen once per request** and never switched mid-loop (a model's thinking blocks are tied to the model that wrote them). The choice and its reason are recorded as a trace step; the model name is returned in the response.
+- **A prompt rule** that the agent cannot delete records or change many at once and should say so instead of opening a page.
+- **Tests:** `npm run test:router` (free, offline, 20 checks), and the eval runner's `--chat-model=` and `--routing` flags with per-model cost.
+
+### 12.5 Cost lessons
+- Price per token is 20× lower on Haiku, but the saving per *task* varies: about 9× on the decline cases (Haiku made more calls and used more than twice the output tokens), about 20× on the analysis cases. **Judge cost per completed task, not per token.**
+- The routed whole-suite run (33 requests: 24 to Haiku, 9 to Sonnet) cost about $0.135; the same suite on Sonnet alone is estimated at about $0.50 (an estimate from the price ratio on similar token counts).
+- A built-in price table now prints the dollar cost of every eval run; on Sonnet it reproduced the real console cost.
+
+### 12.6 Graders were wrong again
+Two more grader errors during this step: a correct Haiku refusal ("I couldn't find the annual budget… no budget data is available") missed by the keyword check, and a correct Sonnet answer using a non-breaking hyphen ("2023‑2024") that a dash normalizer missed. Both were found by reading the failing replies. A reading of the router's "reason" column also exposed a rule that matched the word "drop" (meaning "decrease") as destructive intent even though the test passed.
+
+### 12.7 Limits
+- **Open-ended analysis quality is not measured** — the analysis cases check exact facts only; judging an answer to "how is this student doing?" needs a model-based grader (Step 10).
+- **Keyword rules misroute in both directions.** An unusually phrased analysis question could go to the cheap model. Mitigation: traces record each route and reason, evals cover the categories, and the rules default upward.
+- **Small samples:** mostly 2–3 repeats per case.
+- **Production is not live** (`ANTHROPIC_API_KEY` is not set in Vercel, finding F6), so routing is exercised only through the eval runner.
+
+### 12.8 Baseline vs target
+| Area | Baseline (LunchBox today) | Target (best practice) | Decision |
+|---|---|---|---|
+| Default model | Sonnet 5; routing built but off | Routing on once real traffic and feedback exist | Decide at rollout |
+| Router | Keyword rules | Rules plus a cheap classifier or a cascade, tuned on real traffic | Later |
+| Quality measurement | Exact-fact evals | Model-graded rubric for open-ended answers | Step 10 |
+| Monitoring | Route and model recorded in every trace | Dashboards, escalation rate, alerts on pass-rate drops | Later |
+| Model pinning | `claude-sonnet-5` and `claude-haiku-5-5` named in code | Pinned and reviewed against provider deprecation notices | Check docs |
+
+### 12.9 The four review questions applied to routing
+1. *What is it for?* Paying the cheapest price that still meets each category's pass target.
+2. *What can it touch?* Which model sees each request, and therefore the data in it; nothing else (it reads only the user's last message).
+3. *What happens when it fails?* A misroute upward costs a few cents; a misroute downward can lower quality or safety — which is why safety categories must stay at 100% on whichever model they reach.
+4. *How would you know it works?* `npm run test:router`, the whole suite run through `--routing`, and the route recorded in each trace.
+
 ---
 
 # Part 3 — Findings & open questions
@@ -680,6 +748,7 @@ This is the right shape — a *mediation layer* or "data firewall", and LunchBox
 | F5 | `submit_public_inquiry` is callable without login by design; it can create records in a school identified by its public id (spam / free-text injection vector). Definition reviewed 2026-10-11: no rate limit and no input length limits; it attaches the new student to an existing parent when the email matches, so someone who knows a parent's email can add fake records under that family; the free-text `notes` flows into records the chat agent later reads. | CLAUDE.md schema notes | Open — consider rate limiting; relevant to prompt injection (item 3) |
 | F6 | Production chat is not live: `ANTHROPIC_API_KEY` is not set in Vercel. | ROADMAP | Open (founder to-do) |
 | F9 | **Suspected, unverified.** The `staff_update_own` policy lets a staff member update their own staff row with no column limits (condition and check are only `email = auth.email()`). If it works, a staff member could change their own `role` or `school_id`, escalating privileges or reaching another school. Function definition reviewed 2026-10-11: `get_staff_school_id()` returns the school from the caller's own staff row (`select school_id from staff where auth_user_id = auth.uid()`), so rewriting that row's `school_id` would redirect all of their staff access. Chained with F8 (school ids are public) and open self-signup (any customer admin can create a staff row with their own email), this would let any customer read any school. **CONFIRMED exploitable on 2026-10-11** by `npm run test:staff-escalation`: school B rewrote its own staff row to point at school A, `get_staff_school_id()` then returned school A, and B read A's students. Fix prepared in `db/migrations/001_fix_staff_self_update.sql`: a narrow `link_staff_account()` function that can only set `auth_user_id`, a trigger that forbids changing `school_id` on staff rows, and removal of `staff_update_own`; plus the matching change in `useSchool.js`. | Policy review + test | **Fixed and verified 2026-10-11:** SQL applied; retest says blocked (database error "staff.school_id cannot be changed"). Code change in `useSchool.js` committed, push pending. |
+| F19 | The model router uses keyword rules, so it can misroute in both directions (an oddly phrased analysis question could go to the cheap model); open-ended answer quality is not measured on either model (needs the model-based grader, Step 10); routing is off by default and untested against real traffic because production chat is not live (F6). Mitigations in place: default-upward rules, route and reason in every trace, category-level eval targets. | Step 6 | Open — revisit at rollout and with Step 10 |
 | F18 | Prompt-injection coverage is a sample, not a guarantee: the agent resisted all 16 cases, but "notes as the focus" and "name field" attacks are untested, false-but-plausible data cannot be detected by instruction filters, and the app has no prevention layer of its own (it relies on the model's resistance plus containment). Memory, RAG and MCP steps each need their own injection tests when built. | Step 5 | Open — keep growing the suite |
 | F15 | The audit log is append-only (deletion is blocked even for the owner) and has no retention procedure; legal retention periods vary. Needs a deliberate, controlled expiry procedure before it grows unbounded or real schools use it. | Item 15 | Open |
 | F16 | The audit trigger runs inside every write to the eight audited tables and fails closed: a bug would block those writes, and nothing alerts on audit failures. | Item 15 | Open — accepted trade-off; add alerting later |
