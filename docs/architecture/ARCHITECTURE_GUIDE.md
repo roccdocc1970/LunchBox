@@ -67,6 +67,11 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - So good designs are hybrids: the model for language and judgment, plain code and rules for facts, permissions and constraints.
 - Evals measure how expert the system is on your tasks and guard against decline; they don't make it perfect. Manage the AI like a capable but fallible new hire: test, give references, limit access, require sign-off, keep records, check it can't be fooled, review periodically.
 
+**Cross-cutting — interactive agents vs headless process automation** *(2026-10-12)*
+- Headless automation is shaped as trigger → workflow runner (agent steps and plain-code steps, saved state) → tools and systems → record or notify, with exceptions going to a human approval queue and an ops console for operators.
+- It differs from LunchBox in who starts it (an event, not a person), identity (a service identity), oversight (asynchronous), length, and blast radius (thousands of items before anyone notices).
+- Every practice in this track carries over; add blast-radius controls: rate limits, budgets, sampling audits, a kill switch.
+
 *(Each later item adds its own 2–5 line summary here when its chapter is written.)*
 
 ## Contents
@@ -801,6 +806,41 @@ Two more grader errors during this step: a correct Haiku refusal ("I couldn't fi
 | Use the right person for the job | Model routing (Step 6) |
 
 This is an easy way to explain the whole discipline to a non-technical executive. It is also the opening frame planned for the end-of-track practice checklist and interview walkthrough.
+
+## Cross-cutting: interactive agents (LunchBox) vs headless process automation
+*(Discussed 2026-10-12: "people automating business processes with LLMs aren't starting with an app with screens — what shape does that system take, and how is it different from what we're doing?")*
+
+**The shape of a headless agentic system:**
+
+```
+Trigger → Workflow runner → Tools and systems → Record / notify
+(email arrives,   (agent steps and      (APIs, databases,      (update the system
+ ticket created,   plain-code steps,     ERP, CRM, email,       of record, send a
+ schedule, file    state saved,          documents)             message, file a ticket)
+ drop, queue)      retries)
+                        ↓ exceptions
+                  Human approval queue  (email, Slack, ticket — not a screen)
+        Operators watch an ops console: runs, failures, costs, audit trail
+```
+
+Typical example: invoice processing — an email arrives, the agent extracts the fields, matches them to a purchase order, posts to the ERP, and sends exceptions to a person. No end user sees a screen; the only screens are for the operators who watch the runs.
+
+**How it differs from LunchBox:**
+
+| | LunchBox (interactive) | Headless automation |
+|---|---|---|
+| Starts with | A person asks in chat | An event or schedule |
+| Who's present | A human at every step | Usually nobody |
+| Identity | The logged-in user's token | A service identity with scoped permissions (Step 20) |
+| Human oversight | A confirm card, right now | Approval queues and exception handling, later |
+| Length | One request, seconds | Many steps over minutes or days, with saved state (Step 18) |
+| Risk of a mistake | One answer | Thousands of items before anyone notices |
+| Main attack | Planted text in notes | Untrusted inbound content (emails, PDFs from outside) |
+| Primary "UI" | Chat | Run dashboards, traces and the audit log |
+
+**What carries over almost unchanged:** isolation and least privilege, containment, evals (now for the whole process *and* each step), tracing, the audit log, injection testing, routing and RAG. **What changes:** the trigger, the identity, asynchronous human oversight, durable state, and a much bigger need for **blast-radius controls** — rate limits, budgets per run, sampling audits of the agent's decisions, and a kill switch.
+
+**LunchBox already points in this direction.** The chat is one *interface* over a core of tools and services; the MCP server is a headless interface to the same core; and the proactive-agent step (Step 11) and durable-workflow step (Step 18) are the bridge — a nightly job that checks attendance and drafts parent messages into an approval queue *is* a headless agent.
 
 ---
 
