@@ -16,6 +16,8 @@
  *   npm run evals                                   tool checks only (free)
  *   npm run evals -- --model --only=cohorts         one question, one run (cheapest model run)
  *   npm run evals -- --model --repeats=3            every question, 3 repeats each
+ *   npm run evals -- --chat-model=claude-haiku-5-5 --model   run the suite on another model
+ *   npm run evals -- --routing --model                       let the router pick the model per question
  *   npm run evals -- --set=hard --list              show the harder question set (free, no model)
  *   npm run evals -- --set=hard --model --only=nav_cohort   run part of the harder set
  * Sets: basic (default, simple counts) | hard (behavior categories) | all (basic + hard)
@@ -53,6 +55,12 @@ const LIST = flag('list')
 const SET = option('set', 'basic') // basic | hard | all
 // --chat-model=<id> runs the whole suite against a different chat model (default: the app's own, claude-sonnet-5).
 if (option('chat-model', '')) process.env.CHAT_MODEL = option('chat-model', '')
+// --routing lets the rule-based router (api/_lib/router.js) pick the model for each question instead of forcing one.
+if (flag('routing')) {
+  if (option('chat-model', '')) { console.error('Use either --routing or --chat-model, not both.'); process.exit(2) }
+  process.env.CHAT_ROUTING = 'on'
+  delete process.env.CHAT_MODEL
+}
 
 // Built-in prices, $ per million tokens, from Anthropic's published pricing (as of 2026-10-06). Cache read = 0.1x and
 // cache write = 1.25x the input price (the standard ratios — verify against the pricing page). Override any run with the
@@ -173,12 +181,12 @@ async function ask(token, question) {
   return out
 }
 
-function priceEstimate(u) {
+function priceEstimate(u, modelId) {
   const p = n => parseFloat(process.env[n])
   let inP = p('EVAL_PRICE_INPUT_PER_MTOK'), outP = p('EVAL_PRICE_OUTPUT_PER_MTOK')
   let readP = p('EVAL_PRICE_CACHE_READ_PER_MTOK') || 0, writeP = p('EVAL_PRICE_CACHE_WRITE_PER_MTOK') || 0
   if (!(inP >= 0) || !(outP >= 0)) {
-    const table = PRICES[process.env.CHAT_MODEL || 'claude-sonnet-5']
+    const table = PRICES[modelId || process.env.CHAT_MODEL || 'claude-sonnet-5']
     if (!table) return null
     ;({ input: inP, output: outP, cacheRead: readP, cacheWrite: writeP } = table)
   }
@@ -188,7 +196,7 @@ function priceEstimate(u) {
 async function main() {
   const { token, supabase, schoolId, ctx } = await login()
   const cases = await buildCases(supabase, schoolId)
-  console.log(`School ${schoolId} — ${cases.length} question(s) — chat model: ${process.env.CHAT_MODEL || 'claude-sonnet-5 (default)'}\n`)
+  console.log(`School ${schoolId} — ${cases.length} question(s) — chat model: ${process.env.CHAT_ROUTING === 'on' ? 'ROUTED (router picks per question)' : (process.env.CHAT_MODEL || 'claude-sonnet-5 (default)')}\n`)
 
   const expected = {}
   for (const cs of cases) expected[cs.id] = await cs.truth()
@@ -227,6 +235,8 @@ async function main() {
   const totalRuns = cases.length * REPEATS
   console.log(`PHASE 2 — model evals: ${cases.length} question(s) × ${REPEATS} repeat(s) = ${totalRuns} run(s)\n`)
   const usage = { calls: 0, input_tokens: 0, output_tokens: 0, cache_read_tokens: 0, cache_creation_tokens: 0 }
+  const usageByModel = {} // tokens per model actually used (several models when routing)
+  const routed = {}       // how many requests each model handled
   const results = []
   const failures = [] // every failing reply in full — reading these is the most useful part of eval work
   let n = 0
@@ -241,7 +251,12 @@ async function main() {
       const { status, body } = await ask(token, cs.question)
       let ok = status === 200 && (cs.check ? cs.check(body) : matches(expected[cs.id], body?.reply))
       if (ok && cs.after) ok = await cs.after() // e.g. confirm a "proposed" write changed nothing
-      if (body?.usage) for (const k of Object.keys(usage)) usage[k] += body.usage[k] || 0
+      if (body?.usage) {
+        const m = (usageByModel[body.model || 'unknown'] ||= { input_tokens: 0, output_tokens: 0, cache_read_tokens: 0, cache_creation_tokens: 0 })
+        for (const k of Object.keys(usage)) usage[k] += body.usage[k] || 0
+        for (const k of Object.keys(m)) m[k] += body.usage[k] || 0
+        routed[body.model || 'unknown'] = (routed[body.model || 'unknown'] || 0) + 1
+      }
       console.log(ok ? 'pass' : 'FAIL')
       if (ok) passes += 1
       else {
@@ -263,10 +278,12 @@ async function main() {
   const passed = results.reduce((s, r) => s + parseInt(r.passes, 10), 0)
   console.log(`\nOverall: ${passed}/${totalRuns} runs correct (${Math.round((100 * passed) / totalRuns)}%)`)
   console.log(`Model calls: ${usage.calls} | input tokens: ${usage.input_tokens} | output tokens: ${usage.output_tokens} | cache read: ${usage.cache_read_tokens} | cache write: ${usage.cache_creation_tokens}`)
-  const est = priceEstimate(usage)
+  console.log(`Requests handled by model: ${Object.entries(routed).map(([m, n]) => `${m} × ${n}`).join(', ')}`)
+  const perModel = Object.entries(usageByModel).map(([m, u]) => [m, priceEstimate(u, m)])
+  const est = perModel.some(([, c]) => c === null) ? null : perModel.reduce((s, [, c]) => s + c, 0)
   console.log(est === null
     ? 'Cost: set EVAL_PRICE_* in .env.isolation.local to print a dollar estimate (see header of scripts/run-evals.mjs), or check the Anthropic console usage page.'
-    : `Estimated cost of this run: $${est.toFixed(4)}`)
+    : `Estimated cost of this run: $${est.toFixed(4)}${perModel.length > 1 ? ` (${perModel.map(([m, c]) => `${m}: $${c.toFixed(4)}`).join(', ')})` : ''}`)
 
   // Pass targets by severity: safety-critical categories must be perfect; the rest need 90%.
   const TARGETS = { write: 1, decline: 1 }

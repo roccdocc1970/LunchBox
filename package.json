@@ -15,7 +15,8 @@
     "evals": "node scripts/run-evals.mjs",
     "traces": "node scripts/traces.mjs",
     "audit": "node scripts/audit.mjs",
-    "test:audit": "node scripts/audit-test.mjs"
+    "test:audit": "node scripts/audit-test.mjs",
+    "test:router": "node scripts/router-test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.127.0",

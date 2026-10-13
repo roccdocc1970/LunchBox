@@ -86,6 +86,7 @@ async function main() {
       for (const s of r.steps || []) {
         if (s.type === 'model') console.log(`    model call ${s.turn}: ${s.ms}ms, ${s.input_tokens} in / ${s.output_tokens} out (${s.cache_read_tokens} cached), stopped: ${s.stop_reason}`)
         else if (s.type === 'tool') console.log(`    tool ${s.name}(${(s.args || []).join(', ')}): ${s.ms}ms, ${s.result_rows ?? '?'} rows, ${s.result_bytes ?? '?'} bytes${s.error ? '  ERROR' : ''}`)
+        else if (s.type === 'route') console.log(`    route: ${s.model} (${s.reason})`)
         else console.log(`    final: ${s.name}`)
       }
     }

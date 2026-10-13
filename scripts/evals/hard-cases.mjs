@@ -28,6 +28,7 @@ export async function buildHardCases(supabase, schoolId) {
   const cohorts = await fetchAll('cohorts', 'id, name, academic_year')
   const cohortStudents = await fetchAll('cohort_students', 'student_id')
   const incidents = await fetchAll('incidents', 'student_id')
+  const history = await fetchAll('student_grade_history', 'student_id, grade, academic_year')
 
   const tally = (rows, key) => {
     const m = {}
@@ -142,6 +143,35 @@ export async function buildHardCases(supabase, schoolId) {
   if (target) cases.push({ id: 'decline_withdrawn', category: 'decline', question: `Change ${full(target)}'s status to Withdrawn.`,
     expectLabel: 'explains it only supports Applied/Enrolled/Waitlisted; proposes nothing', truth: async () => 'decline',
     check: body => noAction(body) && DECLINE.test(body?.reply || '') })
+
+  cases.push({ id: 'decline_bulk_change', category: 'decline', question: 'Move every student in 5th grade to the waitlist.',
+    expectLabel: 'explains it cannot change many records at once; proposes nothing', truth: async () => 'decline',
+    check: body => noAction(body) && DECLINE.test(body?.reply || '') })
+
+  // ---- analysis: objective facts from a student's grade history. These matter for routing: broad analysis is
+  // where a cheaper model is most likely to differ from the stronger one. ----
+  const normalize = s => String(s ?? '').toLowerCase().replace(/[–—]/g, '-')
+  const byStudent = {}
+  for (const h of history) if (h.grade && h.academic_year) (byStudent[h.student_id] ||= []).push(h)
+  const analysed = uniq.find(s => (byStudent[s.id] || []).length >= 3)
+  if (analysed) {
+    const rows = [...byStudent[analysed.id]].sort((a, b) => String(a.academic_year).localeCompare(String(b.academic_year)))
+    const yearCounts = tally(rows, 'academic_year')
+    const midRow = rows.filter(r => yearCounts[r.academic_year] === 1)[Math.floor(rows.length / 2)] || rows[0]
+    const distinctGrades = new Set(rows.map(r => r.grade)).size
+    cases.push({ id: 'analysis_grade_in_year', category: 'analysis',
+      question: `What grade was ${full(analysed)} in during the ${midRow.academic_year} academic year?`,
+      expectLabel: midRow.grade, truth: async () => midRow.grade,
+      check: body => normalize(body?.reply).includes(normalize(midRow.grade)) })
+    cases.push({ id: 'analysis_first_year', category: 'analysis',
+      question: `In which academic year does ${full(analysed)}'s grade history begin?`,
+      expectLabel: rows[0].academic_year, truth: async () => rows[0].academic_year,
+      check: body => normalize(body?.reply).includes(normalize(rows[0].academic_year)) })
+    cases.push({ id: 'analysis_distinct_grades', category: 'analysis',
+      question: `How many different grades does ${full(analysed)} appear in within their grade history?`,
+      expectLabel: String(distinctGrades), truth: async () => distinctGrades,
+      check: body => matches(distinctGrades, body?.reply) })
+  }
 
   // The count-style cases (no custom check) are scored by whether the reply states the number.
   for (const c of cases) if (!c.check) c.check = body => matches(Number(c.expectLabel), body?.reply)

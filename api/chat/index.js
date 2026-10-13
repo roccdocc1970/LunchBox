@@ -13,7 +13,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { supabaseFromRequest } from '../_lib/supabaseFromRequest.js'
 import { getSchoolContext } from '../_lib/getSchoolContext.js'
 import { READ_TOOLS, WRITE_TOOLS, NAVIGATE_TOOLS, allToolSchemas } from '../_lib/tools.js'
-import { startTrace } from '../_lib/trace.js'
+import { startTrace, lastUserText } from '../_lib/trace.js'
+import { chooseModel } from '../_lib/router.js'
 
 // Built lazily (inside the handler, not here at module load) so it reads
 // ANTHROPIC_API_KEY at request time. In local dev, ES module imports are
@@ -53,6 +54,8 @@ List-returning tools give you a "count" field alongside "items" — when asked "
 
 For anything involving scheduling, cohort assignment, or class enrollment/capacity changes, call the matching navigate_to_* tool instead of guessing — never attempt those changes yourself, even if the request seems simple. Look up the real class/cohort id first via get_classes/get_cohorts before calling navigate_to_class/navigate_to_cohort. For scheduling requests specifically, do not ask clarifying questions first — navigate_to_scheduling needs no details, so call it right away; the user chooses the class and period on that screen. If you say you will open a screen, you must call the tool in the same turn.
 
+You cannot delete records or change many records at once. If asked to, say clearly that this can't be done through chat and explain what you can do instead (for example, changing one student's status with confirmation) — do not open a page unless the user asks to go somewhere.
+
 For an enrollment status change or logging an incident, call the matching tool once you have the details — it will be shown to a human for confirmation and is never executed automatically by you.
 
 Call render_view as your final step once you have the data needed to answer. Use a view template (table/stat_row/chip_list/mini_timeline) whenever the answer is a list, a set of counts, or a history — use template "none" only for a single fact or short explanation.`
@@ -69,9 +72,11 @@ function addUsage(total, u = {}) {
 
 const MAX_TURNS = 8
 const DEFAULT_MODEL = 'claude-sonnet-5'
-// Experiments (the eval runner) can pick another model with CHAT_MODEL; production uses the default.
-// The model is chosen ONCE per request and never switched mid-loop (thinking blocks are bound to the model that wrote them).
-const modelId = () => process.env.CHAT_MODEL || DEFAULT_MODEL
+// Model choice, once per request (api/_lib/router.js): CHAT_MODEL forces one model (experiments), CHAT_ROUTING=on lets the
+// router pick by question, otherwise the default. Never switched mid-loop (thinking blocks are bound to the model that wrote them).
+const pickModel = messages => chooseModel(lastUserText(messages), {
+  routingOn: process.env.CHAT_ROUTING === 'on', forced: process.env.CHAT_MODEL || '', defaultModel: DEFAULT_MODEL,
+})
 
 // The system prompt and tool definitions are identical on every call in the
 // loop (and across separate messages in the same session) — marking them
@@ -109,11 +114,12 @@ export default async function handler(req, res) {
 
   // One trace per request (metadata only — see api/_lib/trace.js). It is saved just before
   // every response, so even failed requests leave a record.
-  const model = modelId()
+  const { model, reason: routeReason } = pickModel(messages)
   const trace = startTrace({ supabase, schoolId, userId, model, messages })
+  trace.step({ type: 'route', model, reason: routeReason })
   const respond = async (status, body, outcome, errorMessage) => {
     await trace.save(outcome, usage, errorMessage)
-    return res.status(status).json(body)
+    return res.status(status).json({ ...body, model })
   }
 
   try {

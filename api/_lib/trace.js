@@ -18,7 +18,7 @@ const ERROR_LIMIT = 300
 // place personal data can reach a trace. Set TRACE_STORE_QUESTION=false to store only its length.
 const STORE_QUESTION = process.env.TRACE_STORE_QUESTION !== 'false'
 
-function lastUserText(messages) {
+export function lastUserText(messages) {
   const last = [...(messages || [])].reverse().find(m => m.role === 'user')
   if (!last) return ''
   if (typeof last.content === 'string') return last.content
