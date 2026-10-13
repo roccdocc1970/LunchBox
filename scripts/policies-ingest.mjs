@@ -8,6 +8,7 @@
  *   npm run policies -- --school=B --file=... --title=...
  *   npm run policies -- --list [--school=B]
  *   npm run policies -- --delete="Parent Handbook"
+ *   npm run policies -- --search="When are permission slips due?"   (what the chat search would return — a diagnostic)
  */
 
 import fs from 'node:fs'
@@ -16,8 +17,8 @@ import dotenv from 'dotenv'
 import { createClient } from '@supabase/supabase-js'
 import { supabaseFromRequest } from '../api/_lib/supabaseFromRequest.js'
 import { getSchoolContext } from '../api/_lib/getSchoolContext.js'
-import { embedTexts, EMBEDDING_MODEL } from '../api/_lib/embed.js'
-import { ingestPolicy, listPolicies, deletePolicy } from '../src/services/policies.js'
+import { embedTexts, embedText, EMBEDDING_MODEL } from '../api/_lib/embed.js'
+import { ingestPolicy, listPolicies, deletePolicy, searchPolicies } from '../src/services/policies.js'
 
 dotenv.config({ path: '.env.local' })
 dotenv.config({ path: '.env.isolation.local' })
@@ -47,6 +48,11 @@ async function main() {
     const docs = await listPolicies(supabase)
     if (!docs.length) return console.log('No policy documents on file.')
     return console.table(docs.map(d => ({ title: d.title, file: d.filename, chunks: d.chunk_count, chars: d.char_count, added: new Date(d.created_at).toLocaleString() })))
+  }
+  if (option('search')) {
+    const hits = await searchPolicies(supabase, await embedText(option('search')), 4)
+    if (!hits.length) return console.log('The search returned nothing: no policy passages are on file for this school.')
+    return console.table(hits.map(h => ({ similarity: Number(h.similarity).toFixed(3), document: h.document_title, section: String(h.heading || '').split(' > ').pop(), starts: String(h.content).split('\n\n').slice(1).join(' ').slice(0, 60) })))
   }
   if (option('delete')) {
     const n = await deletePolicy(supabase, schoolId, option('delete'))
