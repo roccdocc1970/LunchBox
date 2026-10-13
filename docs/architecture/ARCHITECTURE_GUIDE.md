@@ -51,7 +51,7 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - Test the test: controls (a user-requested marker must appear; a harmless note must be repeatable) and natural names. The first "39 of 39" was misleading; three flaws in the test were found and fixed.
 - The agent resisted all 16 cases and sometimes warned the user — "resists these," not "is safe." False-but-plausible data can't be tested for.
 
-**Item 12 — Model routing** *(built and measured 2026-10-12; understanding check pending)*
+**Item 12 — Model routing** *(done 2026-10-12)*
 - Routing sends each request to the cheapest model that can handle it well; the risk is a hard or risky request quietly landing on a weak model.
 - Measure the simplest alternative first (one cheap model for everything); route only where the cheap model falls short. Evals, by category, decide.
 - Haiku 5.5 matched Sonnet 5 on every category we measured at about 1/20th the price per token; the router sends routine lookups to Haiku and analysis, writes and destructive requests to Sonnet — 33/33 at about 70% lower estimated cost.
@@ -728,6 +728,12 @@ Two more grader errors during this step: a correct Haiku refusal ("I couldn't fi
 | Quality measurement | Exact-fact evals | Model-graded rubric for open-ended answers | Step 10 |
 | Monitoring | Route and model recorded in every trace | Dashboards, escalation rate, alerts on pass-rate drops | Later |
 | Model pinning | `claude-sonnet-5` and `claude-haiku-5-5` named in code | Pinned and reviewed against provider deprecation notices | Check docs |
+
+### 12.8a The understanding check (preserved)
+1. *Why run the whole suite on the cheap model before building the router?* — **Your answer:** to understand the discrete results for each category before implementing routing logic, in case the tests weren't great. **Assessment:** right. The principle: a router adds complexity and its own failure modes, so show the simpler option falls short first. Haiku alone nearly passed everything, so the router became a hedge for the unmeasured and risky cases, not a fix for a measured failure.
+2. *What does each misroute cost, and why default upward?* — **Your answer:** a misroute costs quality and could cause data issues; default upward is better — better to have the horsepower and not need it than need it and not have it. **Assessment:** mostly right, sharpened: the two misroutes have unequal costs — routed *down* by mistake can lower quality or safety (large, hard to see); routed *up* by mistake costs a few cents (small, bounded, visible). Because one downside is bounded and the other isn't, defaulting upward is the rational choice. Data problems are less likely than that because writes still pass the confirm gate.
+3. *Why did the saving vary, and what does it say about measuring cost?* — **Your answer:** measure cost per completed task, because each task may have a different call structure and so different usage and pricing. **Assessment:** correct. Specifically, on the decline set Haiku made more model calls and used more than twice the output tokens (about 9× saving), while on the analysis set it didn't (about 20×).
+**To keep in mind:** the second half of the original explain-back — *how would you notice a bad routing?* — was not answered in your own words (see 12.1 for the answer).
 
 ### 12.9 The four review questions applied to routing
 1. *What is it for?* Paying the cheapest price that still meets each category's pass target.
