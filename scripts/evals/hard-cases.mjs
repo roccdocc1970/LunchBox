@@ -150,7 +150,8 @@ export async function buildHardCases(supabase, schoolId) {
 
   // ---- analysis: objective facts from a student's grade history. These matter for routing: broad analysis is
   // where a cheaper model is most likely to differ from the stronger one. ----
-  const normalize = s => String(s ?? '').toLowerCase().replace(/[–—]/g, '-')
+  // Models write year ranges with plain, en-dash, em-dash or non-breaking hyphens — treat every dash-like character as '-'.
+  const normalize = s => String(s ?? '').toLowerCase().replace(/[‐-―−]/g, '-')
   const byStudent = {}
   for (const h of history) if (h.grade && h.academic_year) (byStudent[h.student_id] ||= []).push(h)
   const analysed = uniq.find(s => (byStudent[s.id] || []).length >= 3)
