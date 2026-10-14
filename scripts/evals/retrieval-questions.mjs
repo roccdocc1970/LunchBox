@@ -16,6 +16,11 @@ export const QUESTIONS = [
   { id: 'exact_extension', kind: 'exact_term', q: 'Who is at extension 4417?', mustContain: ['nurse: extension 4417'] },
   { id: 'exact_form_rr2', kind: 'exact_term', q: 'How long do Form RR-2 requests take?', mustContain: ['5 business days'] },
   { id: 'exact_form_med3', kind: 'exact_term', q: 'What does Form MED-3 do?', mustContain: ['Form MED-3'] },
+  // exact_term against look-alike codes and extensions (added after the first baseline proved too easy)
+  { id: 'exact_form_pu9', kind: 'exact_term', q: 'What is Form PU-9?', mustContain: ['Form PU-9 (Pool Use Agreement)'] },
+  { id: 'exact_ext_4471', kind: 'exact_term', q: 'Who is at extension 4471?', mustContain: ['Brandt: extension 4471'] },
+  { id: 'exact_ext_4407', kind: 'exact_term', q: 'Who do I reach at extension 4407?', mustContain: ['Pool manager: extension 4407'] },
+  { id: 'exact_form_fa12', kind: 'exact_term', q: 'How long does a Form FA-12 decision take?', mustContain: ['10 business days'] },
   // paraphrase
   { id: 'para_late_fee', kind: 'paraphrase', q: 'How much do I pay if I collect my child late?', mustContain: ['$12'] },
   { id: 'para_inhaler', kind: 'paraphrase', q: 'Can my daughter keep her inhaler in her backpack?', mustContain: ['EpiPen'] },

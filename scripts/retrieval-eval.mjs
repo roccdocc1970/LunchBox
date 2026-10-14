@@ -59,8 +59,14 @@ async function main() {
   const { schoolId, userId } = await getSchoolContext(supabase)
 
   console.log(`Mode: ${MODE} | results per search: ${K}\nIngesting the sample documents for school A…`)
-  await ingestPolicy(supabase, { schoolId, userId, title: '⚡ Emerson Parent Handbook', filename: 'emerson-handbook.md', text: read('emerson-handbook.md') }, embedTexts)
-  await ingestPolicy(supabase, { schoolId, userId, title: '⚡ Emerson Forms and Contacts', filename: 'emerson-forms-and-contacts.md', text: read('emerson-forms-and-contacts.md') }, embedTexts)
+  const DOCUMENTS = [
+    ['⚡ Emerson Parent Handbook', 'emerson-handbook.md'],
+    ['⚡ Emerson Forms and Contacts', 'emerson-forms-and-contacts.md'],
+    ['⚡ Emerson Athletics and Activities', 'emerson-athletics-activities.md'],
+  ]
+  for (const [title, filename] of DOCUMENTS) {
+    await ingestPolicy(supabase, { schoolId, userId, title, filename, text: read(filename) }, embedTexts)
+  }
 
   const rows = []
   for (const question of QUESTIONS) {
