@@ -74,7 +74,7 @@ export const STAT_TOPICS = {
     stats: calcFacilitiesStats,
   },
   incidents: {
-    about: 'School-wide incidents: total, open, resolved. Filters: status (Open/Resolved), type (Behavioral, Academic, Medical, Safety, Other). There is no severity field.',
+    about: 'School-wide incidents: total, open, resolved. Filters: status (Open/Resolved), type (Behavioral, Academic, Attendance, Safety, Other). There is no severity field.',
     filters: ['status', 'type'],
     fetch: (sb, id) => getSchoolIncidents(sb, id),
     filter: filterIncidents,

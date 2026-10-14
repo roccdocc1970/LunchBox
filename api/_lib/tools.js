@@ -58,7 +58,7 @@ export const READ_TOOLS = [
         status: { type: 'string', description: 'students (Applied/Enrolled/Waitlisted), facilities (Open/In Progress/On Hold/Completed/Cancelled) or incidents (Open/Resolved)' },
         priority: { type: 'string', description: 'facilities only: Low/Medium/High/Urgent' },
         category: { type: 'string', description: 'facilities only, e.g. Plumbing' },
-        type: { type: 'string', description: 'incidents only: Behavioral/Academic/Medical/Safety/Other' },
+        type: { type: 'string', description: 'incidents only: Behavioral/Academic/Attendance/Safety/Other' },
       },
       required: ['topic'],
     },
