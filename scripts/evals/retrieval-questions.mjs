@@ -21,6 +21,11 @@ export const QUESTIONS = [
   { id: 'exact_ext_4471', kind: 'exact_term', q: 'Who is at extension 4471?', mustContain: ['Brandt: extension 4471'] },
   { id: 'exact_ext_4407', kind: 'exact_term', q: 'Who do I reach at extension 4407?', mustContain: ['Pool manager: extension 4407'] },
   { id: 'exact_form_fa12', kind: 'exact_term', q: 'How long does a Form FA-12 decision take?', mustContain: ['10 business days'] },
+  // held-out exact-term questions: written BEFORE the keyword-ranking fix (migration 007) and never used to tune it
+  { id: 'holdout_ext_4474', kind: 'exact_holdout', q: 'Who is at extension 4474?', mustContain: ['Osei: extension 4474'] },
+  { id: 'holdout_ext_4430', kind: 'exact_holdout', q: 'Who do I reach at extension 4430?', mustContain: ['Alvarez: extension 4430'] },
+  { id: 'holdout_ext_4410', kind: 'exact_holdout', q: 'Whose number is extension 4410?', mustContain: ['Equipment room: extension 4410'] },
+  { id: 'holdout_form_er3', kind: 'exact_holdout', q: 'What is Form ER-3 for?', mustContain: ['returned with Form ER-3'] },
   // paraphrase
   { id: 'para_late_fee', kind: 'paraphrase', q: 'How much do I pay if I collect my child late?', mustContain: ['$12'] },
   { id: 'para_inhaler', kind: 'paraphrase', q: 'Can my daughter keep her inhaler in her backpack?', mustContain: ['EpiPen'] },

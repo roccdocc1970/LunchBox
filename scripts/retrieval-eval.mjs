@@ -82,6 +82,8 @@ async function main() {
       : r.kind === 'multi_section' ? (r.score.top4 ? 'all facts in top 4' : 'MISSING a fact')
         : r.score.rank ? `first hit at rank ${r.score.rank}` : 'NOT FOUND',
     top_results: r.results.slice(0, 3).map(x => String(x.heading || '').split(' > ').pop()).join(' | ').slice(0, 70),
+    // hybrid only: each top result's position in the meaning list / keyword list ("-" = absent), e.g. v1/k2
+    ...(MODE === 'hybrid' ? { v_k_ranks: r.results.slice(0, 3).map(x => `v${x.vector_rank ?? '-'}/k${x.keyword_rank ?? '-'}`).join(' ') } : {}),
   })))
 
   console.log(`\nSummary (${MODE} search):`)

@@ -79,3 +79,15 @@ export async function searchPolicies(supabase, queryEmbedding, k = 4) {
   if (error) throw error
   return data || []
 }
+
+/**
+ * Hybrid search (migration 006): the passages ranking best across BOTH a meaning search (vector) and a
+ * keyword search (Postgres full-text), merged by reciprocal rank fusion. Needs the question text as well.
+ */
+export async function searchPoliciesHybrid(supabase, queryEmbedding, queryText, k = 4) {
+  const { data, error } = await supabase.rpc('match_policy_chunks_hybrid', {
+    query_embedding: queryEmbedding, query_text: queryText, match_count: k,
+  })
+  if (error) throw error
+  return data || []
+}
