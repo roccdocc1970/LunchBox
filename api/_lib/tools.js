@@ -16,7 +16,8 @@
  *   changes, which are too risky to guess at in natural language.
  */
 
-import { getGradeHistory, getIncidents, getStudentHealth, logIncident } from '../../src/services/students.js'
+import { getGradeHistory, getIncidents, getSchoolIncidents, getStudentHealth, logIncident } from '../../src/services/students.js'
+import { getSchoolStats, TOPIC_NAMES, STAT_TOPICS } from './schoolStats.js'
 import { getStudents as getEnrollmentStudents, updateStudentStatus } from '../../src/services/enrollment.js'
 import { getAttendanceHistory } from '../../src/services/attendance.js'
 import { getReportCardsForStudent } from '../../src/services/reportCards.js'
@@ -45,10 +46,35 @@ export const READ_TOOLS = [
     run: async (supabase, schoolId) => getEnrollmentStudents(supabase, schoolId),
   },
   {
+    name: 'get_school_stats',
+    description: 'Get EXACT, code-computed counts and totals for one area of the school. ALWAYS use this for "how many", totals, rates and breakdowns — never count, filter or add up rows yourself, and never estimate. Topics: ' +
+      TOPIC_NAMES.map(t => `${t} (${STAT_TOPICS[t].about})`).join(' ') +
+      ' If a filter you need is not supported for the topic, the result says so — then tell the user the number covers all records instead of guessing.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        topic: { type: 'string', enum: TOPIC_NAMES },
+        grade: { type: 'string', description: 'students only, e.g. "3rd Grade"' },
+        status: { type: 'string', description: 'students (Applied/Enrolled/Waitlisted), facilities (Open/In Progress/On Hold/Completed/Cancelled) or incidents (Open/Resolved)' },
+        priority: { type: 'string', description: 'facilities only: Low/Medium/High/Urgent' },
+        category: { type: 'string', description: 'facilities only, e.g. Plumbing' },
+        type: { type: 'string', description: 'incidents only: Behavioral/Academic/Medical/Safety/Other' },
+      },
+      required: ['topic'],
+    },
+    run: async (supabase, schoolId, input, ctx = {}) => getSchoolStats(supabase, schoolId, input, ctx),
+  },
+  {
     name: 'get_incidents',
     description: 'Get all logged incidents for one student.',
     input_schema: { type: 'object', properties: { studentId: { type: 'string' } }, required: ['studentId'] },
     run: async (supabase, _schoolId, { studentId }) => getIncidents(supabase, studentId),
+  },
+  {
+    name: 'get_school_incidents',
+    description: 'Get the school-wide list of logged incidents (all students, newest first). Use it to LIST or look up incidents; for any count or total use get_school_stats (topic "incidents").',
+    input_schema: { type: 'object', properties: {} },
+    run: async (supabase, schoolId) => getSchoolIncidents(supabase, schoolId),
   },
   {
     name: 'get_attendance_history',

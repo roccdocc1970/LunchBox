@@ -20,7 +20,8 @@
     "policies": "node scripts/policies-ingest.mjs",
     "test:policies": "node scripts/policies-test.mjs",
     "test:policies-endpoint": "node scripts/policies-endpoint-test.mjs",
-    "eval:retrieval": "node scripts/retrieval-eval.mjs"
+    "eval:retrieval": "node scripts/retrieval-eval.mjs",
+    "test:stats": "node scripts/stats-test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.127.0",
