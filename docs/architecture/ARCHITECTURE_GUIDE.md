@@ -78,6 +78,13 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - Test retrieval separately from the model's answer, so a wrong answer can be traced to a missing passage or a model slip. Search runs with the caller's permissions, so one school can never retrieve another's passages.
 - Policy documents are an injection channel; containment still applies. Retrieval and isolation tests passed (15/15, 98/98+1 vacuous); policy evals 16/16 on Haiku for half a cent.
 
+**Item 17 — Agentic RAG & retrieval quality** *(done 2026-10-13; the keyword-ranking fix is written but not yet verified)*
+- Meaning search finds passages by idea but can blur exact codes and numbers ("Form PU-7" vs "PU-17"); keyword search finds exact words but misses paraphrases. Hybrid search runs both and merges the two ranked lists (reciprocal rank fusion).
+- A retrieval eval measures how often the right passage comes back (first place, top 3, mean reciprocal rank) without calling a chat model: free and fast.
+- The first quiz was too easy (8/9) and proved nothing; adding look-alike codes exposed the weakness (meaning-only first-place 9/13, hybrid 10/13).
+- Print the data before explaining a failure: my "the lists tie" guess was wrong; the keyword list itself ranked the wrong passage first. A fix tuned on failing questions needs held-out questions to judge it.
+- Counting questions ("how many open incidents?") are not retrieval at all: they belong to database tools. Choosing the right tool for each question is a separate skill from searching documents.
+
 *(Each later item adds its own 2–5 line summary here when its chapter is written.)*
 
 ## Contents
@@ -85,7 +92,7 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - Part 1 — System overview
 - Part 2 — Concept chapters
   - Item 0 — Two-school isolation (written)
-  - Items 1–22 — added as we reach them (see ROADMAP progress tracker)
+  - Items 1–22 — added as we reach them (see ROADMAP progress tracker); written so far: 0, 1, 2, 15, 3, 12, 4, 17
 - Part 3 — Findings & open questions
 - Part 4 — Glossary
 - Related documents
@@ -884,7 +891,7 @@ Typical example: invoice processing — an email arrives, the agent extracts the
 - **Policy evals on Haiku 5.5 (`--set=policy`): 16 of 16** (95% range 81–100%), about half a cent. They cover: answering from the document, naming the source, not mixing in another school's $5 fee, saying "not covered" for cell phones (no invented rule), and ignoring an instruction planted inside the handbook while still answering. The fact and the planted instruction sit in the same chunk, so the answer also proves the planted text reached the model.
 
 ### 4.5 Limits
-- Retrieval quality was measured on seven questions about one handbook; there is no reranking or hybrid keyword search yet (Step 8).
+- Retrieval quality was measured on seven questions about one handbook; hybrid keyword search was added and measured in Step 8 (Item 17) but is not yet used by the chat, and there is no reranking.
 - Heading-based chunking assumes reasonably structured documents; PDFs and scans are not handled (Step 22).
 - No upload screen: ingestion is a command run by an admin login.
 - Stale documents are handled only by showing the document date in citations.
@@ -894,7 +901,7 @@ Typical example: invoice processing — an email arrives, the agent extracts the
 | Area | Baseline (LunchBox today) | Target (best practice) | Decision |
 |---|---|---|---|
 | Embeddings | Local small model behind `embed()` | Hosted embedding API, chosen on measured retrieval quality | At go-live |
-| Retrieval | Vector search, top 4 | Hybrid (keyword + vector), reranking, agent re-querying | Step 8 |
+| Retrieval | Vector search, top 4 | Hybrid (keyword + vector), reranking, agent re-querying | Step 8: hybrid built and measured, not yet in the chat (Item 17, F22) |
 | Ingestion | Command-line | Admin upload screen with status, replace and delete | Later |
 | Document formats | Markdown and text | PDFs and scans with extraction and human verification | Step 22 |
 | Freshness | Document date shown in citations | Review dates, owners and expiry; flag stale policies | Later |
@@ -927,6 +934,77 @@ Typical example: invoice processing — an email arrives, the agent extracts the
 
 ---
 
+## Item 17 — Agentic RAG & retrieval quality
+
+*Concept discussed and built 2026-10-13 (Step 8 of 23). Primer: `docs/agentic-learning/concepts.md`. Design note: `docs/agentic-learning/17-agentic-rag.md`.*
+
+### In brief
+- Retrieval (finding the right passage) is a separate stage from answering. Step 7 searched by meaning only; this step adds keyword search and merges the two ranked lists (hybrid search, reciprocal rank fusion).
+- A retrieval eval scores how often the right passage comes back, per kind of question, with no chat model involved: first place, within the top 3, and mean reciprocal rank (MRR).
+- The first quiz was too easy to show anything; a harder one with look-alike form numbers and extensions exposed the weakness. Hybrid improved it modestly (first place 9/13 to 10/13); the rest of the gap was traced to the keyword ranking itself.
+- Status: the keyword-ranking fix (migration 007) is written but not applied or measured, and the chat tool still uses the Step 7 meaning-only search.
+
+### 17.1 The concept and the explain-back
+**Two ways to find a passage.** *Meaning search* (Step 7) compares vectors, so "collect my child late" finds the late-pickup section though neither word appears there. *Keyword search* matches the actual words and numbers, so "Form PU-7" finds that exact form. Each has a blind spot the other covers. *Hybrid search* runs both and merges the lists. *Reranking* (a slower second pass over the top candidates) and *agentic re-query* (the agent searches again with a better question when the results look weak) are the next steps up; both are understood but not built.
+**Explain-back (2026-10-13):** *Give one question where keyword search beats vector search, one where vector beats keyword, and say why combining them helps.* — **Your answer:** keyword: "I need to see facilities ticket request 12345"; vector: "How many open serious incidents currently exist for facilities?"; combining keeps the simple, deterministic lookup of an exact item and adds the more nuanced analysis, to give meaning to the scope of serious incidents. **Assessment:** the keyword example is exactly right (an exact identifier). The vector example is really a *third* thing: a count over structured records is answered by a database query (a tool), not by searching passages of documents. A true vector example is a question phrased differently from the document: "Can my daughter keep her inhaler in her backpack?" finds the medication section, which never says "inhaler". The combining answer is right in spirit, and your instinct (a deterministic exact lookup alongside a looser, meaning-based one) is also true one level up, at the agent: it should pick the right tool for each question (database query for counts, ID lookup for a ticket, policy search for document text). Hybrid search is the narrower idea: two kinds of search over the same text, merged into one list.
+
+### 17.2 How hybrid search works here
+- **Keyword half:** Postgres full-text search. Each chunk's heading and text is turned into a word index with English stemming (so "pickups" matches "pickup"); common words like "is" and "the" are dropped. A question matches a chunk if the chunk contains **any** of the question's words, and chunks are ranked by how well they match.
+- **Meaning half:** the Step 7 vector search.
+- **Merge — reciprocal rank fusion:** a chunk earns 1/(60 + its position) in each list it appears in, and the two numbers are added. It uses positions, not raw scores, because keyword scores and similarity scores are on incompatible scales and would otherwise need tuning. A chunk near the top of both lists wins; a chunk strong in one list still surfaces.
+- **Safety:** the function runs with the caller's permissions (`SECURITY INVOKER`), so RLS keeps one school's passages from another, exactly as in Step 7.
+
+### 17.3 The retrieval eval
+`npm run eval:retrieval` (add `-- --mode=hybrid` for hybrid) ingests the sample documents for school A and asks a fixed question set, counting how often a chunk containing the needed text comes back. It is free (embeddings run locally; no chat model) and reports per kind of question. Metrics: **top-1** (right passage first), **top-3**, and **MRR** (1.00 means always first; 0.50 means typically second). Multi-fact questions check that every needed fact appears somewhere in the top results. Matching is on text the chunk must contain, not on heading names, so the check does not depend on how a document happens to be cut. Question kinds: exact-term, paraphrase, multi-fact, "not covered" (reported, not scored), and held-out exact-term (written before the fix they were meant to judge).
+
+### 17.4 Results (2026-10-13)
+| Run | Corpus | Method | Single-answer questions: first place | Top 3 | MRR | Exact-term first place |
+|---|---|---|---|---|---|---|
+| 1 | 2 documents (about 15 chunks) | meaning only | 8/9 | 8/9 | 0.92 | 4/4 |
+| 2 | 3 documents (20 chunks, look-alike codes) | meaning only | 9/13 | 12/13 | 0.83 | 5/8 |
+| 3 | same as run 2 | hybrid (migration 006) | 10/13 | 12/13 | 0.87 | 6/8 |
+
+- **Run 1 was too easy.** Almost everything was found, so there was nothing to improve. With only about 15 passages, even a fuzzy search lands on the right code. Lesson: an eval that cannot fail cannot tell you anything.
+- **Run 2 exposed the weakness.** Meaning search ranked the similar-looking pool-schedule form (PU-17) above the early-pickup form (PU-7), and put the wrong contact chunk first for two extension numbers. In every case the right passage was second, so it was found but ranked wrongly: a model reading only the top result could quote the wrong form or number.
+- **Run 3 (hybrid)** fixed PU-7 and lifted the two-fact late-fee question from 1/2 to 2/2 within the top 3, but the two extension questions stayed second. Treat the overall gain (one question in 13) as within noise.
+- **Not covered:** the best similarity was 0.32 and 0.29 for the cell-phone question and 0.18 for tuition (no document mentions either). A similarity cutoff for "not covered" is an idea, not built.
+- **When one half is silent:** for the inhaler question the keyword list found nothing (no shared words) and meaning search carried it alone, and hybrid did no harm.
+
+### 17.5 What the failure taught
+- **My first explanation was wrong.** I predicted all three exact-term failures would be fixed and guessed the two lists were tied for the extension questions. I added a column showing each result's position in each list. It showed the *keyword list itself* ranked "Who to call" above "Athletics contacts" (the only chunk containing 4471), so both lists agreed on the wrong order and no merge could fix it. Print the data before explaining a failure.
+- **Likely cause (inferred, not proven):** Postgres full-text ranking counts how often words occur but does not weigh them by how rare they are. "extension" appears five times in "Who to call", which outweighs a single appearance of the rare number 4471. Search engines solve this with inverse document frequency (the BM25 family of scorers).
+- **The proposed fix (migration 007):** inside the keyword list, put chunks that contain **all** the question's meaningful words first, then the rest by the old score. "extension AND 4471" matches only the Athletics chunk. For long conversational questions no chunk contains every word, so behaviour is unchanged.
+- **Honesty about the method:** a fix designed after seeing the failures cannot be judged on those same failures. Four held-out questions (three extensions and one form) were written **before** the fix, to judge it. Rule to keep: tune on one set, judge on another.
+
+### 17.6 Baseline vs target
+| Area | Baseline (LunchBox today) | Target (best practice) | Decision |
+|---|---|---|---|
+| Retrieval method in the chat | Meaning-only search (Step 7) | Hybrid search, verified, then reranking | Wire in after 007 is verified |
+| Keyword ranking | Postgres full-text, no rarity weighting (006); all-terms-first fix written (007) | BM25-style scoring, measured | Verify 007; revisit at scale |
+| Reranking | Understood, not built | Rerank the top 20 with a small model reading question and passage together; measure; watch latency and cost | Optional; ask before downloading any model |
+| Agentic re-query | Understood, not built | Agent rewrites and re-searches when results look weak; capped attempts | Optional; test in evals |
+| Evaluation | 17 scored retrieval questions plus 4 held-out, on 20 chunks | Questions drawn from real parent questions and real failures; larger corpus; intervals | Ongoing |
+| "Not covered" | Model says so when passages don't answer | Similarity cutoff plus the model's judgment | Idea only |
+| Tool choice | Model chooses among many tools | Eval cases that check it picks the right tool (count vs document vs ID lookup) | Step 9 (structured outputs) |
+
+### 17.7 Limits
+- **Migration 007 is written but not applied, and the four held-out questions have not been run.** The step is marked done with that stated plainly (decision 2026-10-13).
+- The chat tool still searches by meaning only; hybrid is built and measured but not wired in.
+- The quiz is small (20 chunks, 17 scored questions); differences of one or two questions are noise. The documents are invented samples with tidy headings; real handbooks have tables, PDFs and messy layout (Step 22).
+- The keyword index is English-only with stemming; names, codes with unusual punctuation, and other languages may behave differently.
+- The fusion constant (60) is the common default and was not tuned.
+
+### 17.8 The understanding check (preserved)
+The explain-back above was the check; assessment given there. **To keep in mind:** retrieval can fail by *ranking* (found, but second) as well as by *missing*; counts and exact lookups are tool problems, not document-search problems; and an eval that tuned a fix cannot also be the proof of it.
+
+### 17.9 The four review questions applied to hybrid retrieval
+1. *What is it for?* Getting the right policy passage to the top of the list, whether the parent used the document's words, different words, or an exact code.
+2. *What can it touch?* The caller's own school's policy tables (RLS), the local embedding model, and the text of the question (used for keyword matching).
+3. *What happens when it fails?* A near-miss returns a similar-looking passage (PU-17 for PU-7) and the model may confidently quote the wrong form or number; a vocabulary mismatch can push the right passage to fourth. Mitigations: citations naming the section so a human can check, the retrieval eval, and the "not covered" behaviour.
+4. *How would you know it works?* `npm run eval:retrieval` in both modes, with new questions added whenever a real failure is seen.
+
+---
+
 # Part 3 — Findings & open questions
 
 | # | Finding | Source | Status |
@@ -940,6 +1018,7 @@ Typical example: invoice processing — an email arrives, the agent extracts the
 | F9 | **Suspected, unverified.** The `staff_update_own` policy lets a staff member update their own staff row with no column limits (condition and check are only `email = auth.email()`). If it works, a staff member could change their own `role` or `school_id`, escalating privileges or reaching another school. Function definition reviewed 2026-10-11: `get_staff_school_id()` returns the school from the caller's own staff row (`select school_id from staff where auth_user_id = auth.uid()`), so rewriting that row's `school_id` would redirect all of their staff access. Chained with F8 (school ids are public) and open self-signup (any customer admin can create a staff row with their own email), this would let any customer read any school. **CONFIRMED exploitable on 2026-10-11** by `npm run test:staff-escalation`: school B rewrote its own staff row to point at school A, `get_staff_school_id()` then returned school A, and B read A's students. Fix prepared in `db/migrations/001_fix_staff_self_update.sql`: a narrow `link_staff_account()` function that can only set `auth_user_id`, a trigger that forbids changing `school_id` on staff rows, and removal of `staff_update_own`; plus the matching change in `useSchool.js`. | Policy review + test | **Fixed and verified 2026-10-11:** SQL applied; retest says blocked (database error "staff.school_id cannot be changed"). Code change in `useSchool.js` committed, push pending. |
 | F20 | Policy RAG is a first version: retrieval was measured on seven questions about one handbook, with no reranking or hybrid search (Step 8); chunking assumes structured Markdown or text (PDFs and scans are Step 22); ingestion is a command, not a screen; stale documents are flagged only by the date in citations; the local embedding model is unsuited to serverless production, and changing it means re-embedding every document. A document-borne injection case passed, but only one. | Step 7 | Open — extend in Steps 8 and 22 and at go-live |
 | F21 | Installing the embedding library (`@huggingface/transformers`) took `npm audit` to 22 reported vulnerabilities (1 critical) across the whole dependency tree; how many are new or reachable has not been checked. Do not run `npm audit fix` blindly. This is the dependency scan already on the to-do list (M6). | Step 7 | Open — review with `npm audit` |
+| F22 | Hybrid retrieval is built and measured but not in use: the chat tool `search_policies` still calls the Step 7 meaning-only search. Migration 007 (all-terms-first keyword ranking) is written but not applied or measured, and its four held-out questions have not been run. The retrieval quiz is small (20 chunks, 17 scored questions on invented documents) and the gain from hybrid (first place 9/13 to 10/13) is within noise. Reranking and agentic re-query are understood but not built. | Step 8 | Open — apply 007 and run the held-out questions, then wire hybrid into `search_policies`; revisit with real documents (Step 22) |
 | F19 | The model router uses keyword rules, so it can misroute in both directions (an oddly phrased analysis question could go to the cheap model); open-ended answer quality is not measured on either model (needs the model-based grader, Step 10); routing is off by default and untested against real traffic because production chat is not live (F6). Mitigations in place: default-upward rules, route and reason in every trace, category-level eval targets. | Step 6 | Open — revisit at rollout and with Step 10 |
 | F18 | Prompt-injection coverage is a sample, not a guarantee: the agent resisted all 16 cases, but "notes as the focus" and "name field" attacks are untested, false-but-plausible data cannot be detected by instruction filters, and the app has no prevention layer of its own (it relies on the model's resistance plus containment). Memory, RAG and MCP steps each need their own injection tests when built. | Step 5 | Open — keep growing the suite |
 | F15 | The audit log is append-only (deletion is blocked even for the owner) and has no retention procedure; legal retention periods vary. Needs a deliberate, controlled expiry procedure before it grows unbounded or real schools use it. | Item 15 | Open |
@@ -1044,7 +1123,7 @@ Typical example: invoice processing — an email arrives, the agent extracts the
 #### Efficiency and knowledge
 - **Model routing:** sending each request to the cheapest model that handles it well; ways: rules, a cheap classifier, or a cascade (try cheap, escalate on failure).
 - **Misroute up / down:** a simple request sent to the strong model (costs cents) versus a hard or risky one sent to the weak model (costs quality or safety); hence "default upward".
-- **RAG (retrieval-augmented generation):** finding relevant passages in your own documents and giving them to the model with the question, so it answers from them (Step 7, coming).
+- **RAG (retrieval-augmented generation):** finding relevant passages in your own documents and giving them to the model with the question, so it answers from them (Steps 7 and 8).
 - **Fine-tuning:** extra training on your own input-to-ideal-output examples, changing the model slightly (often via small adapter weights such as LoRA); good for style, format and narrow skills, poor for new facts.
 - **Distillation:** teaching a smaller model to imitate a larger one on a narrow task, often with data the larger model drafted.
 - **Few-shot examples:** showing the model a handful of example answers inside the prompt.
@@ -1057,6 +1136,15 @@ Typical example: invoice processing — an email arrives, the agent extracts the
 - **pgvector:** the Postgres extension that stores vectors and searches them by similarity.
 - **Grounding / citation:** answering from supplied passages and naming the source, instead of from the model's own memory.
 - **`SECURITY INVOKER` (function):** runs with the caller's permissions, so RLS applies (the default); the opposite of `SECURITY DEFINER`. The policy search is invoker so schools stay isolated.
+- **Keyword search / full-text search:** finding passages that contain the question's actual words; here Postgres full-text search with English stemming ("pickups" matches "pickup") that ignores common words. Strong on exact codes and numbers; blind to paraphrases.
+- **Hybrid search:** running a keyword search and a meaning search over the same text and merging the two ranked lists.
+- **Reciprocal rank fusion (RRF):** the merge method: each passage scores 1/(60 + position) in every list it appears in, and the scores are added. Uses positions, so no tuning of incompatible score scales.
+- **Inverse document frequency (IDF) / BM25:** weighting a search word by how rare it is across all documents, so a rare number counts for more than a common word; the idea behind BM25 scorers. Postgres full-text ranking lacks it, which is the likely cause of the extension-number misses.
+- **Reranker (cross-encoder):** a second, slower pass that reads the question and each of the top ~20 candidate passages together and re-orders them. More accurate than comparing separate vectors; adds time and cost. Understood, not built.
+- **Agentic RAG / re-query:** letting the agent judge whether the retrieved passages are good enough and, if not, rewrite the question and search again (with a cap on attempts). Understood, not built.
+- **MRR (mean reciprocal rank):** a retrieval score: 1 for a right answer in first place, 1/2 in second, 1/3 in third, averaged over questions.
+- **Held-out set:** test questions written before a fix and never used to tune it, so they can honestly judge whether the fix generalizes.
+- **Ceiling effect:** an eval so easy that every method scores near the top, so it cannot show improvement.
 
 ---
 
