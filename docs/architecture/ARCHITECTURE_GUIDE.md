@@ -85,6 +85,12 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - Print the data before explaining a failure: my "the lists tie" guess was wrong; the keyword list itself ranked the wrong passage first. A fix tuned on failing questions needs held-out questions to judge it.
 - Counting questions ("how many open incidents?") are not retrieval at all: they belong to database tools. Choosing the right tool for each question is a separate skill from searching documents.
 
+**Item 8 — Structured outputs & deterministic counts** *(done 2026-10-13, stage 1; the final-answer check is not built)*
+- The model should never count, filter or add up rows: it miscounts. Code computes every fact, and the model chooses the tool and presents the result.
+- The app already had about 25 pure calculators the screens use; the chat skipped them and handed the model raw rows. The fix was wiring (a `get_school_stats` tool), not new math.
+- A schema (structured output) checks the *shape* of an answer, not whether a number is *true*: a valid card can still hold a wrong number. Code makes the numbers right; the schema makes sure they land in the right slots.
+- Watch for: a filter silently dropped, a list capped at 1000 rows, tables the user's role cannot see reading as "0", and an unclear word like "open". A "0" proves nothing without known data to compare it to.
+
 *(Each later item adds its own 2–5 line summary here when its chapter is written.)*
 
 ## Contents
@@ -92,7 +98,7 @@ One short summary per finished item — read this first; the chapters in Part 2 
 - Part 1 — System overview
 - Part 2 — Concept chapters
   - Item 0 — Two-school isolation (written)
-  - Items 1–22 — added as we reach them (see ROADMAP progress tracker); written so far: 0, 1, 2, 15, 3, 12, 4, 17
+  - Items 1–22 — added as we reach them (see ROADMAP progress tracker); written so far: 0, 1, 2, 15, 3, 12, 4, 17, 8
 - Part 3 — Findings & open questions
 - Part 4 — Glossary
 - Related documents
@@ -1005,6 +1011,77 @@ The explain-back above was the check; assessment given there. **To keep in mind:
 
 ---
 
+## Item 8 — Structured outputs & deterministic counts
+
+*Concept discussed and built 2026-10-13 (Step 9 of 23). Primer: `docs/agentic-learning/concepts.md`. Design note: `docs/agentic-learning/08-structured-outputs-counts.md`.*
+
+### In brief
+- A language model is unreliable at counting and arithmetic, so every number in an answer should be computed by code and only presented by the model.
+- Two protections work as a pair: **computing in code** makes the values correct; **checking the output against a schema** makes the shape correct. A schema cannot tell whether a number is true.
+- LunchBox already had the pieces (an exact `count` beside every list; about 25 calculators the screens use). The audit found the chat skipped the calculators, so "open work orders" still meant the model filtering and counting rows. A `get_school_stats` tool now runs those calculators in code.
+- Status: stage 1 done and checked by hand. The final-answer check (server-side validation of the view) and the MCP-server fix are not built, and the eval suite was not re-run.
+
+### 8.1 The concept and the explain-back
+**Two ideas.** (1) *Compute facts in code, not in the model:* if the answer is a count, sum, rate or filtered subset, the database or plain code works it out. (2) *Force the shape of the output:* the model fills in a fixed form (a schema), and code checks the form before it is shown, like input validation on a web form.
+**Explain-back (2026-10-13):** *Which parts of an answer should the model never compute, and what does checking the output against a schema protect against?* — **Your answer:** the model should never compute structured data or numbers, anything better left to the deterministic functions already written for humans to push buttons on, which already work and are precise; the schema "ensures correct and complete answers to facts and numbers that LLMs aren't good at." **Assessment:** the first half is right, and the observation that the deterministic functions already exist is exactly the design (the chat should reuse them; this step did). The second half blended two protections. Computing in code makes the *numbers* correct; a schema check makes the *shape* correct (a missing column, wrong type or invented template is rejected before anyone sees it). A schema alone cannot tell whether a number is right: if the model types "32" into a perfectly valid table, the form passes and the number is still wrong. **To keep in mind:** valid form does not mean true content.
+**Context:** Daniel noted that this concept was implemented across the codebase long ago (the exact-count helper, the calculators, the structured final answer); this step was an audit and a refresher that closed the remaining gap.
+
+### 8.2 The audit (what was already solid, and the gaps)
+- **Solid:** `withCounts` in `api/chat/index.js` puts an exact `count` next to every list a tool returns, and the system prompt says to use it. Every fact comes from a service function, not from the model's memory.
+- **Gap 1 — filtering and arithmetic left to the model.** `withCounts` counts the *whole* list. For "how many open work orders?" the count was all work orders; filtering to open and counting that subset was the model's job. No tool computed totals, rates or breakdowns. The app's calculators (`calcFacilitiesStats`, `calcFundraisingStats`, `calcStudentStats`, `calcPipelineCounts`, `calcIncidentStats` …) were unused by the chat.
+- **Gap 2 — nothing checks the final answer.** `render_view`'s `data` is a bare object whose shape is described only in prose, and the server forwards it unvalidated. If a tool returns `count: 33` and the model writes 32 into a stat card, nothing notices.
+- **Gap 3 — the MCP server** (the Claude Desktop path) returns raw rows with no counts; its model counts them itself.
+- **Missing source:** there was no school-wide incident tool in chat, only per-student.
+
+### 8.3 What was built (stage 1)
+- **`get_school_stats`** (`api/_lib/schoolStats.js`): topics students, admissions, staff, facilities, incidents, report cards, alumni, classes, rooms, fundraising. Each fetches rows with the existing service and computes with the existing domain function. Filters (grade, status, priority, category, incident type) reuse the screens' filter functions.
+- **Honest failure modes:** an unsupported filter is reported (`ignored_filters` and a note), never silently dropped; a list at or above the 1000-row database cap carries a warning; staff roles can only ask about topics their own screens show, because tables hidden from staff by RLS would otherwise read as a misleading "0".
+- **`get_school_incidents`:** the school-wide incident list (for listing; counts go through `get_school_stats`).
+- **Structure:** `computeStats` is pure (no I/O) so the numbers can be tested offline; `getSchoolStats` adds the fetch and the role check.
+
+### 8.4 Results (2026-10-13)
+- **`npm run test:stats`: 31 passed, 0 failed.** Expected numbers are written by hand in the test, not recomputed with the code under test. Covered: totals by status, grade and status filters, a grade with nobody, unsupported filters reported, the `'All'` filter trap, open-and-urgent combinations, incidents by status and type, fundraising totals with decimals and unique donors, room capacity stored as text, the row-cap warning, role limits, and tool registration. The `'All'` trap was confirmed real by calling the screen's filter function with a missing value (it matches nothing).
+- **`npm run test:stats -- --live`** (every topic against school A's real data): reported passing by Daniel; the output was not pasted. It proves the wiring runs, not that the numbers are right.
+- **Manual chat check on the school A test account (localhost):** "how many students are enrolled in 3rd grade?" gave 3 and "how many open work orders?" gave 1; both matched the Students and Facilities screens. The traces show `get_school_stats(topic, status, grade)` and `get_school_stats(topic, status)` with results of 168 and 153 bytes, and no list tool. Small numbers on their own prove little; the traces are what show code produced them.
+- **A wrong-account result:** the first attempt, signed in to an account with no students, answered "no students on file." That was correct for that account, but it shows why a bare "0" proves nothing without known data.
+- **Side benefit:** a count question now hands the model about 160 bytes instead of every row (finding F12, for count questions).
+
+### 8.5 What the work taught
+- **Wiring, not new math:** the calculators the screens use were reusable as-is because the domain layer is pure (no React, no Supabase). The layered architecture paid off.
+- **Silent wrong answers are the real risk:** a dropped filter, a capped list, a role-hidden table and an ambiguous word ("open") all produce a confident wrong number with no error.
+- **Documentation drifts:** the incident types in CLAUDE.md were stale ("Medical"; the app uses "Attendance") and were nearly copied into tool descriptions.
+- **Positive controls:** a live check that only confirms "it runs" cannot catch wrong data; a known-data check is still to add.
+
+### 8.6 Baseline vs target
+| Area | Baseline (LunchBox today) | Target (best practice) | Decision |
+|---|---|---|---|
+| Counts and totals in chat | Computed in code via `get_school_stats` (10 topics) | Also attendance rates and cross-topic questions | Extend as questions arise |
+| Other list tools | Return all rows; `withCounts` counts the whole list | Return aggregates or filtered, paged results; count in the database | Item 16 (context engineering) |
+| Final answer | Model's `render_view` data forwarded unvalidated | Server validates the shape; every displayed number must appear in a tool result (provenance check), first logged, then enforced | Stage 2, not built |
+| MCP server | Raw rows, no counts | Same calculators, or counts attached | Finding F23; Step 20 (identity and MCP) |
+| Verification | 31 offline checks; wiring check; manual check on two questions | Known-data tests on a seeded school; eval cases for numeric questions; suite re-run after changes | Next time this area changes |
+| Row cap | Warning at 1000 rows | Database `count(*)` instead of fetching rows to count | At scale |
+| Role limits | Staff see six topics (plus staff directory for Principal/Administrator) | Same rules as the screens, tested with real staff accounts | With staff-account tests (F1) |
+
+### 8.7 Limits
+- The eval suite was not re-run after this change, so effects on other behaviors (scheduling, refusals, policy answers) are unchecked.
+- The incidents question and the other topics were not tried in the chat; only students and work orders were.
+- The model can still write a wrong number into a view, or do arithmetic in a sentence; only the common counts moved to code.
+- "Open" means exactly the status Open, as on the Facilities card; the model may need to explain that when a user means "not finished."
+- `get_school_stats` fetches whole lists to count them in code, which is fine at this size and wasteful at scale.
+- The model-routing rules (Step 6) and the system prompt were not changed for the new tool.
+
+### 8.8 The understanding check (preserved)
+The explain-back above was the check; assessment given there.
+
+### 8.9 The four review questions applied to code-computed counts
+1. *What is it for?* Making every number the chat states come from the same deterministic code the screens use.
+2. *What can it touch?* The caller's own school's rows (RLS), the domain calculators, and the model's final wording.
+3. *What happens when it fails?* A dropped filter, a capped list or a role-hidden table gives a confident wrong number. Mitigations: reported unsupported filters, the row-cap warning, role limits, tests with known numbers. Not yet mitigated: the model mis-typing a number into a view.
+4. *How would you know it works?* `npm run test:stats` (and `--live`), traces showing `get_school_stats`, comparison with the screens, and, still to add, eval cases with database-derived expected numbers.
+
+---
+
 # Part 3 — Findings & open questions
 
 | # | Finding | Source | Status |
@@ -1019,13 +1096,14 @@ The explain-back above was the check; assessment given there. **To keep in mind:
 | F20 | Policy RAG is a first version: retrieval was measured on seven questions about one handbook, with no reranking or hybrid search (Step 8); chunking assumes structured Markdown or text (PDFs and scans are Step 22); ingestion is a command, not a screen; stale documents are flagged only by the date in citations; the local embedding model is unsuited to serverless production, and changing it means re-embedding every document. A document-borne injection case passed, but only one. | Step 7 | Open — extend in Steps 8 and 22 and at go-live |
 | F21 | Installing the embedding library (`@huggingface/transformers`) took `npm audit` to 22 reported vulnerabilities (1 critical) across the whole dependency tree; how many are new or reachable has not been checked. Do not run `npm audit fix` blindly. This is the dependency scan already on the to-do list (M6). | Step 7 | Open — review with `npm audit` |
 | F22 | Hybrid retrieval is built and measured but not in use: the chat tool `search_policies` still calls the Step 7 meaning-only search. Migration 007 (all-terms-first keyword ranking) is written but not applied or measured, and its four held-out questions have not been run. The retrieval quiz is small (20 chunks, 17 scored questions on invented documents) and the gain from hybrid (first place 9/13 to 10/13) is within noise. Reranking and agentic re-query are understood but not built. | Step 8 | Open — apply 007 and run the held-out questions, then wire hybrid into `search_policies`; revisit with real documents (Step 22) |
+| F23 | Counts in chat now come from code (`get_school_stats`), but the final answer is unchecked: `render_view` forwards the model's `data` unvalidated, and the model can still type a wrong number into a card or do arithmetic in a sentence. The MCP server returns raw rows with no counts. Other list tools still return every row, and database lists are capped at 1000 rows by default. The eval suite was not re-run after Step 9, the incidents question was not tried in the chat, and the live wiring check does not prove the numbers right (no known-data test). CLAUDE.md's incident-type list was stale (fixed). | Step 9 | Open — server-side view validation plus provenance check (logged first); known-data tests; count in the database; suite re-run next time this area changes |
 | F19 | The model router uses keyword rules, so it can misroute in both directions (an oddly phrased analysis question could go to the cheap model); open-ended answer quality is not measured on either model (needs the model-based grader, Step 10); routing is off by default and untested against real traffic because production chat is not live (F6). Mitigations in place: default-upward rules, route and reason in every trace, category-level eval targets. | Step 6 | Open — revisit at rollout and with Step 10 |
 | F18 | Prompt-injection coverage is a sample, not a guarantee: the agent resisted all 16 cases, but "notes as the focus" and "name field" attacks are untested, false-but-plausible data cannot be detected by instruction filters, and the app has no prevention layer of its own (it relies on the model's resistance plus containment). Memory, RAG and MCP steps each need their own injection tests when built. | Step 5 | Open — keep growing the suite |
 | F15 | The audit log is append-only (deletion is blocked even for the owner) and has no retention procedure; legal retention periods vary. Needs a deliberate, controlled expiry procedure before it grows unbounded or real schools use it. | Item 15 | Open |
 | F16 | The audit trigger runs inside every write to the eight audited tables and fails closed: a bug would block those writes, and nothing alerts on audit failures. | Item 15 | Open — accepted trade-off; add alerting later |
 | F17 | Reads are not audited — only changes. Who *viewed* a health record is not recorded, and at the database level every staff member can read health data (F1). Some regulations expect access logging for health data. | Item 15 | Open |
 | F14 | The model call is made directly with the Anthropic SDK inside the chat handler, so evals and tracing are tied to one vendor at that seam (token field names, stop reasons, cache accounting). A small adapter returning one common shape would make both portable. | Evals/tracing discussion | Open — design, not urgent |
-| F12 | **Found by the first traces.** For a "how many" question the model receives every row of the tool result (33 cohort rows, ~4,000 tokens) though it needs only the count; it scales with school size. Fix belongs to item 16: return the count or only the needed fields. | Item 2 traces | Open — item 16 |
+| F12 | **Found by the first traces.** For a "how many" question the model receives every row of the tool result (33 cohort rows, ~4,000 tokens) though it needs only the count; it scales with school size. Fix belongs to item 16: return the count or only the needed fields. | Item 2 traces | Partly addressed in Step 9: count questions now go through `get_school_stats` (about 160 bytes instead of every row). Other list tools still return all rows — item 16 remains. |
 | F13 | Traces can contain a student's name in the stored question text, and retention is manual (admins can delete). Off-switch added (`TRACE_STORE_QUESTION=false`); automatic retention not built. | Item 2 | Open — decide before real schools use it |
 | F10 | Policies are granted to role `public` instead of `authenticated`; safe only because `auth.uid()` is empty for anonymous callers. | Policy review | Open — hygiene |
 | F11 | Staff can read `campaigns` (fundraising); probably unintended. | Policy review | Open — low |
@@ -1145,6 +1223,10 @@ The explain-back above was the check; assessment given there. **To keep in mind:
 - **MRR (mean reciprocal rank):** a retrieval score: 1 for a right answer in first place, 1/2 in second, 1/3 in third, averaged over questions.
 - **Held-out set:** test questions written before a fix and never used to tune it, so they can honestly judge whether the fix generalizes.
 - **Ceiling effect:** an eval so easy that every method scores near the top, so it cannot show improvement.
+- **Deterministic function:** code that returns the same result for the same input every time (a count, a sum, a filter); the opposite of asking a model to work something out.
+- **Structured output / schema validation:** requiring a model's answer to fit a fixed shape (named fields, types, allowed values) and rejecting anything that does not. It checks the *form*, not whether the content is true.
+- **Provenance check:** verifying that a number shown to the user actually appears in a tool result and was not invented or mistyped by the model. Planned, not built.
+- **Silent truncation (row cap):** a database returning only the first N rows (here 1000) without an error, so a count over the result is quietly too low.
 
 ---
 
